@@ -1,0 +1,45 @@
+name: ready_flights
+description: "A new journey online project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  introduction_screen: ^3.1.17
+  flutter_svg: ^2.0.17
+  auto_size_text: ^3.0.0
+  flutter_svg_provider: ^1.0.7
+  persistent_bottom_nav_bar: ^6.2.1
+  get: ^4.7.2
+  intl: ^0.20.2
+  dio: ^5.8.0+1
+  crypto: ^3.0.6
+  pdf: ^3.11.3
+  http: ^1.3.0
+  url_launcher: ^6.3.1
+  flutter_rating_bar: ^4.0.1
+  google_maps_flutter: ^2.10.1
+  cached_network_image: ^3.4.1
+  shared_preferences: ^2.5.2
+  printing: ^5.14.2
+  material_design_icons_flutter: ^7.0.7296
+  flutter_animate: ^4.5.2
+  xml2json: ^6.2.7
+  path_provider: ^2.1.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/introduce/
+    - assets/certs/

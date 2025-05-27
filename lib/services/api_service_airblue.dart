@@ -1,0 +1,1106 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
+import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
+import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:xml2json/xml2json.dart';
+import 'package:xml/xml.dart' as xml;
+import '../views/flight/search_flights/booking_flight/booking_flight_controller.dart';
+import '../views/flight/search_flights/flight_package/airblue/airblue_flight_model.dart';
+import '../views/flight/search_flights/flight_package/sabre/sabre_flight_models.dart';
+
+class AirBlueFlightApiService {
+  final String link = 'https://otatest2.zapways.com/v2.0/OTAAPI.asmx';
+  final String sslCert = 'https://agent1.pk/flight/classes/toc/cert.pem';
+  final String sslKey = 'https://agent1.pk/flight/classes/toc/key.pem';
+  final String airsslCert = 'https://agent1.pk/flight/classes/toc/cert.pem';
+  final String airsslKey = 'https://agent1.pk/flight/classes/toc/key.pem';
+  final String ERSP_UserID = '2012/86B5EFDFF02E2966CBB6EECFF6FC339222';
+  final String ID = 'travelocityota';
+  final String MessagePassword = 'nRve2!EzPrc4cdvt';
+  final String Target = 'Test';
+  final String Version = '1.04';
+  final String Type = '29';
+
+  Future<Map<String, dynamic>> airBlueFlightSearch({
+    required int type,
+    required String origin,
+    required String destination,
+    required String depDate,
+    required int adult,
+    required int child,
+    required int infant,
+    required String stop,
+    required String cabin,
+  }) async {
+    try {
+      // Process input parameters exactly like PHP version
+      final originArray = origin.split(",");
+      final destinationArray = destination.split(",");
+      final depDateArray = depDate.split(",");
+      //
+      // print("Origins");
+      // print(originArray);
+      // print("destiantions");
+      // print(destinationArray);
+      // print("dates");
+      // print(depDateArray);
+
+      String originDestination = "";
+      String cabins = 'Y'; // Default to Economy
+
+      // Cabin type mapping
+      switch (cabin) {
+        case 'Economy':
+          cabins = 'Y';
+          break;
+        case 'Business':
+          cabins = 'C';
+          break;
+        case 'First-Class':
+          cabins = 'F';
+          break;
+      }
+
+      // Build origin destination XML exactly like PHP version
+      if (type == 0) {
+        // One-way trip
+        originDestination = '''
+  <OriginDestinationInformation RPH="1">
+    <DepartureDateTime>${depDateArray[1]}T00:00:00</DepartureDateTime>
+    <OriginLocation LocationCode="${originArray[1].toUpperCase()}"></OriginLocation>
+    <DestinationLocation LocationCode="${destinationArray[1].toUpperCase()}"></DestinationLocation>
+  </OriginDestinationInformation>''';
+      } else if (type == 1) {
+        // Round trip
+        originDestination = '''
+  <OriginDestinationInformation RPH="1">
+    <DepartureDateTime>${depDateArray[1]}T00:00:00</DepartureDateTime>
+    <OriginLocation LocationCode="${originArray[1].toUpperCase()}"></OriginLocation>
+    <DestinationLocation LocationCode="${destinationArray[1].toUpperCase()}"></DestinationLocation>
+  </OriginDestinationInformation>
+  <OriginDestinationInformation RPH="2">
+    <DepartureDateTime>${depDateArray[2]}T00:00:00</DepartureDateTime>
+    <OriginLocation LocationCode="${destinationArray[1].toUpperCase()}"></OriginLocation>
+    <DestinationLocation LocationCode="${originArray[1].toUpperCase()}"></DestinationLocation>
+  </OriginDestinationInformation>''';
+      } else if (type == 2) {
+        // Multi-city trip
+        final loopCount = originArray.length;
+        for (int i = 1; i < loopCount; i++) {
+          originDestination += '''
+  <OriginDestinationInformation RPH="$i">
+    <DepartureDateTime>${depDateArray[i]}T00:00:00</DepartureDateTime>
+    <OriginLocation LocationCode="${originArray[i].toUpperCase()}"></OriginLocation>
+    <DestinationLocation LocationCode="${destinationArray[i].toUpperCase()}"></DestinationLocation>
+  </OriginDestinationInformation>''';
+        }
+      }
+
+      // Build passenger XML exactly like PHP version
+      String passengerArray = '';
+      if (adult != 0) {
+        passengerArray +=
+            '<PassengerTypeQuantity Code="ADT" Quantity="$adult"></PassengerTypeQuantity>';
+      }
+      if (child != 0) {
+        passengerArray +=
+            '<PassengerTypeQuantity Code="CHD" Quantity="$child"></PassengerTypeQuantity>';
+      }
+      if (infant != 0) {
+        passengerArray +=
+            '<PassengerTypeQuantity Code="INF" Quantity="$infant"></PassengerTypeQuantity>';
+      }
+
+      // Generate random string for EchoToken (similar to PHP function)
+      final randomString = _generateRandomString(32);
+
+      // Build the complete XML request exactly like PHP version
+      final request =
+          '''<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
+  <Header/>
+  <Body>
+    <AirLowFareSearch xmlns="http://zapways.com/air/ota/2.0">
+      <airLowFareSearchRQ EchoToken="$randomString" Target="$Target" Version="$Version" xmlns="http://www.opentravel.org/OTA/2003/05">
+        <POS>
+          <Source ERSP_UserID="$ERSP_UserID">
+            <RequestorID Type="$Type" ID="$ID" MessagePassword="$MessagePassword" />
+          </Source>
+        </POS>
+        $originDestination
+        <TravelerInfoSummary>
+          <AirTravelerAvail>
+            $passengerArray
+          </AirTravelerAvail>
+        </TravelerInfoSummary>
+      </airLowFareSearchRQ>
+    </AirLowFareSearch>
+  </Body>
+</Envelope>''';
+
+      // print("request");
+      final xmlRequest = request.toString();
+      final jsonRequest = _convertXmlToJson(xmlRequest);
+      // _printJsonPretty(jsonRequest);
+
+      // Log the request (matching PHP format)
+      // await _logRequest(request, 'Shopping_request');
+
+      // Configure Dio with SSL certificates
+      final ByteData certData = await rootBundle.load('assets/certs/cert.pem');
+      final ByteData keyData = await rootBundle.load('assets/certs/key.pem');
+
+      // Create temporary files for the certificates
+      final Directory tempDir = await getTemporaryDirectory();
+      final File certFile = File('${tempDir.path}/cert.pem');
+      final File keyFile = File('${tempDir.path}/key.pem');
+
+      await certFile.writeAsBytes(certData.buffer.asUint8List());
+      await keyFile.writeAsBytes(keyData.buffer.asUint8List());
+
+      // Configure Dio with SSL certificates
+      final dio = Dio(
+        BaseOptions(
+          contentType: 'text/xml; charset=utf-8',
+          headers: {'Content-Type': 'text/xml; charset=utf-8'},
+        ),
+      );
+
+      // Create SecurityContext with certificates
+      final SecurityContext securityContext = SecurityContext();
+      securityContext.useCertificateChain(certFile.path);
+      securityContext.usePrivateKey(keyFile.path);
+
+      // Configure HttpClient with the security context
+      final HttpClient httpClient = HttpClient(context: securityContext);
+      httpClient.badCertificateCallback = (
+        X509Certificate cert,
+        String host,
+        int port,
+      ) {
+        return true; // Only use this for testing! In production, implement proper validation
+      };
+
+      // Create the Dio client with the custom HttpClient
+      dio.httpClientAdapter = IOHttpClientAdapter(
+        createHttpClient: () => httpClient,
+      );
+
+      // Make the API call
+      final response = await dio.post(
+        link,
+        data: request,
+        options: Options(
+          contentType: 'text/xml; charset=utf-8',
+          responseType: ResponseType.plain,
+        ),
+      );
+      // Convert XML to JSON using xml2json package
+      final xmlResponse = response.data.toString();
+      final jsonResponse = _convertXmlToJson(xmlResponse);
+
+      // print("response");
+      // _printJsonPretty(jsonResponse);
+
+      // Log the response (matching PHP format)
+      // await _logResponse(response.data.toString(), 'Shopping_response');
+
+      // Convert XML to JSON
+      return _convertXmlToJson(response.data.toString());
+    } catch (e) {
+      // print('Error in shoppingFlight: $e');
+      rethrow;
+    }
+  }
+
+  Map<String, dynamic> _convertXmlToJson(String xmlString) {
+    try {
+      final transformer = Xml2Json();
+      transformer.parse(xmlString);
+      final jsonString = transformer.toGData();
+      return jsonDecode(jsonString) as Map<String, dynamic>;
+    } catch (e) {
+      // print('Error converting XML to JSON: $e');
+      return {'error': 'Failed to parse XML response'};
+    }
+  }
+
+  String _generateRandomString(int length) {
+    const chars =
+        'abcdefghij   klmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final random = Random();
+    return String.fromCharCodes(
+      Iterable.generate(
+        length,
+        (_) => chars.codeUnitAt(random.nextInt(chars.length)),
+      ),
+    );
+  }
+
+  void _printJsonPretty(dynamic jsonData) {
+    const int chunkSize = 1000;
+    final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);
+    for (int i = 0; i < jsonString.length; i += chunkSize) {
+      print(
+        jsonString.substring(
+          i,
+          i + chunkSize > jsonString.length ? jsonString.length : i + chunkSize,
+        ),
+      );
+    }
+  }
+
+  // Add this to api_service_airblue.dart
+
+  Future<Map<String, dynamic>> saveAirBlueBooking({
+    required BookingFlightController bookingController,
+    required AirBlueFlight flight,
+    required AirBlueFlight? returnFlight,
+    required String token,
+  }) async {
+    try {
+      // Prepare booking info
+      final bookingInfo = {
+        "bfname": bookingController.firstNameController.text,
+        "blname": bookingController.lastNameController.text,
+        "bemail": bookingController.emailController.text,
+        "bphno": bookingController.phoneController.text,
+        "badd": bookingController.addressController.text,
+        "bcity": bookingController.cityController.text,
+        "final_price": flight.price.toString(),
+        "client_email": bookingController.emailController.text,
+        "client_phone": bookingController.phoneController.text,
+      };
+
+      // Prepare adults data
+      final adults =
+          bookingController.adults.map((adult) {
+            return {
+              "title": adult.titleController.text,
+              "first_name": adult.firstNameController.text,
+              "last_name": adult.lastNameController.text,
+              "dob": adult.dateOfBirthController.text,
+              "nationality": adult.nationalityController.text,
+              "passport": adult.passportController.text,
+              "passport_expiry": adult.passportExpiryController.text,
+              "cnic":
+                  "3310285868703", // CNIC is not collected in current form, leaving empty
+            };
+          }).toList();
+
+      // Prepare children data
+      final children =
+          bookingController.children.map((child) {
+            return {
+              "title": child.titleController.text,
+              "first_name": child.firstNameController.text,
+              "last_name": child.lastNameController.text,
+              "dob": child.dateOfBirthController.text,
+              "nationality": child.nationalityController.text,
+              "passport": child.passportController.text,
+              "passport_expiry": child.passportExpiryController.text,
+              "cnic":
+                  "3310285868703", // CNIC is not collected in current form, leaving empty
+            };
+          }).toList();
+
+      // Prepare infants data
+      final infants =
+          bookingController.infants.map((infant) {
+            return {
+              "title": infant.titleController.text,
+              "first_name": infant.firstNameController.text,
+              "last_name": infant.lastNameController.text,
+              "dob": infant.dateOfBirthController.text,
+              "nationality": infant.nationalityController.text,
+              "passport": infant.passportController.text,
+              "passport_expiry": infant.passportExpiryController.text,
+              "cnic":
+                  "3310285868703", // CNIC is not collected in current form, leaving empty
+            };
+          }).toList();
+
+      // Prepare flights data
+      final flights = <Map<String, dynamic>>[];
+
+      // Add outbound flight
+      flights.add(_prepareFlightData(flight, "One-Way"));
+
+      // Add return flight if exists
+      if (returnFlight != null) {
+        flights.add(_prepareFlightData(returnFlight, "Return"));
+      }
+
+      // Prepare final request body
+      final requestBody = {
+        "booking_info": bookingInfo,
+        "adults": adults,
+        "children": children,
+        "infants": infants,
+        "flights": flights,
+      };
+
+      // Configure Dio
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: 'https://onerooftravel.net/api/',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          responseType: ResponseType.json,
+        ),
+      );
+
+      // Make the API call
+      final response = await dio.post('flight-booking', data: requestBody);
+
+      // Handle response
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (response.data is Map<String, dynamic>) {
+          return response.data;
+        } else if (response.data is String) {
+          return jsonDecode(response.data) as Map<String, dynamic>;
+        }
+        return {'status': 'success'};
+      } else {
+        // Handle error responses
+        dynamic errorData;
+        try {
+          errorData =
+              response.data is String
+                  ? jsonDecode(response.data)
+                  : response.data;
+        } catch (e) {
+          errorData = {'message': response.data?.toString() ?? 'Unknown error'};
+        }
+
+        // Format error message from API response
+        String errorMessage = 'Failed to create booking';
+        if (errorData is Map) {
+          if (errorData['errors'] is Map) {
+            // Handle field-specific errors
+            final errors = (errorData['errors'] as Map).entries
+                .map((e) {
+                  return '${e.key}: ${e.value}';
+                })
+                .join('\n');
+            errorMessage = errors;
+          } else if (errorData['message'] != null) {
+            errorMessage = errorData['message'];
+          }
+        }
+
+        throw ApiException(
+          message: errorMessage,
+          statusCode: response.statusCode,
+          errors: errorData['errors'] ?? {},
+        );
+      }
+    } on DioException catch (e) {
+      // Handle Dio-specific errors
+      String errorMessage = 'Network error occurred';
+      if (e.response != null) {
+        try {
+          final errorData =
+              e.response!.data is String
+                  ? jsonDecode(e.response!.data)
+                  : e.response!.data;
+
+          if (errorData is Map && errorData['errors'] != null) {
+            errorMessage = (errorData['errors'] as Map).entries
+                .map((e) {
+                  return '${e.key}: ${e.value}';
+                })
+                .join('\n');
+          } else if (errorData is Map && errorData['message'] != null) {
+            errorMessage = errorData['message'];
+          }
+        } catch (_) {
+          errorMessage = e.response?.data?.toString() ?? 'Unknown error';
+        }
+      }
+      throw ApiException(
+        message: errorMessage,
+        statusCode: e.response?.statusCode,
+        errors: {},
+      );
+    } catch (e, stackTrace) {
+      print('Error saving AirBlue booking: $e');
+      print('Stack trace: $stackTrace');
+      throw ApiException(message: e.toString(), statusCode: null, errors: {});
+    }
+  }
+
+  Map<String, dynamic> _prepareFlightData(AirBlueFlight flight, String type) {
+    // Get first segment info (assuming there's at least one)
+    final segment =
+        flight.segmentInfo.isNotEmpty
+            ? flight.segmentInfo.first
+            : FlightSegmentInfo(
+              bookingCode: 'Y',
+              cabinCode: 'Y',
+              mealCode: 'M',
+              seatsAvailable: '',
+            );
+
+    // Get first leg schedule (assuming there's at least one)
+    final leg =
+        flight.legSchedules.isNotEmpty
+            ? flight.legSchedules.first
+            : {
+              'departure': {'airport': '', 'time': '', 'dateTime': ''},
+              'arrival': {'airport': '', 'time': '', 'dateTime': ''},
+            };
+
+    // Parse departure date and time
+    final departureDateTime = DateTime.parse(leg['departure']['dateTime']);
+    final arrivalDateTime = DateTime.parse(leg['arrival']['dateTime']);
+    final duration = arrivalDateTime.difference(departureDateTime);
+
+    return {
+      "departure": {
+        "airport": leg['departure']['airport'],
+        "date": departureDateTime.toIso8601String().split('T')[0],
+        "time":
+            "${departureDateTime.hour.toString().padLeft(2, '0')}:${departureDateTime.minute.toString().padLeft(2, '0')}",
+        "terminal": leg['departure']['terminal'] ?? 'Main',
+      },
+      "arrival": {
+        "airport": leg['arrival']['airport'],
+        "date": arrivalDateTime.toIso8601String().split('T')[0],
+        "time":
+            "${arrivalDateTime.hour.toString().padLeft(2, '0')}:${arrivalDateTime.minute.toString().padLeft(2, '0')}",
+        "terminal": leg['arrival']['terminal'] ?? 'Main',
+      },
+      "flight_number": flight.id.split('-').first,
+      "airline_code": flight.airlineCode,
+      "operating_flight_number": flight.id.split('-').first,
+      "operating_airline_code": flight.airlineCode,
+      "cabin_class": _getCabinClassName(segment.cabinCode),
+      "sub_class": segment.cabinCode,
+      "hand_baggage": "7kg", // Default value as per web
+      "check_baggage":
+          "${flight.baggageAllowance.weight} ${flight.baggageAllowance.unit}",
+      "meal": segment.mealCode == 'M' ? 'Meal' : 'None',
+      "layover": "None", // Assuming non-stop flights
+      "duration": "${duration.inHours}h ${duration.inMinutes.remainder(60)}m",
+      "type": type,
+    };
+  }
+
+  String _getCabinClassName(String cabinCode) {
+    switch (cabinCode.toUpperCase()) {
+      case 'F':
+        return 'First Class';
+      case 'C':
+        return 'Business Class';
+      case 'J':
+        return 'Premium Business';
+      case 'W':
+        return 'Premium Economy';
+      case 'S':
+        return 'Premium Economy';
+      case 'Y':
+        return 'Economy';
+      default:
+        return 'Economy';
+    }
+  }
+
+  // Add to api_service_airblue.dart
+
+  Future<Map<String, dynamic>> createAirBluePNR({
+    required AirBlueFlight flight,
+    required AirBlueFlight? returnFlight,
+    required BookingFlightController bookingController,
+    required String clientEmail,
+    required String clientPhone,
+  }) async {
+    try {
+      // Prepare booking class array (selected flights)
+      final bookingClass = <Map<String, dynamic>>[];
+
+      // Add outbound flight with its original raw data
+      bookingClass.add(flight.rawData); // Assuming we store rawData in AirBlueFlight
+
+      // Add return flight if exists
+      if (returnFlight != null) {
+        bookingClass.add(returnFlight.rawData);
+      }
+
+      // Prepare adults, children, infants data
+      final adults = bookingController.adults
+          .map(
+            (adult) => _prepareTravelerData(
+          adult,
+          'ADT',
+          clientEmail,
+          clientPhone,
+        ),
+      )
+          .toList();
+
+      final children = bookingController.children
+          .map(
+            (child) => _prepareTravelerData(
+          child,
+          'CHD',
+          clientEmail,
+          clientPhone,
+        ),
+      )
+          .toList();
+
+      final infants = bookingController.infants
+          .map(
+            (infant) => _prepareTravelerData(
+          infant,
+          'INF',
+          clientEmail,
+          clientPhone,
+        ),
+      )
+          .toList();
+
+      // Generate random string for EchoToken
+      final randomString = _generateRandomString(32);
+
+      // Build the destination XML for each flight
+      String destinationXml = '';
+      String ptcText = '';
+      int rphCounter = 1;
+
+      for (var flightData in bookingClass) {
+        final originDestOption = flightData['AirItinerary']['OriginDestinationOptions']
+        ['OriginDestinationOption'];
+        final flightSegment = originDestOption['FlightSegment'];
+
+        // Build destination XML
+        destinationXml += '''
+<OriginDestinationOption RPH="$rphCounter">
+  <FlightSegment 
+    DepartureDateTime="${flightSegment['DepartureDateTime']}" 
+    ArrivalDateTime="${flightSegment['ArrivalDateTime']}" 
+    StopQuantity="${flightSegment['StopQuantity']}" 
+    RPH="$rphCounter" 
+    FlightNumber="${flightSegment['FlightNumber']}" 
+    ResBookDesigCode="${flightSegment['ResBookDesigCode']}" 
+    Status="${flightSegment['Status']}">
+    <DepartureAirport LocationCode="${flightSegment['DepartureAirport']['LocationCode']}"/>
+    <ArrivalAirport LocationCode="${flightSegment['ArrivalAirport']['LocationCode']}"/>
+    <OperatingAirline Code="${flightSegment['OperatingAirline']['Code']}"/>
+    <Equipment AirEquipType="${flightSegment['Equipment']['AirEquipType']}"/>
+    <MarketingAirline Code="${flightSegment['MarketingAirline']['Code']}"/>
+  </FlightSegment>
+</OriginDestinationOption>''';
+
+        // Build PTC_FareBreakdown XML from the original flight data
+        final pricingInfo = flightData['AirItineraryPricingInfo'];
+        final ptcBreakdowns = pricingInfo['PTC_FareBreakdowns']['PTC_FareBreakdown'];
+
+        // Handle single or multiple PTC breakdowns
+        final List<dynamic> ptcList = ptcBreakdowns is List ? ptcBreakdowns : [ptcBreakdowns];
+
+        for (var ptc in ptcList) {
+          final ptcCode = ptc['PassengerTypeQuantity']['Code'];
+          final ptcQty = ptc['PassengerTypeQuantity']['Quantity'];
+          final baseFare = ptc['PassengerFare']['BaseFare'];
+
+          // Build taxes XML if exists
+          String taxesXml = '';
+          String taxesAmountAttr = '';
+          if (ptc['PassengerFare']['Taxes'] != null) {
+            final taxes = ptc['PassengerFare']['Taxes'];
+            taxesAmountAttr = 'Amount="${taxes['Amount']}"';
+
+            final taxList = taxes['Tax'] is List ? taxes['Tax'] : [taxes['Tax']];
+            for (var tax in taxList) {
+              if (tax != null) {
+                taxesXml += '''
+<Tax TaxCode="${tax['TaxCode']}" CurrencyCode="${tax['CurrencyCode']}" Amount="${tax['Amount']}" />''';
+              }
+            }
+          }
+
+          // Build fees XML if exists
+          String feesXml = '';
+          String feesAmountAttr = '';
+          if (ptc['PassengerFare']['Fees'] != null) {
+            final fees = ptc['PassengerFare']['Fees'];
+            feesAmountAttr = 'Amount="${fees['Amount']}"';
+
+            final feeList = fees['Fee'] is List ? fees['Fee'] : [fees['Fee']];
+            for (var fee in feeList) {
+              if (fee != null) {
+                feesXml += '''
+<Fee FeeCode="${fee['FeeCode']}" CurrencyCode="${fee['CurrencyCode']}" Amount="${fee['Amount']}" />''';
+              }
+            }
+          }
+
+          // Build fare info XML
+          String fareInfoXml = '';
+          final fareInfo = ptc['FareInfo'] is List ? ptc['FareInfo'][0] : ptc['FareInfo'];
+
+          if (fareInfo != null) {
+            // Build fare info taxes if exists
+            String fareInfoTaxesXml = '';
+            String fareInfoTaxesAmountAttr = '';
+            if (fareInfo['PassengerFare']?['Taxes'] != null) {
+              final fareInfoTaxes = fareInfo['PassengerFare']['Taxes'];
+              fareInfoTaxesAmountAttr = 'Amount="${fareInfoTaxes['Amount']}"';
+
+              final fareInfoTaxList = fareInfoTaxes['Tax'] is List
+                  ? fareInfoTaxes['Tax']
+                  : [fareInfoTaxes['Tax']];
+              for (var tax in fareInfoTaxList) {
+                if (tax != null) {
+                  fareInfoTaxesXml += '''
+<Tax TaxCode="${tax['TaxCode']}" CurrencyCode="${tax['CurrencyCode']}" Amount="${tax['Amount']}" />''';
+                }
+              }
+            }
+
+            // Build fare info fees if exists
+            String fareInfoFeesXml = '';
+            String fareInfoFeesAmountAttr = '';
+            if (fareInfo['PassengerFare']?['Fees'] != null) {
+              final fareInfoFees = fareInfo['PassengerFare']['Fees'];
+              fareInfoFeesAmountAttr = 'Amount="${fareInfoFees['Amount']}"';
+
+              final fareInfoFeeList = fareInfoFees['Fee'] is List
+                  ? fareInfoFees['Fee']
+                  : [fareInfoFees['Fee']];
+              for (var fee in fareInfoFeeList) {
+                if (fee != null) {
+                  fareInfoFeesXml += '''
+<Fee FeeCode="${fee['FeeCode']}" CurrencyCode="${fee['CurrencyCode']}" Amount="${fee['Amount']}" />''';
+                }
+              }
+            }
+
+            fareInfoXml = '''
+<FareInfo>
+  <DepartureDate>${fareInfo['DepartureDate']?['\$t'] ?? flightSegment['DepartureDateTime']}</DepartureDate>
+  <DepartureAirport LocationCode="${fareInfo['DepartureAirport']?['LocationCode'] ?? flightSegment['DepartureAirport']['LocationCode']}"/>
+  <ArrivalAirport LocationCode="${fareInfo['ArrivalAirport']?['LocationCode'] ?? flightSegment['ArrivalAirport']['LocationCode']}"/>
+  <FareInfo FareBasisCode="${fareInfo['FareInfo']?['FareBasisCode'] ?? flightSegment['ResBookDesigCode']}"/>
+  <PassengerFare>
+    <BaseFare CurrencyCode="${fareInfo['PassengerFare']?['BaseFare']?['CurrencyCode'] ?? baseFare['CurrencyCode']}" 
+              Amount="${fareInfo['PassengerFare']?['BaseFare']?['Amount'] ?? baseFare['Amount']}" />''';
+
+            if (fareInfoTaxesAmountAttr.isNotEmpty) {
+              fareInfoXml += '''
+    <Taxes $fareInfoTaxesAmountAttr>
+      $fareInfoTaxesXml
+    </Taxes>''';
+            }
+
+            if (fareInfoFeesAmountAttr.isNotEmpty) {
+              fareInfoXml += '''
+    <Fees $fareInfoFeesAmountAttr>
+      $fareInfoFeesXml
+    </Fees>''';
+            }
+
+            fareInfoXml += '''
+    <TotalFare CurrencyCode="${fareInfo['PassengerFare']?['TotalFare']?['CurrencyCode'] ?? ptc['PassengerFare']['TotalFare']['CurrencyCode']}" 
+               Amount="${fareInfo['PassengerFare']?['TotalFare']?['Amount'] ?? ptc['PassengerFare']['TotalFare']['Amount']}" />
+  </PassengerFare>                 
+</FareInfo>''';
+          }
+
+          ptcText += '''
+<PTC_FareBreakdown>
+  <PassengerTypeQuantity Code="$ptcCode" Quantity="$ptcQty"/>
+  <PassengerFare>
+    <BaseFare CurrencyCode="${baseFare['CurrencyCode']}" Amount="${baseFare['Amount']}" />''';
+
+          if (taxesAmountAttr.isNotEmpty) {
+            ptcText += '''
+    <Taxes $taxesAmountAttr>
+      $taxesXml
+    </Taxes>''';
+          }
+
+          if (feesAmountAttr.isNotEmpty) {
+            ptcText += '''
+    <Fees $feesAmountAttr>
+      $feesXml
+    </Fees>''';
+          }
+
+          ptcText += '''
+    <TotalFare CurrencyCode="${ptc['PassengerFare']['TotalFare']['CurrencyCode']}" 
+               Amount="${ptc['PassengerFare']['TotalFare']['Amount']}"/>
+  </PassengerFare>
+  $fareInfoXml
+</PTC_FareBreakdown>''';
+        }
+
+        rphCounter++;
+      }
+
+      // Build travelers XML
+      String paxXml = '';
+      int paxItr = 0;
+
+      // Add adults
+      for (var adult in adults) {
+        paxItr++;
+        paxXml += '''
+<AirTraveler BirthDate="${adult['birthDate']}">
+  <PersonName>
+    <GivenName>${adult['firstName']}</GivenName>
+    <Surname>${adult['lastName']}</Surname>
+    <NameTitle>${adult['title']}</NameTitle>
+  </PersonName>
+  <Telephone PhoneLocationType="10" CountryAccessCode="92" PhoneNumber="$clientPhone" />
+  <Email>$clientEmail</Email>
+  <CustLoyalty />
+  <Document DocID="${adult['passport']}" DocType="2" 
+            BirthDate="${adult['birthDate']}" 
+            ExpireDate="${adult['passportExpiry']}" 
+            DocIssueCountry="PK" 
+            DocHolderNationality="PK" />
+  <PassengerTypeQuantity Code="ADT" Quantity="1" />
+  <TravelerRefNumber RPH="$paxItr" />
+</AirTraveler>''';
+      }
+
+      // Add children
+      for (var child in children) {
+        paxItr++;
+        paxXml += '''
+<AirTraveler BirthDate="${child['birthDate']}">
+  <PersonName>
+    <GivenName>${child['firstName']}</GivenName>
+    <Surname>${child['lastName']}</Surname>
+    <NameTitle>${child['title']}</NameTitle>
+  </PersonName>
+  <Telephone PhoneLocationType="10" CountryAccessCode="92" PhoneNumber="$clientPhone" />
+  <Email>$clientEmail</Email>
+  <CustLoyalty />
+  <Document DocID="${child['passport']}" DocType="2" 
+            BirthDate="${child['birthDate']}" 
+            ExpireDate="${child['passportExpiry']}" 
+            DocIssueCountry="PK" 
+            DocHolderNationality="PK" />
+  <PassengerTypeQuantity Code="CHD" Quantity="1" />
+  <TravelerRefNumber RPH="$paxItr" />
+</AirTraveler>''';
+      }
+
+      // Add infants
+      for (var infant in infants) {
+        paxItr++;
+        paxXml += '''
+<AirTraveler BirthDate="${infant['birthDate']}">
+  <PersonName>
+    <GivenName>${infant['firstName']}</GivenName>
+    <Surname>${infant['lastName']}</Surname>
+    <NameTitle></NameTitle>
+  </PersonName>
+  <Telephone PhoneLocationType="10" CountryAccessCode="92" PhoneNumber="$clientPhone" />
+  <Email>$clientEmail</Email>
+  <CustLoyalty />
+  <Document DocID="${infant['passport']}" DocType="2" 
+            BirthDate="${infant['birthDate']}" 
+            ExpireDate="${infant['passportExpiry']}" 
+            DocIssueCountry="PK" 
+            DocHolderNationality="PK" />
+  <PassengerTypeQuantity Code="INF" Quantity="1" />
+  <TravelerRefNumber RPH="$paxItr" />
+</AirTraveler>''';
+      }
+
+      // Build complete XML request
+      final request = '''<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
+  <Header/>
+  <Body>
+    <AirBook xmlns="http://zapways.com/air/ota/2.0">
+      <airBookRQ EchoToken="$randomString" Target="$Target" Version="$Version" xmlns="http://www.opentravel.org/OTA/2003/05">
+        <POS>
+          <Source ERSP_UserID="$ERSP_UserID">
+            <RequestorID Type="$Type" ID="$ID" MessagePassword="$MessagePassword" />
+          </Source>
+        </POS>
+        <AirItinerary>
+          <OriginDestinationOptions>
+            $destinationXml
+          </OriginDestinationOptions>
+        </AirItinerary>
+        <PriceInfo>
+          <PTC_FareBreakdowns>
+            $ptcText
+          </PTC_FareBreakdowns>
+        </PriceInfo>
+        <TravelerInfo>
+          $paxXml
+        </TravelerInfo>
+      </airBookRQ>
+    </AirBook>
+  </Body>
+</Envelope>''';
+
+      printDebugData('PNR REQUEST', request);
+
+      // Configure Dio with SSL certificates
+      final ByteData certData = await rootBundle.load('assets/certs/cert.pem');
+      final ByteData keyData = await rootBundle.load('assets/certs/key.pem');
+
+      final Directory tempDir = await getTemporaryDirectory();
+      final File certFile = File('${tempDir.path}/cert.pem');
+      final File keyFile = File('${tempDir.path}/key.pem');
+
+      await certFile.writeAsBytes(certData.buffer.asUint8List());
+      await keyFile.writeAsBytes(keyData.buffer.asUint8List());
+
+      final dio = Dio(
+        BaseOptions(
+          contentType: 'text/xml; charset=utf-8',
+          headers: {'Content-Type': 'text/xml; charset=utf-8'},
+        ),
+      );
+
+      final SecurityContext securityContext = SecurityContext();
+      securityContext.useCertificateChain(certFile.path);
+      securityContext.usePrivateKey(keyFile.path);
+
+      final HttpClient httpClient = HttpClient(context: securityContext);
+      httpClient.badCertificateCallback = (
+          X509Certificate cert,
+          String host,
+          int port,
+          ) {
+        return true; // Only for testing - implement proper validation in production
+      };
+
+      dio.httpClientAdapter = IOHttpClientAdapter(
+        createHttpClient: () => httpClient,
+      );
+
+      // Make the API call
+      final response = await dio.post(
+        link,
+        data: request,
+        options: Options(
+          contentType: 'text/xml; charset=utf-8',
+          responseType: ResponseType.plain,
+        ),
+      );
+
+      printDebugData('PNR RESPONSE', response.data.toString());
+
+      // Convert XML to JSON
+      final jsonResponse = _convertXmlToJson(response.data.toString());
+      printDebugData('PNR RESPONSE (JSON)', jsonResponse);
+      return jsonResponse;
+    } catch (e, stackTrace) {
+      print('Error creating AirBlue PNR: $e');
+      print('Stack trace: $stackTrace');
+      throw ApiException(
+        message: 'Failed to create PNR: $e',
+        statusCode: null,
+        errors: {},
+      );
+    }
+  }
+
+  Map<String, dynamic> _prepareBookingClass(AirBlueFlight flight) {
+    // This should return the raw flight data that was used to create the AirBlueFlight object
+    // You might need to store this in the AirBlueFlight model or get it from somewhere else
+    // For now, I'll create a simplified version based on the structure we have
+
+    return {
+      "OriginDestinationRefNumber":
+          flight.rph.startsWith('return_') ? "2" : "1",
+      "AirItinerary": {
+        "OriginDestinationOptions": {
+          "OriginDestinationOption": {
+            "RPH": flight.rph,
+            "FlightSegment": {
+              "DepartureDateTime":
+                  flight.legSchedules.first['departure']['dateTime'],
+              "ArrivalDateTime":
+                  flight.legSchedules.first['arrival']['dateTime'],
+              "StopQuantity": "0",
+              "RPH": flight.rph,
+              "FlightNumber": flight.id.split('-').first,
+              "ResBookDesigCode": flight.segmentInfo.first.bookingCode,
+              "Status": "ONTIME",
+              "DepartureAirport": {
+                "LocationCode":
+                    flight.legSchedules.first['departure']['airport'],
+              },
+              "ArrivalAirport": {
+                "LocationCode": flight.legSchedules.first['arrival']['airport'],
+              },
+              "OperatingAirline": {"Code": flight.airlineCode},
+              "Equipment": {
+                "AirEquipType":
+                    "A320", // Default - you might want to store this in the model
+              },
+              "MarketingAirline": {"Code": flight.airlineCode},
+            },
+          },
+        },
+      },
+      "AirItineraryPricingInfo": {
+        // Simplified pricing info - you'll need to include the actual data from the original response
+        "ItinTotalFare": {
+          "BaseFare": {
+            "CurrencyCode": flight.currency,
+            "Amount": flight.price.toString(),
+          },
+          "TotalFare": {
+            "CurrencyCode": flight.currency,
+            "Amount": flight.price.toString(),
+          },
+        },
+        "PTC_FareBreakdowns": {
+          "PTC_FareBreakdown": [
+            {
+              "PassengerTypeQuantity": {"Code": "ADT", "Quantity": "1"},
+              "PassengerFare": {
+                "BaseFare": {
+                  "CurrencyCode": flight.currency,
+                  "Amount": flight.price.toString(),
+                },
+                "TotalFare": {
+                  "CurrencyCode": flight.currency,
+                  "Amount": flight.price.toString(),
+                },
+              },
+              "FareInfo": {
+                "DepartureDate":
+                    flight.legSchedules.first['departure']['dateTime'],
+                "DepartureAirport": {
+                  "LocationCode":
+                      flight.legSchedules.first['departure']['airport'],
+                },
+                "ArrivalAirport": {
+                  "LocationCode":
+                      flight.legSchedules.first['arrival']['airport'],
+                },
+                "FareInfo": {
+                  "FareBasisCode": flight.segmentInfo.first.bookingCode,
+                  "FareType": "EX",
+                },
+                "PassengerFare": {
+                  "BaseFare": {
+                    "CurrencyCode": flight.currency,
+                    "Amount": flight.price.toString(),
+                  },
+                  "TotalFare": {
+                    "CurrencyCode": flight.currency,
+                    "Amount": flight.price.toString(),
+                  },
+                },
+              },
+            },
+          ],
+        },
+      },
+    };
+  }
+
+  Map<String, dynamic> _prepareTravelerData(
+    TravelerInfo traveler,
+    String type,
+    String clientEmail,
+    String clientPhone,
+  ) {
+    return {
+      'title': traveler.titleController.text,
+      'firstName': traveler.firstNameController.text,
+      'lastName': traveler.lastNameController.text,
+      'birthDate': traveler.dateOfBirthController.text,
+      'passport': traveler.passportController.text,
+      'passportExpiry': traveler.passportExpiryController.text,
+      'type': type,
+    };
+  }
+
+  /// Prints formatted XML in manageable chunks for better console readability
+  void printXmlPretty(String xmlString) {
+    try {
+      // Parse the XML
+      final document = xml.XmlDocument.parse(xmlString);
+
+      // Format with indentation
+      final prettyXml = document.toXmlString(pretty: true, indent: '  ');
+
+      // Print in chunks to avoid truncation in console
+      const int chunkSize = 1000;
+      for (int i = 0; i < prettyXml.length; i += chunkSize) {
+        print(
+          prettyXml.substring(
+            i,
+            i + chunkSize > prettyXml.length ? prettyXml.length : i + chunkSize,
+          ),
+        );
+      }
+    } catch (e) {
+      // If XML parsing fails, print as is with a warning
+      print('WARNING: Could not parse as valid XML. Printing raw string:');
+      print(xmlString);
+    }
+  }
+
+  /// Prints both XML and corresponding JSON representation
+  void printDebugData(String label, dynamic data) {
+    print('\n===== $label =====');
+
+    if (data is String && data.trim().startsWith('<')) {
+      // Handle XML string
+      print('--- XML FORMAT ---');
+      printXmlPretty(data);
+
+      try {
+        // Try to convert XML to JSON for comparison
+        final jsonData = _convertXmlToJson(data);
+        print('\n--- JSON EQUIVALENT ---');
+        printJsonPretty(jsonData);
+      } catch (e) {
+        print('Could not convert XML to JSON: $e');
+      }
+    } else if (data is String) {
+      // Handle plain string
+      print(data);
+    } else {
+      // Handle JSON/Map data
+      print('--- JSON FORMAT ---');
+      printJsonPretty(data);
+    }
+    print('===== END $label =====\n');
+  }
+
+  /// Prints JSON in a nicely formatted way with chunking to avoid console truncation
+  void printJsonPretty(dynamic jsonData) {
+    const int chunkSize = 1000;
+    final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);
+    for (int i = 0; i < jsonString.length; i += chunkSize) {
+      print(
+        jsonString.substring(
+          i,
+          i + chunkSize > jsonString.length ? jsonString.length : i + chunkSize,
+        ),
+      );
+    }
+  }
+}
+
+class ApiException implements Exception {
+  final String message;
+  final int? statusCode;
+  final Map<String, dynamic> errors;
+
+  ApiException({required this.message, this.statusCode, required this.errors});
+
+  @override
+  String toString() => message;
+}
