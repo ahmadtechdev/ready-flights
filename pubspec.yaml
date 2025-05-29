@@ -1,6 +1,6 @@
 name: ready_flights
 description: "A new journey online project."
-publish_to: 'none'
+publish_to: "none"
 version: 0.1.0
 
 environment:
@@ -31,11 +31,23 @@ dependencies:
   flutter_animate: ^4.5.2
   xml2json: ^6.2.7
   path_provider: ^2.1.5
+  flutter_launcher_icons: ^0.13.0
+  flutter_native_splash: ^2.4.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/logo.png"
+
+flutter_native_splash:
+  color: "#ffffff"
+  android_12:
+    color: "#ffffff"
 
 flutter:
   uses-material-design: true

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/route_manager.dart';
 
-
 import '../../utility/colors.dart';
 import '../flight/form/flight_form.dart';
 import '../group_ticket/airline/data_controller.dart';
