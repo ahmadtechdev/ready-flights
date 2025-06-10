@@ -42,7 +42,7 @@ class FlightBookingScreen extends StatelessWidget {
                   if (controller.tripType.value != TripType.multiCity)
                     Column(
                       children: [
-                        _buildCitySelector( context),
+                        _buildCitySelector(context),
                         const SizedBox(height: 16),
                         _buildDateSelectors(),
                       ],
@@ -164,7 +164,7 @@ class FlightBookingScreen extends StatelessWidget {
 
   // flight_form.dart - Update _buildCitySelector() method
 
-  Widget _buildCitySelector( BuildContext context) {
+  Widget _buildCitySelector(BuildContext context) {
     return Stack(
       alignment: Alignment.topCenter,
       children: [
@@ -172,7 +172,11 @@ class FlightBookingScreen extends StatelessWidget {
           children: [
             Expanded(
               child: GestureDetector(
-                onTap: () => controller.showCitySelectionBottomSheet(context, FieldType.departure),
+                onTap:
+                    () => controller.showCitySelectionBottomSheet(
+                      context,
+                      FieldType.departure,
+                    ),
                 child: Container(
                   decoration: BoxDecoration(
                     border: Border.all(color: TColors.primary),
@@ -197,7 +201,7 @@ class FlightBookingScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Obx(
-                              () => Text(
+                          () => Text(
                             controller.fromCity.value,
                             style: TextStyle(
                               fontSize: 28,
@@ -207,7 +211,7 @@ class FlightBookingScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Obx(
-                              () => Text(
+                          () => Text(
                             controller.fromCityName.value,
                             style: TextStyle(
                               color: TColors.grey,
@@ -225,7 +229,11 @@ class FlightBookingScreen extends StatelessWidget {
             SizedBox(width: 6),
             Expanded(
               child: GestureDetector(
-                onTap: () => controller.showCitySelectionBottomSheet(context, FieldType.destination),
+                onTap:
+                    () => controller.showCitySelectionBottomSheet(
+                      context,
+                      FieldType.destination,
+                    ),
                 child: Container(
                   decoration: BoxDecoration(
                     border: Border.all(color: TColors.primary),
@@ -250,7 +258,7 @@ class FlightBookingScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Obx(
-                              () => Text(
+                          () => Text(
                             controller.toCity.value,
                             style: TextStyle(
                               fontSize: 28,
@@ -260,7 +268,7 @@ class FlightBookingScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Obx(
-                              () => Text(
+                          () => Text(
                             controller.toCityName.value,
                             style: TextStyle(
                               color: TColors.grey,
@@ -305,7 +313,6 @@ class FlightBookingScreen extends StatelessWidget {
     );
   }
 
-
   Widget _buildMultiCitySelector(BuildContext conext) {
     return Column(
       children: [
@@ -325,7 +332,7 @@ class FlightBookingScreen extends StatelessWidget {
                 ),
               ),
               _buildMultiCityPair(index, conext),
-              SizedBox(height: 16)
+              SizedBox(height: 16),
             ],
           );
         }),
@@ -341,7 +348,12 @@ class FlightBookingScreen extends StatelessWidget {
           children: [
             // From field
             GestureDetector(
-              onTap: () => controller.showCitySelectionBottomSheet(context, FieldType.departure, multiCityIndex: index),
+              onTap:
+                  () => controller.showCitySelectionBottomSheet(
+                    context,
+                    FieldType.departure,
+                    multiCityIndex: index,
+                  ),
               child: Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: TColors.primary),
@@ -358,20 +370,19 @@ class FlightBookingScreen extends StatelessWidget {
                         children: [
                           Text(
                             'From',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                           Row(
                             children: [
-                              Obx(() => Text(
-                                '${controller.cityPairs[index].fromCity.value} — ${controller.cityPairs[index].fromCityName.value}',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
+                              Obx(
+                                () => Text(
+                                  '${controller.cityPairs[index].fromCity.value} — ${controller.cityPairs[index].fromCityName.value}',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
-                              )),
+                              ),
                             ],
                           ),
                         ],
@@ -397,7 +408,12 @@ class FlightBookingScreen extends StatelessWidget {
 
             // To field
             GestureDetector(
-              onTap: () => controller.showCitySelectionBottomSheet(context, FieldType.destination, multiCityIndex: index),
+              onTap:
+                  () => controller.showCitySelectionBottomSheet(
+                    context,
+                    FieldType.destination,
+                    multiCityIndex: index,
+                  ),
               child: Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: TColors.primary),
@@ -414,20 +430,19 @@ class FlightBookingScreen extends StatelessWidget {
                         children: [
                           Text(
                             'To',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                           Row(
                             children: [
-                              Obx(() => Text(
-                                '${controller.cityPairs[index].toCity.value} — ${controller.cityPairs[index].toCityName.value}',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
+                              Obx(
+                                () => Text(
+                                  '${controller.cityPairs[index].toCity.value} — ${controller.cityPairs[index].toCityName.value}',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
-                              )),
+                              ),
                             ],
                           ),
                         ],
@@ -468,18 +483,17 @@ class FlightBookingScreen extends StatelessWidget {
                       children: [
                         Text(
                           'Departure',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        Obx(
+                          () => Text(
+                            controller.cityPairs[index].departureDate.value,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
-                        Obx(() => Text(
-                          controller.cityPairs[index].departureDate.value,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700
-                          ),
-                        )),
                       ],
                     ),
                   ),
@@ -497,7 +511,11 @@ class FlightBookingScreen extends StatelessWidget {
                         size: 16,
                         color: TColors.primary,
                       ),
-                      onPressed: () => controller.openDatePickerForPair(Get.context!, index),
+                      onPressed:
+                          () => controller.openDatePickerForPair(
+                            Get.context!,
+                            index,
+                          ),
                     ),
                   ),
                 ],
@@ -538,38 +556,42 @@ class FlightBookingScreen extends StatelessWidget {
 
   Widget _buildAddCityButton() {
     return Obx(
-          () => controller.cityPairs.length < 4
-          ? Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          // Add some spacing between buttons
-          Container(
-            margin: EdgeInsets.only(right: 8, bottom: 16),
-            child: OutlinedButton.icon(
-              onPressed: () => controller.addCityPair(),
-              icon: Icon(Icons.add, color: TColors.secondary, size: 18),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: TColors.secondary),
-                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              label: Text(
-                'ADD CITY',
-                style: TextStyle(
-                  color: TColors.secondary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: 8),
-          if (controller.cityPairs.length > 2) _buildRemoveCityButton(),
-        ],
-      )
-          : SizedBox.shrink(),
+      () =>
+          controller.cityPairs.length < 4
+              ? Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  // Add some spacing between buttons
+                  Container(
+                    margin: EdgeInsets.only(right: 8, bottom: 16),
+                    child: OutlinedButton.icon(
+                      onPressed: () => controller.addCityPair(),
+                      icon: Icon(Icons.add, color: TColors.secondary, size: 18),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: TColors.secondary),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      label: Text(
+                        'ADD CITY',
+                        style: TextStyle(
+                          color: TColors.secondary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  if (controller.cityPairs.length > 2) _buildRemoveCityButton(),
+                ],
+              )
+              : SizedBox.shrink(),
     );
   }
 
@@ -582,9 +604,7 @@ class FlightBookingScreen extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: TColors.grey),
           padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         label: Text(
           'REMOVE',
@@ -750,26 +770,28 @@ class FlightBookingScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'TRAVELLER(S)',
-                      style: TextStyle(
-                        color: TColors.grey,
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: TColors.grey, fontSize: 12),
                     ),
                     const SizedBox(height: 4),
-                    Obx(() => Text(
-                      '${controller.travellersCount.value} Traveller',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: TColors.text,
+                    Obx(
+                      () => Text(
+                        '${controller.travellersCount.value} Traveller',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: TColors.text,
+                        ),
                       ),
-                    )),
+                    ),
                   ],
                 ),
               ),
@@ -787,29 +809,31 @@ class FlightBookingScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'CLASS',
-                      style: TextStyle(
-                        color: TColors.grey,
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: TColors.grey, fontSize: 12),
                     ),
                     const SizedBox(height: 4),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Obx(() => Text(
-                          controller.travelClass.value,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: TColors.text,
+                        Obx(
+                          () => Text(
+                            controller.travelClass.value,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: TColors.text,
+                            ),
                           ),
-                        )),
+                        ),
                         Icon(
                           Icons.keyboard_arrow_down,
                           color: TColors.grey,
@@ -827,14 +851,9 @@ class FlightBookingScreen extends StatelessWidget {
     );
   }
 
-
-
-
-
-
   Widget _buildSearchButton() {
     return Obx(
-          () => Container(
+      () => Container(
         width: double.infinity,
         height: 50,
         decoration: BoxDecoration(
@@ -850,23 +869,24 @@ class FlightBookingScreen extends StatelessWidget {
             ),
             elevation: 0,
           ),
-          child: controller.isSearching.value
-              ? SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(
-              strokeWidth: 3,
-              valueColor: AlwaysStoppedAnimation<Color>(TColors.white),
-            ),
-          )
-              : const Text(
-            'SEARCH',
-            style: TextStyle(
-              color: TColors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          child:
+              controller.isSearching.value
+                  ? SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(TColors.white),
+                    ),
+                  )
+                  : const Text(
+                    'SEARCH',
+                    style: TextStyle(
+                      color: TColors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
         ),
       ),
     );

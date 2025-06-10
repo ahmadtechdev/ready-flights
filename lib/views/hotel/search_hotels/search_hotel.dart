@@ -4,7 +4,6 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-
 import '../../../services/api_service_hotel.dart';
 import '../../../utility/colors.dart';
 import 'search_hotel_controller.dart';
@@ -567,6 +566,8 @@ class HotelCard extends StatelessWidget {
             ),
             child: ElevatedButton(
               onPressed: () {
+                controller.ratingstar.value =
+                    (hotel['rating'] as double).toInt();
                 controller.hotelCode.value = hotel['hotelCode'];
                 controller.hotelCity.value = hotel['hotelCity'];
                 controller.lat.value = hotel['latitude'];

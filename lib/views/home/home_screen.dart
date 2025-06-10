@@ -113,18 +113,18 @@ class HomeScreenState extends State<HomeScreen>
                       TColors.primary,
                     ),
                   ),
-                  GestureDetector(
-                    onTap: () {
-                      TravelDataController().loadAirlines();
-                      // TravelDataController().loadSectors();
-                      Get.to(() => GroupTicket());
-                    },
-                    child: _buildTravelOption(
-                      'Group Tickets',
-                      Icons.train,
-                      TColors.primary,
-                    ),
-                  ),
+                  // GestureDetector(
+                  //   onTap: () {
+                  //     TravelDataController().loadAirlines();
+                  //     // TravelDataController().loadSectors();
+                  //     Get.to(() => GroupTicket());
+                  //   },
+                  //   child: _buildTravelOption(
+                  //     'Group Tickets',
+                  //     Icons.train,
+                  //     TColors.primary,
+                  //   ),
+                  // ),
                 ],
               ),
             ),

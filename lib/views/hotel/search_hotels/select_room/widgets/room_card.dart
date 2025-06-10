@@ -11,6 +11,9 @@ class RoomCard extends StatelessWidget {
   final int nights;
   final Function(dynamic) onSelect;
   final bool isSelected;
+  final bool showBookNowButton;
+  final bool isLoading;
+  final int roomIndex;
 
   const RoomCard({
     super.key,
@@ -18,6 +21,9 @@ class RoomCard extends StatelessWidget {
     required this.nights,
     required this.onSelect,
     required this.isSelected,
+    this.showBookNowButton = false,
+    this.isLoading = false,
+    required this.roomIndex,
   });
 
   void _showCancellationPolicy(BuildContext context) async {
@@ -410,7 +416,7 @@ class RoomCard extends StatelessWidget {
                                     );
                                   }).toList(),
                             );
-                          }),
+                          }).toList(),
                         const SizedBox(height: 16),
                       ],
                     ),
@@ -657,7 +663,6 @@ class RoomCard extends StatelessWidget {
     }
   }
 
-  // Add this helper method to the RoomCard class
   Widget _buildSummaryRow(String label, String value, IconData icon) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -740,8 +745,10 @@ class RoomCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
+
+                // Replace the existing button section (around line 570-620) with this code:
                 const SizedBox(height: 4),
-                // Add Cancellation Policy Button
+                // Cancellation Policy and Price Breakup buttons
                 Row(
                   children: [
                     Expanded(
@@ -780,27 +787,53 @@ class RoomCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => onSelect(room),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          isSelected ? Colors.green : TColors.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                const SizedBox(height: 8),
+                // Book Now button - separate from the Row above
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: double.infinity, // This ensures full width
+                      child: ElevatedButton(
+                        onPressed: isLoading ? null : () => onSelect(room),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              showBookNowButton
+                                  ? Colors.green
+                                  : (isSelected
+                                      ? Colors.green
+                                      : TColors.primary),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          showBookNowButton
+                              ? (isLoading
+                                  ? 'Checking Availability...'
+                                  : 'Book Now')
+                              : (isSelected ? 'Selected' : 'Select Room'),
+                          style: const TextStyle(
+                            color: TColors.secondary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
-                    child: Text(
-                      isSelected ? 'Selected' : 'Select Room',
-                      style: const TextStyle(
-                        color: TColors.secondary,
-                        fontWeight: FontWeight.bold,
+                    if (isLoading)
+                      const Positioned(
+                        right: 16,
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: TColors.secondary,
+                            strokeWidth: 2,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
+                  ],
                 ),
               ],
             ),
