@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:ready_flights/common/bottom_navbar.dart';
 import 'utility/colors.dart';
 import 'views/flight/form/controllers/flight_date_controller.dart';
 import 'views/hotel/hotel/guests/guests_controller.dart';
@@ -24,7 +25,7 @@ class MyApp extends StatelessWidget {
     Get.lazyPut(() => SearchHotelController(), fenix: true);
     Get.lazyPut(() => FlightDateController(), fenix: true);
     Get.lazyPut(() => TravelersController(), fenix: true);
-     Get.put(AuthController());
+    Get.put(AuthController());
 
     return GetMaterialApp(
       title: 'Flutter Demo',
@@ -46,7 +47,11 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: TColors.background),
       ),
-      home: Introduce(),
+      home: IntroScreen(
+        saveIntroStatus: () {
+          Get.to(() => BottomNavbar());
+        },
+      ),
     );
   }
 }

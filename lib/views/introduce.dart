@@ -1,178 +1,200 @@
 import 'package:flutter/material.dart';
-import 'package:introduction_screen/introduction_screen.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:carousel_slider/carousel_slider.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:ready_flights/views/ui/img_api.dart';
+import 'package:ready_flights/views/ui/themes/theme_button.dart';
+import 'package:ready_flights/views/ui/themes/theme_palette.dart';
+import 'package:ready_flights/views/ui/themes/theme_radius.dart';
+import 'package:ready_flights/views/ui/themes/theme_spacing.dart';
+import 'package:ready_flights/views/ui/themes/theme_text.dart';
 
-import '../common/bottom_navbar.dart';
-import '../sizes_helpers.dart';
-import '../utility/colors.dart';
-import 'users/login/slash-screen.dart';
+class IntroScreen extends StatefulWidget {
+  const IntroScreen({super.key, required this.saveIntroStatus});
 
-class Introduce extends StatefulWidget {
-  const Introduce({Key? key}) : super(key: key);
+  final Function() saveIntroStatus;
 
   @override
-  _IntroduceState createState() => _IntroduceState();
+  State<IntroScreen> createState() => _IntroScreenState();
 }
 
-class _IntroduceState extends State<Introduce> {
-  final introKey = GlobalKey<IntroductionScreenState>();
+class _IntroScreenState extends State<IntroScreen> {
+  int _current = 0;
+  final CarouselSliderController _sliderRef = CarouselSliderController();
 
-  void _onIntroEnd(context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => BottomNavbar()),
-    );
-  }
+  @override
+  Widget build(BuildContext context) {
+    final List<Widget> introList = [
+      _contentIntro(
+        context,
+        'Lorem ipsum dolor sit amet',
+        'Integer sem massa, interdum commodo leo ac, posuere molestie.',
+        ImgApi.intro[0],
+      ),
+      _contentIntro(
+        context,
+        'Donec ultrices vestibulum nibh elementum eget',
+        'Donec blandit turpis nulla, nec bibendum urna elementum eget. Fusce et sagittis risus.',
+        ImgApi.intro[1],
+      ),
+      _contentIntro(
+        context,
+        'Vivamus dui tortor',
+        'Nullam felis mauris, egestas eu velit ut, porttitor fermentum dolor. Ut iaculis sapien sit amet quam convallis.',
+        ImgApi.intro[2],
+      ),
+    ];
 
-  Widget _buildImage(String assetName) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 50.0),
-      child: SvgPicture.asset(
-        'assets/introduce/$assetName',
-        width: 280.0,
-        fit: BoxFit.contain,
+    return Scaffold(
+      backgroundColor: ThemePalette.primaryMain,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              height: 400,
+              child: CarouselSlider(
+                items: introList,
+                carouselController: _sliderRef,
+                options: CarouselOptions(
+                  autoPlay: false,
+                  initialPage: 0,
+                  enlargeFactor: 1,
+                  reverse: false,
+                  enableInfiniteScroll: false,
+                  autoPlayCurve: Curves.fastOutSlowIn,
+                  enlargeCenterPage: false,
+                  aspectRatio: 1,
+                  viewportFraction: 1,
+                  disableCenter: true,
+                  height: 400,
+                  onPageChanged: (index, reason) {
+                    setState(() {
+                      _current = index;
+                    });
+                  },
+                ),
+              ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children:
+                  introList.asMap().entries.map((entry) {
+                    int curSlide = entry.key;
+                    return GestureDetector(
+                      onTap: () => _sliderRef.animateToPage(curSlide),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOut,
+                        width: _current == curSlide ? 30 : 12,
+                        height: 12.0,
+                        margin: const EdgeInsets.symmetric(
+                          vertical: 8.0,
+                          horizontal: 4.0,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: ThemeRadius.big,
+                          color: Colors.white.withValues(
+                            alpha: _current == curSlide ? 0.9 : 0.2,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: BottomAppBar(
+        elevation: 0,
+        color: Colors.transparent,
+        padding: EdgeInsets.only(
+          left: spacingUnit(2),
+          right: spacingUnit(2),
+          bottom: spacingUnit(4),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            /// SKIP BUTTON
+            TextButton(
+              onPressed: () {
+                widget.saveIntroStatus();
+              },
+              child: Text(
+                'SKIP',
+                style: ThemeText.subtitle.copyWith(color: Colors.white),
+              ),
+            ),
+
+            /// NEXT BUTTON
+            _current < introList.length - 1
+                ? FilledButton(
+                  style: ThemeButton.btnBig.merge(
+                    ThemeButton.tonalPrimary(context),
+                  ),
+                  onPressed: () => _sliderRef.nextPage(),
+                  child: Row(
+                    children: [
+                      const Text('NEXT', style: ThemeText.subtitle),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: colorScheme(context).onPrimaryContainer,
+                      ),
+                    ],
+                  ),
+                )
+                : FilledButton(
+                  style: ThemeButton.btnBig.merge(
+                    ThemeButton.tonalPrimary(context),
+                  ),
+                  onPressed: () {
+                    widget.saveIntroStatus();
+                  },
+                  child: Row(
+                    children: [
+                      const Text('CONTINUE', style: ThemeText.subtitle),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: colorScheme(context).onPrimaryContainer,
+                      ),
+                    ],
+                  ),
+                ),
+          ],
+        ),
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final double screenHeight = deviceHeight(context);
-    final double screenWidth = deviceWidth(context);
-
-    // Responsive text sizes
-    final double titleSize = screenWidth < 600 ? 24.0 : 28.0;
-    final double bodySize = screenWidth < 600 ? 15.0 : 17.0;
-    final double buttonTextSize = screenWidth < 600 ? 14.0 : 16.0;
-
-    final bodyStyle = TextStyle(
-      fontSize: bodySize,
-      color: TColors.text,
-      height: 1.5,
-    );
-
-    final titleStyle = TextStyle(
-      fontSize: titleSize,
-      color: TColors.primary,
-      fontWeight: FontWeight.bold,
-    );
-
-    var pageDecoration = PageDecoration(
-      titleTextStyle: titleStyle,
-      bodyTextStyle: bodyStyle,
-      bodyPadding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-      pageColor: TColors.background,
-      imagePadding: EdgeInsets.only(top: screenHeight * 0.05),
-      titlePadding: const EdgeInsets.only(top: 30.0, bottom: 10.0),
-      footerPadding: EdgeInsets.only(top: screenHeight * 0.05),
-      bodyAlignment: Alignment.center,
-      imageAlignment: Alignment.center,
-    );
-
-    return Scaffold(
-      backgroundColor: TColors.background,
-      body: SafeArea(
-
-        child: IntroductionScreen(
-          key: introKey,
-          pages: [
-            PageViewModel(
-              title: "Discover Flights",
-              body: "Search and compare prices for flights around the world with ease and convenience.",
-              image: _buildImage('Flight-Booking-pana.svg'),
-              decoration: pageDecoration,
-            ),
-            PageViewModel(
-              title: "Simple Booking",
-              body: "Book a flight through simple steps and pay securely, all within minutes.",
-              image: _buildImage('Flight-Booking-bro.svg'),
-              decoration: pageDecoration,
-            ),
-            PageViewModel(
-              title: "Price Alerts",
-              body: "Save your search and get notifications when prices change for your favorite destinations.",
-              footer: Padding(
-                padding: const EdgeInsets.only(top: 16.0),
-                child: Container(
-                  width: double.infinity/1.5,
-                  margin: EdgeInsets.symmetric(vertical: 0, horizontal: 32),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // Handle notification permission
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: TColors.primary,
-                      foregroundColor: TColors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 12.0),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(50.0),
-                      ),
-                      elevation: 2,
-                    ),
-                    child: Text(
-                      "Get Started",
-                      style: TextStyle(
-                        fontSize: buttonTextSize,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              image: _buildImage('Subscriber-bro.svg'),
-              decoration: pageDecoration,
-            ),
-          ],
-          onDone: () => _onIntroEnd(context),
-          onSkip: () => _onIntroEnd(context),
-          showSkipButton: true,
-          skipOrBackFlex: 0,
-          nextFlex: 0,
-          showBackButton: false,
-          back: const Icon(Icons.arrow_back, color: TColors.primary),
-          skip: Text(
-            'Skip',
-            style: TextStyle(
-              fontWeight: FontWeight.w500,
-              color: TColors.grey,
-              fontSize: buttonTextSize,
-            ),
+  Widget _contentIntro(
+    BuildContext context,
+    String title,
+    String desc,
+    String image,
+  ) {
+    return Padding(
+      padding: EdgeInsets.all(spacingUnit(2)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SvgPicture.asset(image, height: 128, fit: BoxFit.contain),
+          const VSpace(),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: ThemeText.title.copyWith(color: Colors.white),
           ),
-          next: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(30),
-              color: TColors.primary,
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-            child: const Icon(Icons.arrow_forward, color: TColors.white),
+          SizedBox(height: spacingUnit(2)),
+          Text(
+            desc,
+            textAlign: TextAlign.center,
+            style: ThemeText.headline.copyWith(color: Colors.white),
           ),
-          done: Text(
-            'Get Started',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: TColors.primary,
-              fontSize: buttonTextSize,
-            ),
-          ),
-          curve: Curves.fastLinearToSlowEaseIn,
-          controlsMargin: const EdgeInsets.all(16),
-          controlsPadding: const EdgeInsets.fromLTRB(8.0, 4.0, 8.0, 4.0),
-          dotsDecorator: DotsDecorator(
-            size: const Size(10.0, 10.0),
-            color: TColors.grey.withOpacity(0.5),
-            activeColor: TColors.primary,
-            activeSize: const Size(22.0, 10.0),
-            activeShape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(25.0)),
-            ),
-            spacing: const EdgeInsets.symmetric(horizontal: 3.0),
-          ),
-          dotsContainerDecorator: const ShapeDecoration(
-            color: TColors.background,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(8.0)),
-            ),
-          ),
-        ),
+        ],
       ),
     );
   }
