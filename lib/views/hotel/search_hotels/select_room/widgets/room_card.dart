@@ -691,7 +691,7 @@ class RoomCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pricePerNight = room['price']['net'] ?? 0.0;
+    final pricePerNight = (room['price']['net']) ?? 0.0;
     final totalPrice = pricePerNight * nights;
 
     return Container(

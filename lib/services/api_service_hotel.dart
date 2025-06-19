@@ -362,7 +362,6 @@ class ApiServiceHotel extends GetxService {
         "RateKeys": {"RateKey": rateKeys},
       },
     };
-
     print('Fetching Price Breakup with Request: ${json.encode(requestBody)}');
     try {
       final response = await dio.post(

@@ -12,53 +12,37 @@ class FlightBookingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: TColors.background,
-      appBar: AppBar(
-        title: Text("Flights Search"),
-        backgroundColor: TColors.background,
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Obx(() {
-            return SingleChildScrollView(
-              child: Column(
-                children: [
-                  const Text(
-                    'FLIGHTS',
-                    style: TextStyle(
-                      color: TColors.text,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTripTypeSelector(),
-                  const SizedBox(height: 16),
+    return Container(
+      child: Padding(
+        padding: const EdgeInsets.all(0),
+        child: Obx(() {
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                _buildTripTypeSelector(),
+                const SizedBox(height: 20),
 
-                  // Different content based on trip type
-                  if (controller.tripType.value != TripType.multiCity)
-                    Column(
-                      children: [
-                        _buildCitySelector(context),
-                        const SizedBox(height: 16),
-                        _buildDateSelectors(),
-                      ],
-                    )
-                  else
-                    _buildMultiCitySelector(context),
+                // Different content based on trip type
+                if (controller.tripType.value != TripType.multiCity)
+                  Column(
+                    children: [
+                      _buildCitySelector(context),
+                      const SizedBox(height: 16),
+                      _buildDateSelectors(context),
+                    ],
+                  )
+                else
+                  _buildMultiCitySelector(context),
 
-                  const SizedBox(height: 16),
-                  _buildTravellerAndClassSelectors(context),
-                  const SizedBox(height: 24),
-                  _buildSearchButton(),
-                ],
-              ),
-            );
-          }),
-        ),
+                const SizedBox(height: 16),
+                _buildTravellerAndClassSelectors(context),
+                const SizedBox(height: 24),
+                _buildSearchButton(),
+              ],
+            ),
+          );
+        }),
       ),
     );
   }
@@ -72,27 +56,27 @@ class FlightBookingScreen extends StatelessWidget {
             child: GestureDetector(
               onTap: () => controller.setTripType(TripType.oneWay),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   border: Border.all(color: TColors.primary, width: 1),
                   borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    bottomLeft: Radius.circular(20),
+                    topLeft: Radius.circular(8),
+                    bottomLeft: Radius.circular(8),
                   ),
                   color:
                       controller.tripType.value == TripType.oneWay
                           ? TColors.primary
-                          : TColors.white,
+                          : Colors.white,
                 ),
                 child: Text(
-                  'ONE WAY',
+                  'One Way',
                   style: TextStyle(
                     color:
                         controller.tripType.value == TripType.oneWay
-                            ? TColors.white
-                            : TColors.text,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                            ? Colors.white
+                            : TColors.primary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -103,23 +87,23 @@ class FlightBookingScreen extends StatelessWidget {
             child: GestureDetector(
               onTap: () => controller.setTripType(TripType.roundTrip),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   border: Border.all(color: TColors.primary, width: 1),
                   color:
                       controller.tripType.value == TripType.roundTrip
                           ? TColors.primary
-                          : TColors.white,
+                          : Colors.white,
                 ),
                 child: Text(
-                  'ROUND TRIP',
+                  'Round Trip',
                   style: TextStyle(
                     color:
                         controller.tripType.value == TripType.roundTrip
-                            ? TColors.white
-                            : TColors.text,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                            ? Colors.white
+                            : TColors.primary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -130,27 +114,27 @@ class FlightBookingScreen extends StatelessWidget {
             child: GestureDetector(
               onTap: () => controller.setTripType(TripType.multiCity),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   border: Border.all(color: TColors.primary, width: 1),
                   borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(20),
-                    bottomRight: Radius.circular(20),
+                    topRight: Radius.circular(8),
+                    bottomRight: Radius.circular(8),
                   ),
                   color:
                       controller.tripType.value == TripType.multiCity
                           ? TColors.primary
-                          : TColors.white,
+                          : Colors.white,
                 ),
                 child: Text(
-                  'MULTICITY',
+                  'Multi City',
                   style: TextStyle(
                     color:
                         controller.tripType.value == TripType.multiCity
-                            ? TColors.white
-                            : TColors.text,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                            ? Colors.white
+                            : TColors.primary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -162,61 +146,63 @@ class FlightBookingScreen extends StatelessWidget {
     );
   }
 
-  // flight_form.dart - Update _buildCitySelector() method
-
   Widget _buildCitySelector(BuildContext context) {
-    return Stack(
-      alignment: Alignment.topCenter,
+    return Column(
       children: [
+        // FROM field with arrow in one row
         Row(
           children: [
             Expanded(
-              child: GestureDetector(
-                onTap:
-                    () => controller.showCitySelectionBottomSheet(
-                      context,
-                      FieldType.departure,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
                     ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: TColors.primary),
-                    color: TColors.primary.withOpacity(0.1),
-                    borderRadius: const BorderRadius.all(Radius.circular(12)),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
+                  ],
+                ),
+                child: GestureDetector(
+                  onTap:
+                      () => controller.showCitySelectionBottomSheet(
+                        context,
+                        FieldType.departure,
+                      ),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'FROM',
-                          style: TextStyle(
-                            color: TColors.grey,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.flight_takeoff,
+                              color: Colors.grey.shade600,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Flying From',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 8),
                         Obx(
                           () => Text(
                             controller.fromCity.value,
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Obx(
-                          () => Text(
-                            controller.fromCityName.value,
-                            style: TextStyle(
-                              color: TColors.grey,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
@@ -226,86 +212,94 @@ class FlightBookingScreen extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(width: 6),
-            Expanded(
-              child: GestureDetector(
-                onTap:
-                    () => controller.showCitySelectionBottomSheet(
-                      context,
-                      FieldType.destination,
-                    ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: TColors.primary),
-                    borderRadius: const BorderRadius.all(Radius.circular(12)),
-                    color: TColors.primary.withOpacity(0.1),
+
+            // Swap button
+            Container(
+              margin: const EdgeInsets.only(left: 12),
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: TColors.primary,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          'TO',
-                          style: TextStyle(
-                            color: TColors.grey,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Obx(
-                          () => Text(
-                            controller.toCity.value,
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Obx(
-                          () => Text(
-                            controller.toCityName.value,
-                            style: TextStyle(
-                              color: TColors.grey,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                ],
+              ),
+              child: IconButton(
+                icon: const Icon(
+                  Icons.swap_vert,
+                  color: Colors.white,
+                  size: 18,
                 ),
+                onPressed: () => controller.swapCities(),
+                padding: EdgeInsets.zero,
               ),
             ),
           ],
         ),
-        Positioned(
-          top: 30,
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: TColors.white,
-              border: Border.all(color: TColors.primary, width: 1),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
+
+        const SizedBox(height: 12),
+
+        // TO field separate
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade300),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: GestureDetector(
+            onTap:
+                () => controller.showCitySelectionBottomSheet(
+                  context,
+                  FieldType.destination,
                 ),
-              ],
-            ),
-            child: IconButton(
-              icon: Icon(Icons.swap_horiz, color: TColors.primary, size: 26),
-              onPressed: () => controller.swapCities(),
-              padding: EdgeInsets.zero,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.flight_land,
+                        color: Colors.grey.shade600,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Flying To',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Obx(
+                    () => Text(
+                      controller.toCity.value,
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -313,541 +307,472 @@ class FlightBookingScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMultiCitySelector(BuildContext conext) {
+  Widget _buildMultiCitySelector(BuildContext context) {
     return Column(
       children: [
         ...List.generate(controller.cityPairs.length, (index) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (index > 0) const SizedBox(height: 16),
               Padding(
-                padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
+                padding: const EdgeInsets.only(left: 4.0, bottom: 8.0),
                 child: Text(
                   'Flight ${index + 1}',
                   style: TextStyle(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     fontSize: 14,
-                    color: TColors.text,
+                    color: Colors.grey.shade700,
                   ),
                 ),
               ),
-              _buildMultiCityPair(index, conext),
-              SizedBox(height: 16),
+              _buildMultiCityPair(index, context),
             ],
           );
         }),
-        _buildAddCityButton(),
+        const SizedBox(height: 16),
+        _buildAddRemoveButtons(),
       ],
     );
   }
 
   Widget _buildMultiCityPair(int index, BuildContext context) {
-    return Stack(
-      children: [
-        Column(
-          children: [
-            // From field
-            GestureDetector(
-              onTap:
-                  () => controller.showCitySelectionBottomSheet(
-                    context,
-                    FieldType.departure,
-                    multiCityIndex: index,
-                  ),
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: TColors.primary),
-                  color: TColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                margin: EdgeInsets.only(bottom: 8),
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'From',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                          Row(
-                            children: [
-                              Obx(
-                                () => Text(
-                                  '${controller.cityPairs[index].fromCity.value} — ${controller.cityPairs[index].fromCityName.value}',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // FROM field with arrow in one row
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap:
+                      () => controller.showCitySelectionBottomSheet(
+                        context,
+                        FieldType.departure,
+                        multiCityIndex: index,
+                      ),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.flight_takeoff,
+                              color: Colors.grey.shade600,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Flying From',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w400,
                               ),
-                            ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Obx(
+                          () => Text(
+                            controller.cityPairs[index].fromCity.value,
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.grey.shade100,
-                      ),
-                      child: Icon(
-                        Icons.flight_takeoff,
-                        size: 16,
-                        color: TColors.primary,
-                      ),
+                  ),
+                ),
+              ),
+
+              // Swap button
+              Container(
+                margin: const EdgeInsets.only(right: 16),
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: TColors.primary,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-              ),
-            ),
-
-            // To field
-            GestureDetector(
-              onTap:
-                  () => controller.showCitySelectionBottomSheet(
-                    context,
-                    FieldType.destination,
-                    multiCityIndex: index,
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.swap_vert,
+                    color: Colors.white,
+                    size: 18,
                   ),
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: TColors.primary),
-                  color: TColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                margin: EdgeInsets.only(bottom: 8),
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'To',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                          Row(
-                            children: [
-                              Obx(
-                                () => Text(
-                                  '${controller.cityPairs[index].toCity.value} — ${controller.cityPairs[index].toCityName.value}',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.grey.shade100,
-                      ),
-                      child: Icon(
-                        Icons.flight_land,
-                        size: 16,
-                        color: TColors.primary,
-                      ),
-                    ),
-                  ],
+                  onPressed: () => controller.swapCitiesForPair(index),
+                  padding: EdgeInsets.zero,
                 ),
               ),
-            ),
+            ],
+          ),
 
-            // Date selector
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: TColors.primary),
-                color: TColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              margin: EdgeInsets.only(bottom: 8),
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+          // Divider
+          Container(
+            height: 1,
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            color: Colors.grey.shade200,
+          ),
+
+          // TO field
+          GestureDetector(
+            onTap:
+                () => controller.showCitySelectionBottomSheet(
+                  context,
+                  FieldType.destination,
+                  multiCityIndex: index,
+                ),
+            child: Container(
+              padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Departure',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                        Obx(
-                          () => Text(
-                            controller.cityPairs[index].departureDate.value,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.grey.shade100,
-                    ),
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
-                      icon: Icon(
-                        Icons.calendar_today_outlined,
-                        size: 16,
-                        color: TColors.primary,
-                      ),
-                      onPressed:
-                          () => controller.openDatePickerForPair(
-                            Get.context!,
-                            index,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-
-        // Swap button - positioned at the right side between From and To fields
-        Positioned(
-          right: 50,
-          top: 30, // Adjust this value to position the button correctly
-          child: Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: TColors.primary, width: 1),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: IconButton(
-              icon: Icon(Icons.swap_vert, color: TColors.primary, size: 20),
-              onPressed: () => controller.swapCitiesForPair(index),
-              padding: EdgeInsets.zero,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAddCityButton() {
-    return Obx(
-      () =>
-          controller.cityPairs.length < 4
-              ? Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  // Add some spacing between buttons
-                  Container(
-                    margin: EdgeInsets.only(right: 8, bottom: 16),
-                    child: OutlinedButton.icon(
-                      onPressed: () => controller.addCityPair(),
-                      icon: Icon(Icons.add, color: TColors.secondary, size: 18),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: TColors.secondary),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      label: Text(
-                        'ADD CITY',
-                        style: TextStyle(
-                          color: TColors.secondary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  if (controller.cityPairs.length > 2) _buildRemoveCityButton(),
-                ],
-              )
-              : SizedBox.shrink(),
-    );
-  }
-
-  Widget _buildRemoveCityButton() {
-    return Container(
-      margin: EdgeInsets.only(right: 8, bottom: 16),
-      child: OutlinedButton.icon(
-        onPressed: () => controller.removeCityPair(),
-        icon: Icon(Icons.remove, color: TColors.grey, size: 18),
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(color: TColors.grey),
-          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-        label: Text(
-          'REMOVE',
-          style: TextStyle(
-            color: TColors.grey,
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDateSelectors() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Row(
-          children: [
-            Flexible(
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: TColors.primary),
-                  color: TColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'DEPARTURE DATE',
-                        style: TextStyle(
-                          color: TColors.grey,
-                          fontSize: constraints.maxWidth > 300 ? 12 : 10,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      InkWell(
-                        onTap:
-                            () => controller.openDepartureDatePicker(context),
-                        child: Row(
+                        Row(
                           children: [
                             Icon(
-                              Icons.calendar_today_outlined,
+                              Icons.flight_land,
+                              color: Colors.grey.shade600,
                               size: 16,
-                              color: TColors.grey,
                             ),
-                            const SizedBox(width: 6),
-                            Obx(
-                              () => Flexible(
-                                child: Text(
-                                  controller.departureDate.value,
-                                  style: TextStyle(
-                                    fontSize:
-                                        constraints.maxWidth > 300 ? 16 : 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: TColors.text,
-                                  ),
-                                  softWrap: false,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Flying To',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w400,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        Obx(
+                          () => Text(
+                            controller.cityPairs[index].toCity.value,
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Obx(
-                () => Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: TColors.primary),
-                    borderRadius: BorderRadius.circular(8),
-                    color:
-                        controller.tripType.value == TripType.oneWay
-                            ? Colors.grey.withOpacity(0.1)
-                            : TColors.primary.withOpacity(0.1),
+          ),
+
+          // Divider
+          Container(
+            height: 1,
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            color: Colors.grey.shade200,
+          ),
+
+          // Date field
+          GestureDetector(
+            onTap: () => controller.openDatePickerForPair(context, index),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today,
+                    color: Colors.grey.shade600,
+                    size: 16,
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
-                    ),
+                  const SizedBox(width: 12),
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'RETURN DATE',
+                          'Departure Date',
                           style: TextStyle(
-                            color: TColors.grey,
-                            fontSize: constraints.maxWidth > 300 ? 12 : 10,
+                            color: Colors.grey.shade600,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                         const SizedBox(height: 4),
-                        InkWell(
-                          onTap:
-                              controller.tripType.value == TripType.oneWay
-                                  ? null
-                                  : () =>
-                                      controller.openReturnDatePicker(context),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.calendar_today_outlined,
-                                size: 16,
-                                color:
-                                    controller.tripType.value == TripType.oneWay
-                                        ? TColors.grey.withOpacity(0.5)
-                                        : TColors.grey,
-                              ),
-                              const SizedBox(width: 6),
-                              Flexible(
-                                child: Text(
-                                  controller.returnDate.value,
-                                  style: TextStyle(
-                                    fontSize:
-                                        constraints.maxWidth > 300 ? 16 : 14,
-                                    fontWeight: FontWeight.w700,
-                                    color:
-                                        controller.tripType.value ==
-                                                TripType.oneWay
-                                            ? TColors.grey.withOpacity(0.5)
-                                            : TColors.text,
-                                  ),
-                                  softWrap: false,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
+                        Obx(
+                          () => Text(
+                            controller.cityPairs[index].departureDate.value,
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
+                ],
               ),
             ),
-          ],
-        );
-      },
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildTravellerAndClassSelectors(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: GestureDetector(
-            onTap: () => controller.showTravelersSelectionBottomSheet(context),
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: TColors.primary),
-                color: TColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+  Widget _buildAddRemoveButtons() {
+    return Obx(
+      () => Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          if (controller.cityPairs.length < 4)
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              child: OutlinedButton.icon(
+                onPressed: () => controller.addCityPair(),
+                icon: Icon(Icons.add, color: TColors.primary, size: 18),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: TColors.primary),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'TRAVELLER(S)',
-                      style: TextStyle(color: TColors.grey, fontSize: 12),
-                    ),
-                    const SizedBox(height: 4),
-                    Obx(
-                      () => Text(
-                        '${controller.travellersCount.value} Traveller',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: TColors.text,
+                label: Text(
+                  'Add City',
+                  style: TextStyle(
+                    color: TColors.primary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
+          if (controller.cityPairs.length > 2)
+            OutlinedButton.icon(
+              onPressed: () => controller.removeCityPair(),
+              icon: Icon(Icons.remove, color: Colors.grey.shade600, size: 18),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: Colors.grey.shade400),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              label: Text(
+                'Remove',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDateSelectors(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Departure Date
+          GestureDetector(
+            onTap: () => controller.openDepartureDatePicker(context),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today,
+                    color: Colors.grey.shade600,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Departure Date',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
+                        const SizedBox(height: 4),
+                        Obx(
+                          () => Text(
+                            controller.departureDate.value,
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Show return date section only for round trip
+          if (controller.tripType.value == TripType.roundTrip) ...[
+            Container(
+              height: 1,
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              color: Colors.grey.shade200,
+            ),
+            GestureDetector(
+              onTap: () => controller.openReturnDatePicker(context),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_today,
+                      color: Colors.grey.shade600,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Return Date',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Obx(
+                            () => Text(
+                              controller.returnDate.value,
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
             ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTravellerAndClassSelectors(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: GestureDetector(
-            onTap: () => controller.showClassSelectionBottomSheet(context),
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: TColors.primary),
-                color: TColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
+        ],
+      ),
+      child: GestureDetector(
+        onTap: () => controller.showTravelersSelectionBottomSheet(context),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          child: Row(
+            children: [
+              Icon(Icons.person, color: Colors.grey.shade600, size: 16),
+              const SizedBox(width: 12),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'CLASS',
-                      style: TextStyle(color: TColors.grey, fontSize: 12),
+                      'Passenger and Class',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                      ),
                     ),
                     const SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Obx(
-                          () => Text(
-                            controller.travelClass.value,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: TColors.text,
-                            ),
-                          ),
+                    Obx(
+                      () => Text(
+                        '${controller.travellersCount.value} Passenger, ${controller.travelClass.value}',
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
-                        Icon(
-                          Icons.keyboard_arrow_down,
-                          color: TColors.grey,
-                          size: 16,
-                        ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 
@@ -856,33 +781,29 @@ class FlightBookingScreen extends StatelessWidget {
       () => Container(
         width: double.infinity,
         height: 50,
-        decoration: BoxDecoration(
-          color: TColors.third,
-          borderRadius: BorderRadius.circular(30),
-        ),
         child: ElevatedButton(
           onPressed: () => controller.searchFlights(),
           style: ElevatedButton.styleFrom(
-            backgroundColor: TColors.third,
+            backgroundColor: TColors.primary,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
+              borderRadius: BorderRadius.circular(8),
             ),
             elevation: 0,
           ),
           child:
               controller.isSearching.value
-                  ? SizedBox(
+                  ? const SizedBox(
                     width: 24,
                     height: 24,
                     child: CircularProgressIndicator(
                       strokeWidth: 3,
-                      valueColor: AlwaysStoppedAnimation<Color>(TColors.white),
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   )
                   : const Text(
-                    'SEARCH',
+                    'SEARCH FLIGHTS',
                     style: TextStyle(
-                      color: TColors.white,
+                      color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),

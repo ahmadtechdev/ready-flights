@@ -59,3 +59,7 @@ flutter:
     - assets/images/empty/
     - assets/images/logos/
     - assets/certs/
+    - assets/img/
+    - assets/img/logos/
+    - assets/img/cardbg/
+    - assets/img/cars/
