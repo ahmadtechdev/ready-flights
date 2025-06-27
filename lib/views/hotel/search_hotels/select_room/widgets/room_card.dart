@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:ready_flights/utility/utils.dart';
 
 import '../../../../../services/api_service_hotel.dart';
 import '../../../../../utility/colors.dart';
@@ -691,7 +692,8 @@ class RoomCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pricePerNight = (room['price']['net']) ?? 0.0;
+    final pricePerNight = (room['price']['net'] * pkrprice) / nights ?? 0.0;
+
     final totalPrice = pricePerNight * nights;
 
     return Container(
@@ -862,7 +864,7 @@ class RoomCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '\$${pricePerNight.toStringAsFixed(2)}',
+              '\PKR${pricePerNight.toStringAsFixed(2)}',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ],
@@ -882,7 +884,7 @@ class RoomCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '\$${totalPrice.toStringAsFixed(2)}',
+              '\PKR${totalPrice.toStringAsFixed(2)}',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ],

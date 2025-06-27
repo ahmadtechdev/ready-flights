@@ -2,12 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:ready_flights/utility/colors.dart';
+import 'package:ready_flights/views/hotel/search_hotels/select_room/controller/select_room_controller.dart';
 
-import '../../../../../utility/colors.dart';
 import '../../../hotel/guests/guests_controller.dart';
 import '../../../hotel/hotel_date_controller.dart';
 import '../../search_hotel_controller.dart';
-import '../../select_room/controller/select_room_controller.dart';
 
 class ImportantBookingDetailsCard extends StatefulWidget {
   const ImportantBookingDetailsCard({super.key});
@@ -144,7 +144,7 @@ class _ImportantBookingDetailsCardState
               '${guestsController.roomCount.toString()} Room',
             ),
             const Divider(height: 24),
-            _buildPriceSection(slectroomcontroller.totalPrice.value.toString()),
+            _buildPriceSection(slectroomcontroller.totalPrice.value.toStringAsFixed(0)),
           ],
         ),
       ),
@@ -212,7 +212,7 @@ class _ImportantBookingDetailsCardState
             child: _buildBadge("Refundable"),
           ),
           const Divider(height: 16),
-          _buildPriceRow('Price', '\$ $price', isTotal: true),
+          _buildPriceRow('Price', 'PKR $price', isTotal: true),
         ],
       ),
     );

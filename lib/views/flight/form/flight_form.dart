@@ -153,25 +153,26 @@ class FlightBookingScreen extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
+              child: GestureDetector(
+                // Move GestureDetector to wrap entire Container
+                onTap:
+                    () => controller.showCitySelectionBottomSheet(
+                      context,
+                      FieldType.departure,
                     ),
-                  ],
-                ),
-                child: GestureDetector(
-                  onTap:
-                      () => controller.showCitySelectionBottomSheet(
-                        context,
-                        FieldType.departure,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
                       ),
+                    ],
+                  ),
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     child: Column(
@@ -244,26 +245,26 @@ class FlightBookingScreen extends StatelessWidget {
 
         const SizedBox(height: 12),
 
-        // TO field separate
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.shade300),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
+        // TO field separate - Move GestureDetector to wrap entire Container
+        GestureDetector(
+          onTap:
+              () => controller.showCitySelectionBottomSheet(
+                context,
+                FieldType.destination,
               ),
-            ],
-          ),
-          child: GestureDetector(
-            onTap:
-                () => controller.showCitySelectionBottomSheet(
-                  context,
-                  FieldType.destination,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade300),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
                 ),
+              ],
+            ),
             child: Container(
               padding: const EdgeInsets.all(8),
               child: Column(
@@ -357,6 +358,7 @@ class FlightBookingScreen extends StatelessWidget {
             children: [
               Expanded(
                 child: GestureDetector(
+                  // Move GestureDetector to wrap the entire clickable area
                   onTap:
                       () => controller.showCitySelectionBottomSheet(
                         context,
@@ -439,7 +441,7 @@ class FlightBookingScreen extends StatelessWidget {
             color: Colors.grey.shade200,
           ),
 
-          // TO field
+          // TO field - GestureDetector already wraps the entire Container properly
           GestureDetector(
             onTap:
                 () => controller.showCitySelectionBottomSheet(
@@ -499,7 +501,7 @@ class FlightBookingScreen extends StatelessWidget {
             color: Colors.grey.shade200,
           ),
 
-          // Date field
+          // Date field - GestureDetector already wraps the entire Container properly
           GestureDetector(
             onTap: () => controller.openDatePickerForPair(context, index),
             child: Container(

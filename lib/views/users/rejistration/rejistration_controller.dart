@@ -50,8 +50,7 @@ class RegistrationModel {
 }
 
 class RegisterController extends GetxController {
- final authController = Get.find<AuthController>();
-
+  final authController = Get.find<AuthController>();
 
   // Text controllers for form fields
   final TextEditingController agencyNameController = TextEditingController();

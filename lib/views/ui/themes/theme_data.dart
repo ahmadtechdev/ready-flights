@@ -51,7 +51,7 @@ ThemeData darkColorScheme = ThemeData(
   inputDecorationTheme: InputDecorationTheme(
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(color: Colors.grey[700]!)
+      borderSide: BorderSide(color: Colors.grey[700]!),
     ),
     enabledBorder: OutlineInputBorder(
       borderSide: BorderSide(color: Colors.grey[500]!),
@@ -82,6 +82,6 @@ ThemeData darkColorScheme = ThemeData(
     brightness: Brightness.dark,
     outline: const Color.fromARGB(255, 53, 69, 69),
     outlineVariant: const Color.fromARGB(255, 107, 135, 135),
-    shadow: Colors.black.withValues(alpha: 0.2)
-  )
+    shadow: Colors.black.withValues(alpha: 0.2),
+  ),
 );

@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:ready_flights/utility/utils.dart';
 
 import '../../../hotel/hotel_date_controller.dart';
 
@@ -98,7 +99,7 @@ class SelectRoomController extends GetxController {
     roomPrices.forEach((key, value) {
       total += value;
     });
-    totalPrice.value = total;
+    totalPrice.value = total * pkrprice;
   }
 
   // Method to update room data when a room is selected

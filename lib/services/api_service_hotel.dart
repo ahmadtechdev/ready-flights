@@ -1,10 +1,14 @@
+// ignore_for_file: empty_catches
+
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:ready_flights/utility/utils.dart';
+import 'package:ready_flights/views/hotel/search_hotels/booking_hotel/booking_controller.dart';
 
 import '../views/hotel/hotel/guests/guests_controller.dart';
-import '../views/hotel/search_hotels/booking_hotel/booking_controller.dart';
 import '../views/hotel/search_hotels/search_hotel_controller.dart';
 
 class ApiServiceHotel extends GetxService {
@@ -34,7 +38,9 @@ class ApiServiceHotel extends GetxService {
     try {
       return DateFormat('yyyy-MM-dd').format(DateTime.parse(isoDate));
     } catch (e) {
-      print('Date formatting error: $e');
+      if (kDebugMode) {
+        print('Date formatting error: $e');
+      }
       return isoDate; // Fallback to the original format if parsing fails.
     }
   }
@@ -51,8 +57,6 @@ class ApiServiceHotel extends GetxService {
 
       if (response.statusCode == 200) {
         // Print raw response data type for debugging
-        print('Response data type: ${response.data.runtimeType}');
-        print('Raw response: ${response.data}');
 
         // Handle string response that needs to be parsed as JSON
         if (response.data is String) {
@@ -65,11 +69,9 @@ class ApiServiceHotel extends GetxService {
             } else if (decodedData is List) {
               return decodedData;
             } else {
-              print('Unexpected JSON structure: $decodedData');
               return [];
             }
           } catch (e) {
-            print('JSON parsing error: $e');
             return [];
           }
         }
@@ -78,7 +80,6 @@ class ApiServiceHotel extends GetxService {
           if (response.data['status'] == 200 && response.data['data'] != null) {
             return response.data['data'] as List;
           } else {
-            print('Unexpected Map structure: ${response.data}');
             return [];
           }
         }
@@ -88,15 +89,12 @@ class ApiServiceHotel extends GetxService {
         }
         // Fallback for unexpected response types
         else {
-          print('Unexpected response type: ${response.data.runtimeType}');
           return [];
         }
       } else {
-        print('Error: ${response.statusMessage}');
         return [];
       }
     } catch (e) {
-      print('Exception occurred in fetchCities: $e');
       return [];
     }
   } // Fetches hotels based on search parameters.
@@ -122,20 +120,19 @@ class ApiServiceHotel extends GetxService {
         "CheckOutDate": _formatDate(checkOutDate),
         "Rooms": {
           "Room":
-              rooms
-                  .map(
-                    (room) => {
-                      "RoomIdentifier": room["RoomIdentifier"],
-                      "Adult": room["Adult"],
-                    },
-                  )
-                  .toList(),
+          rooms
+              .map(
+                (room) => {
+              "RoomIdentifier": room["RoomIdentifier"],
+              "Adult": room["Adult"],
+            },
+          )
+              .toList(),
         },
         "TassProInfo": {"CustomerCode": "4805", "RegionID": "123"},
       },
     };
 
-    print('Fetching Hotels with Request: ${json.encode(requestBody)}');
     try {
       final response = await dio.post(
         '/hotel/Search',
@@ -144,7 +141,6 @@ class ApiServiceHotel extends GetxService {
       );
 
       if (response.statusCode == 200) {
-        print("hotel reponse :${response.data}");
         final data = response.data;
         final hotels = data['hotels']?['hotel'] ?? [];
         final sessionId = data['generalInfo']?['sessionId'];
@@ -156,16 +152,20 @@ class ApiServiceHotel extends GetxService {
             hotels.map<Map<String, dynamic>>((hotel) {
               return {
                 'name': hotel['name'] ?? 'Unknown Hotel',
-                'price': hotel['minPrice']?.toString() ?? '0',
+                'price':
+                hotel['minPrice'] != null
+                    ? (double.tryParse(hotel['minPrice'].toString()) ?? 0) *
+                    pkrprice
+                    : 0,
                 'address':
-                    hotel['hotelInfo']?['add1'] ?? 'Address not available',
+                hotel['hotelInfo']?['add1'] ?? 'Address not available',
                 'image':
-                    hotel['hotelInfo']?['image'] ??
+                hotel['hotelInfo']?['image'] ??
                     'assets/img/cardbg/broken-image.png',
                 'rating':
-                    double.tryParse(
-                      hotel['hotelInfo']?['starRating']?.toString() ?? '0',
-                    ) ??
+                double.tryParse(
+                  hotel['hotelInfo']?['starRating']?.toString() ?? '0',
+                ) ??
                     3.0,
                 'latitude': hotel['hotelInfo']?['lat'] ?? 0.0,
                 'longitude': hotel['hotelInfo']?['lon'] ?? 0.0,
@@ -174,12 +174,9 @@ class ApiServiceHotel extends GetxService {
               };
             }).toList();
 
-        print('Successfully updated hotel data');
       } else {
-        print('API Error: ${response.statusMessage}');
       }
     } catch (e) {
-      print('Error Fetching Hotels: $e');
     }
   }
 
@@ -188,15 +185,15 @@ class ApiServiceHotel extends GetxService {
     final guestsController = Get.find<GuestsController>();
 
     List<Map<String, dynamic>> rooms =
-        guestsController.rooms.asMap().entries.map((entry) {
-          final index = entry.key;
-          final room = entry.value;
-          return {
-            "RoomIdentifier": index + 1,
-            "Adult": room.adults.value,
-            if (room.children.value > 0) "child": room.children.value,
-          };
-        }).toList();
+    guestsController.rooms.asMap().entries.map((entry) {
+      final index = entry.key;
+      final room = entry.value;
+      return {
+        "RoomIdentifier": index + 1,
+        "Adult": room.adults.value,
+        if (room.children.value > 0) "child": room.children.value,
+      };
+    }).toList();
 
     final requestBody = {
       "SessionId": sessionId,
@@ -207,7 +204,6 @@ class ApiServiceHotel extends GetxService {
       },
     };
 
-    print('Fetching Room Details with Request: $requestBody');
     try {
       final response = await dio.post(
         '/hotel/RoomDetails',
@@ -219,22 +215,17 @@ class ApiServiceHotel extends GetxService {
         final data = response.data;
         final hotelInfo = data['hotel']?['hotelInfo'];
         final roomData = data['hotel']['rooms']?['room'];
-        print(roomData);
 
         if (hotelInfo != null) {
           final searchController = Get.find<SearchHotelController>();
           searchController.hotelName.value = hotelInfo['name'];
           searchController.image.value = hotelInfo['image'];
           searchController.roomsdata.value = roomData;
-          print('Successfully updated room data');
         } else {
-          print('No room information available');
         }
       } else {
-        print('API Error: ${response.statusMessage}');
       }
     } catch (e) {
-      print('Error Fetching Room Details: $e');
     }
   }
 
@@ -256,7 +247,6 @@ class ApiServiceHotel extends GetxService {
       },
     };
 
-    print('Prebooking with Request: ${json.encode(requestBody)}');
     try {
       final response = await dio.post(
         '/hotel/PreBook',
@@ -265,7 +255,6 @@ class ApiServiceHotel extends GetxService {
       );
 
       if (response.statusCode == 200) {
-        print('Prebook Successful: ${response.data}');
 
         // Extract and print the condition list
         final data = response.data as Map<String, dynamic>;
@@ -285,9 +274,6 @@ class ApiServiceHotel extends GetxService {
                       final policy = policyList[j] as Map<String, dynamic>;
                       final conditions = policy['condition'] as List<dynamic>?;
                       if (conditions != null) {
-                        print(
-                          'Room ${i + 1} Policy ${j + 1} Conditions: $conditions',
-                        );
                       }
                     }
                   }
@@ -299,10 +285,8 @@ class ApiServiceHotel extends GetxService {
 
         return data;
       } else {
-        print('Prebook Failed: ${response.statusMessage}');
       }
     } catch (e) {
-      print('Error in Prebooking: $e');
     }
     return null;
   }
@@ -324,9 +308,6 @@ class ApiServiceHotel extends GetxService {
       },
     };
 
-    print(
-      'Fetching Cancellation Policy with Request: ${json.encode(requestBody)}',
-    );
     try {
       final response = await dio.post(
         '/hotel/CancellationPolicy',
@@ -335,13 +316,10 @@ class ApiServiceHotel extends GetxService {
       );
 
       if (response.statusCode == 200) {
-        print('Cancellation Policy Response: ${response.data}');
         return response.data as Map<String, dynamic>;
       } else {
-        print('Cancellation Policy Failed: ${response.statusMessage}');
       }
     } catch (e) {
-      print('Error fetching cancellation policy: $e');
     }
     return null;
   }
@@ -362,7 +340,7 @@ class ApiServiceHotel extends GetxService {
         "RateKeys": {"RateKey": rateKeys},
       },
     };
-    print('Fetching Price Breakup with Request: ${json.encode(requestBody)}');
+
     try {
       final response = await dio.post(
         '/hotel/PriceBreakup',
@@ -371,13 +349,10 @@ class ApiServiceHotel extends GetxService {
       );
 
       if (response.statusCode == 200) {
-        print('Price Breakup Response: ${response.data}');
         return response.data as Map<String, dynamic>;
       } else {
-        print('Price Breakup Failed: ${response.statusMessage}');
       }
     } catch (e) {
-      print('Error fetching price breakup: $e');
     }
     return null;
   }
@@ -391,9 +366,6 @@ class ApiServiceHotel extends GetxService {
 
     try {
       // Log the request for debugging
-      print('\n=== SENDING BOOKING REQUEST ===');
-      print('Endpoint: $bookingEndpoint');
-      print('Request Body: ${json.encode(requestBody)}');
 
       final response = await dio.post(
         bookingEndpoint,
@@ -411,9 +383,6 @@ class ApiServiceHotel extends GetxService {
       );
 
       // Log the response
-      print('\n=== BOOKING RESPONSE ===');
-      print('Status Code: ${response.statusCode}');
-      print('Response Data: ${response.data}');
 
       if (response.statusCode != null &&
           response.statusCode! >= 200 &&
@@ -424,9 +393,6 @@ class ApiServiceHotel extends GetxService {
             String bookingStr = response.data['BookingNO'].toString();
             bookingStr = bookingStr.replaceAll('SHBK-', '');
             bookingcontroller.booking_num.value = int.tryParse(bookingStr) ?? 0;
-            print(
-              'Booking number stored: ${bookingcontroller.booking_num.value}',
-            );
           }
 
           if (response.data is Map) {
@@ -444,22 +410,13 @@ class ApiServiceHotel extends GetxService {
         }
         return true; // Return true if we get 200 but can't determine more specific success
       } else {
-        print('Booking failed with status: ${response.statusCode}');
-        print('Error message: ${response.statusMessage}');
         return false;
       }
     } on DioException catch (e) {
-      print('\n=== BOOKING ERROR ===');
-      print('DioError Type: ${e.type}');
-      print('Error Message: ${e.message}');
       if (e.response != null) {
-        print('Error Response: ${e.response?.data}');
-        print('Error Status Code: ${e.response?.statusCode}');
       }
       return false;
     } catch (e) {
-      print('\n=== UNEXPECTED ERROR ===');
-      print('Error: $e');
       return false;
     }
   }

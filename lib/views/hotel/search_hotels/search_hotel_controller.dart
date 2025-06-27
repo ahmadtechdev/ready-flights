@@ -1,10 +1,10 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 class SearchHotelController extends GetxController {
   // Define the hotels list with explicit type
   final RxList<Map<String, dynamic>> hotels = <Map<String, dynamic>>[].obs;
-  // Function to open location in maps
 
   // Observable lists with explicit types
   final RxList<Map<String, dynamic>> filteredHotels =
@@ -15,6 +15,7 @@ class SearchHotelController extends GetxController {
 
   var dio = Dio();
 
+  // Initialize the filter data - call this after fetching hotels
   filterhotler() {
     originalHotels.value = List<Map<String, dynamic>>.from(hotels);
     filteredHotels.value = List<Map<String, dynamic>>.from(hotels);
@@ -31,42 +32,90 @@ class SearchHotelController extends GetxController {
     }
 
     // Debugging: Print the selected ratings
-    print("Selected ratings: $selectedStars");
+    if (kDebugMode) {
+      print("Selected ratings: $selectedStars");
+      print("Original hotels count: ${originalHotels.length}");
+    }
+
+    // Print sample hotel ratings for debugging
+    if (originalHotels.isNotEmpty) {
+      for (
+        int i = 0;
+        i < (originalHotels.length > 3 ? 3 : originalHotels.length);
+        i++
+      ) {
+        if (kDebugMode) {
+          print(
+            "Hotel $i: rating = ${originalHotels[i]['rating']} (type: ${originalHotels[i]['rating'].runtimeType})",
+          );
+        }
+      }
+    }
 
     if (selectedStars.isEmpty) {
       // Show all hotels if no filter is selected
       filteredHotels.value = List<Map<String, dynamic>>.from(originalHotels);
+      hotels.value = List<Map<String, dynamic>>.from(originalHotels);
     } else {
-      // Apply the rating filter
+      // Apply the rating filter - convert rating to int for comparison
       filteredHotels.value =
-          originalHotels
-              .where((hotel) => selectedStars.contains(hotel['rating']))
-              .toList();
-      hotels.value = filteredHotels;
+          originalHotels.where((hotel) {
+            // Convert rating to int for comparison (round to nearest integer)
+            int hotelRating = (hotel['rating'] as double).round();
+            bool matches = selectedStars.contains(hotelRating);
+            if (kDebugMode) {
+              print(
+                "Hotel: ${hotel['name']}, Rating: $hotelRating, Matches: $matches",
+              );
+            }
+            return matches;
+          }).toList();
 
-      // Debugging: Print the filtered list
-      print("Filtered hotels: $filteredHotels");
+      hotels.value = List<Map<String, dynamic>>.from(filteredHotels);
+    }
+
+    // Debugging: Print the filtered list
+    if (kDebugMode) {
+      print("Filtered hotels count: ${filteredHotels.length}");
     }
   }
 
   // Method to filter hotels by price range
   void filterByPriceRange(double minPrice, double maxPrice) {
     try {
+      if (kDebugMode) {
+        print("Filtering by price range: $minPrice - $maxPrice");
+        print("Original hotels count: ${originalHotels.length}");
+      }
+
       // Create a new list with filtered hotels
       List<Map<String, dynamic>> filtered =
           originalHotels.where((hotel) {
             // Remove commas and parse the price to a double
-            double price = double.parse(
-              hotel['price'].toString().replaceAll(',', '').trim(),
-            );
-            return price >= minPrice && price <= maxPrice;
+            String priceStr =
+                hotel['price'].toString().replaceAll(',', '').trim();
+            double price = double.tryParse(priceStr) ?? 0.0;
+            bool inRange = price >= minPrice && price <= maxPrice;
+
+            if (kDebugMode) {
+              print(
+                "Hotel: ${hotel['name']}, Price: $price, In Range: $inRange",
+              );
+            }
+            return inRange;
           }).toList();
 
       // Update the filtered and main lists
       filteredHotels.value = filtered;
-      hotels.value = filtered;
+      hotels.value = List<Map<String, dynamic>>.from(filtered);
+
+      if (kDebugMode) {
+        print("Price filtered hotels count: ${filtered.length}");
+      }
     } catch (e) {
-      print('Error filtering hotels: $e');
+      if (kDebugMode) {
+        print('Error filtering hotels: $e');
+      }
     }
   }
 
@@ -80,24 +129,32 @@ class SearchHotelController extends GetxController {
       switch (sortOption) {
         case 'Price (low to high)':
           sortedList.sort((a, b) {
-            double priceA = double.parse(
-              a['price'].toString().replaceAll(',', '').trim(),
-            );
-            double priceB = double.parse(
-              b['price'].toString().replaceAll(',', '').trim(),
-            );
+            double priceA =
+                double.tryParse(
+                  a['price'].toString().replaceAll(',', '').trim(),
+                ) ??
+                0.0;
+            double priceB =
+                double.tryParse(
+                  b['price'].toString().replaceAll(',', '').trim(),
+                ) ??
+                0.0;
             return priceA.compareTo(priceB);
           });
           break;
 
         case 'Price (high to low)':
           sortedList.sort((a, b) {
-            double priceA = double.parse(
-              a['price'].toString().replaceAll(',', '').trim(),
-            );
-            double priceB = double.parse(
-              b['price'].toString().replaceAll(',', '').trim(),
-            );
+            double priceA =
+                double.tryParse(
+                  a['price'].toString().replaceAll(',', '').trim(),
+                ) ??
+                0.0;
+            double priceB =
+                double.tryParse(
+                  b['price'].toString().replaceAll(',', '').trim(),
+                ) ??
+                0.0;
             return priceB.compareTo(priceA);
           });
           break;
@@ -109,13 +166,26 @@ class SearchHotelController extends GetxController {
 
       hotels.value = sortedList;
     } catch (e) {
-      print('Error sorting hotels: $e');
+      if (kDebugMode) {
+        print('Error sorting hotels: $e');
+      }
     }
   }
 
   // Reset filters
   void resetFilters() {
+    // Reset all filter states
+    for (int i = 0; i < selectedRatings.length; i++) {
+      selectedRatings[i] = false;
+    }
+
+    // Reset hotels to original list
     hotels.value = List<Map<String, dynamic>>.from(originalHotels);
+    filteredHotels.value = List<Map<String, dynamic>>.from(originalHotels);
+
+    if (kDebugMode) {
+      print("Filters reset. Hotels count: ${hotels.length}");
+    }
   }
 
   void searchHotelsByName(String query) {
@@ -135,15 +205,16 @@ class SearchHotelController extends GetxController {
                 .toList();
       }
     } catch (e) {
-      print('Error searching hotels by name: $e');
+      if (kDebugMode) {
+        print('Error searching hotels by name: $e');
+      }
     }
   }
 
   var roomsdata = [].obs;
+  var ratingstar = 0.obs;
 
   var hotelName = ''.obs;
-  var ratingstar =0.obs;
-
   var image = ''.obs;
   var hotelCode = ''.obs;
   var sessionId = ''.obs;
@@ -163,5 +234,13 @@ class SearchHotelController extends GetxController {
     } else {
       selectedRoomsData[index] = roomData;
     }
+  }
+
+  // Helper method to get hotels count by rating for UI display
+  int getHotelCountByRating(int rating) {
+    return originalHotels.where((hotel) {
+      int hotelRating = (hotel['rating'] as double).round();
+      return hotelRating == rating;
+    }).length;
   }
 }

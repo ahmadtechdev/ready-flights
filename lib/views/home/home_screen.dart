@@ -1,8 +1,10 @@
 // screens/home_screen.dart
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:ready_flights/utility/colors.dart';
 import 'package:ready_flights/views/home/booking_card.dart';
+import 'package:ready_flights/views/users/login/login.dart';
 // import 'package:url_launcher/url_launcher.dart';
 import 'featured_items.dart';
 
@@ -109,7 +111,7 @@ class HomeBanner extends StatelessWidget {
         if (showBookingCard) ...[
           // Close button when booking card is shown
           Positioned(
-            top: 20,
+            top: 25,
             right: 20,
             child: FloatingActionButton(
               mini: true,
@@ -125,30 +127,59 @@ class HomeBanner extends StatelessWidget {
             child: BookingCard(),
           ),
         ] else ...[
-          // Welcome content and Create New Booking button when hidden
+          // Welcome content and buttons container when hidden
           Container(
             margin: EdgeInsets.only(top: 265, left: 20, right: 20),
             width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: onToggleBooking,
-              icon: const Icon(Icons.add, size: 20),
-              label: const Text(
-                'Create New Booking',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: TColors.primary,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
+            padding: const EdgeInsets.only(right: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
                 ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
+              ],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: onToggleBooking,
+                    icon: const Icon(Icons.flight_land_sharp, size: 20),
+                    label: const Text(
+                      'Create New Booking',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: TColors.primary,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      elevation: 0,
+                      shadowColor: Colors.transparent,
+                    ),
+                  ),
                 ),
-                elevation: 4,
-                shadowColor: Colors.black26,
-              ),
+                FloatingActionButton(
+                  mini: true,
+                  onPressed: onToggleBooking,
+                  backgroundColor: Colors.white,
+                  foregroundColor: TColors.primary,
+                  elevation: 0,
+                  child: const Icon(Icons.add, size: 20),
+                ),
+              ],
             ),
           ),
         ],
@@ -327,11 +358,14 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: const Row(
+          child: Row(
             children: [
-              Icon(Icons.headset_mic_outlined, color: TColors.primary),
-              SizedBox(width: 12),
-              Icon(Icons.person_outline, color: TColors.primary),
+              GestureDetector(
+                onTap: () {
+                  Get.to(() => Login());
+                },
+                child: Icon(Icons.person_outline, color: TColors.primary),
+              ),
             ],
           ),
         ),
