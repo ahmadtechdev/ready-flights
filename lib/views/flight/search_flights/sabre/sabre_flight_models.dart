@@ -1,7 +1,9 @@
-import 'sabre_package_modal.dart';
-import 'sabre_flight_controller.dart';
 
-class Flight {
+
+
+import 'sabre_package_modal.dart';
+
+class SabreFlight {
   final String imgPath;
   final String airline;
   final String flightNumber;
@@ -27,7 +29,7 @@ class Flight {
   final int? legElapsedTime; // Total elapsed time from the leg
   final String cabinClass;
   final String mealCode;
-  final Flight? returnFlight; // For storing return flight information
+  final SabreFlight? returnFlight; // For storing return flight information
   final bool isReturn; // To identify if this is a return flight
   final String? groupId; // To group related flights together
   // New Fields for Round-Trip Support
@@ -36,7 +38,7 @@ class Flight {
   final String? returnFrom;
   final String? returnTo;
   final bool isRoundTrip;
-  final List<Flight>?
+  final List<SabreFlight>?
   connectedFlights; // For storing related flights in multi-city
   final int? tripSequence; // To track order in multi-city trips
   final String? tripType; // "oneWay", "return", "multiCity"
@@ -45,7 +47,7 @@ class Flight {
   final List<Map<String, dynamic>> pricingInforArray;
   // Add this new property
 
-  Flight({
+  SabreFlight({
     required this.imgPath,
     required this.airline,
     required this.flightNumber,

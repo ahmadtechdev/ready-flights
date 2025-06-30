@@ -5,15 +5,13 @@ import 'dart:async';
 
 import '../../../../utility/colors.dart';
 import '../../../../widgets/travelers_selection_bottom_sheet.dart';
-import '../../form/travelers/traveler_controller.dart';
 import '../booking_flight/booking_flight.dart';
-import '../search_flight_utils/helper_functions.dart';
-import '../flight_package/sabre/sabre_flight_models.dart';
+import '../sabre/sabre_flight_models.dart';
 import '../search_flight_utils/widgets/sabre_flight_card.dart';
 
 class ReviewTripPage extends StatefulWidget {
   final bool isMulti; // Indicates if it's a multi-city trip
-  final Flight flight; // Selected flight
+  final SabreFlight flight; // Selected flight
   final Map<String, dynamic> pricingInformation; // Pricing information from API for the selected package
 
   const ReviewTripPage({
@@ -57,11 +55,7 @@ class ReviewTripPageState extends State<ReviewTripPage> {
 
   void _calculatePrices() {
     // Extract pricing information from the API response
-    print("ahmad -1");
-    print(widget.pricingInformation);
     final passengerInfoList = widget.pricingInformation["fare"]['passengerInfoList'] ?? '';
-    print("ahmad");
-    print(passengerInfoList);
 
     // Initialize prices
     adultPrice = 0.0;

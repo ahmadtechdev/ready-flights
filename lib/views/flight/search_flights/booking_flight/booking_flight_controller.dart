@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../widgets/travelers_selection_bottom_sheet.dart';
-import '../../form/travelers/traveler_controller.dart';
 
 class TravelerInfo {
   final TextEditingController titleController;

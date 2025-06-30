@@ -1,4 +1,4 @@
-import '../../search_flight_utils/helper_functions.dart';
+import '../search_flight_utils/helper_functions.dart';
 import 'sabre_flight_models.dart';
 
 class FlightPackageInfo {
@@ -93,7 +93,6 @@ class FlightPackageInfo {
         brandDescription: brandDescription,
       );
     } catch (e) {
-      print('Error parsing flight package: $e');
       return FlightPackageInfo(
         cabinCode: 'Y',
         mealCode: 'N',

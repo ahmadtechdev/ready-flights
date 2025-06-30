@@ -2,16 +2,17 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import '../../../../../services/api_service_flight.dart';
+
+import '../../../../../services/api_service_sabre.dart';
 
 import '../../../../../utility/colors.dart';
 import '../../../form/flight_booking_controller.dart';
+import '../../sabre/sabre_flight_controller.dart';
+import '../../sabre/sabre_flight_models.dart';
 import '../helper_functions.dart';
-import '../../flight_package/sabre/sabre_flight_controller.dart';
-import '../../flight_package/sabre/sabre_flight_models.dart';
 
 class FlightCard extends StatefulWidget {
-  final Flight flight;
+  final SabreFlight flight;
   final bool showReturnFlight;
 
   const FlightCard({
@@ -52,7 +53,7 @@ class _FlightCardState extends State<FlightCard>
   // Add this method to fetch margin data
   Future<void> _fetchMarginData() async {
     try {
-      final apiService = Get.find<ApiServiceFlight>();
+      final apiService = Get.find<ApiServiceSabre>();
       final data = await apiService.getMargin();
       marginData.value = data;
 
@@ -62,7 +63,6 @@ class _FlightCardState extends State<FlightCard>
         data,
       );
     } catch (e) {
-      print('Error fetching margin data: $e');
       // If margin fetch fails, use original price
       finalPrice.value = widget.flight.price;
     }
@@ -475,8 +475,10 @@ class _FlightCardState extends State<FlightCard>
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Row(
+
                     children: [
                       const Text(
                         'Flight Details',
@@ -495,12 +497,38 @@ class _FlightCardState extends State<FlightCard>
                       ),
                     ],
                   ),
+                  Container(
+                    width: 60,
+                    // height: 60,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFBB0103),
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'Sabre',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
                   ElevatedButton(
                     onPressed: () {
                       // Add booking functionality here
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: TColors.secondary,
+                      backgroundColor: TColors.third,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(32),
                       ),
@@ -584,7 +612,7 @@ class _FlightCardState extends State<FlightCard>
         '${carrier['marketing'] ?? 'XX'}-${carrier['marketingFlightNumber'] ?? '000'}';
     final marketingCarrier = carrier['marketing'] ?? 'Unknown';
     // final airlineInfo = getAirlineInfo(marketingCarrier);
-    final ApiServiceFlight apiService = Get.find<ApiServiceFlight>();
+    final ApiServiceSabre apiService = Get.find<ApiServiceSabre>();
     final airlineMap = apiService.getAirlineMap();
     final airlineInfo = getAirlineInfo(marketingCarrier, airlineMap);
     FlightSegmentInfo? segmentInfo;

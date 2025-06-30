@@ -2,15 +2,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../search_flight_utils/widgets/airblue_flight_card.dart';
-import 'airblue_flight_model.dart';
+import '../search_flight_utils/widgets/airblue_flight_card.dart';
 import 'airblue_flight_controller.dart';
+import 'airblue_flight_model.dart';
 
-class ReturnFlightsPage extends StatelessWidget {
+class AirblueReturnFlightsPage extends StatelessWidget {
   final List<AirBlueFlight> returnFlights;
   final AirBlueFlightController airBlueController = Get.find<AirBlueFlightController>();
 
-  ReturnFlightsPage({super.key, required this.returnFlights});
+  AirblueReturnFlightsPage({super.key, required this.returnFlights});
 
   @override
   Widget build(BuildContext context) {

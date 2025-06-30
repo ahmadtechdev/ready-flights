@@ -1,29 +1,30 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'dart:async';
 
 import '../../../../utility/colors.dart';
 import '../../../../widgets/travelers_selection_bottom_sheet.dart';
-import '../airblue/airblue_flight_model.dart';
-import '../booking_flight/airblue_booking_flight.dart';
-import '../airblue/airblue_flight_controller.dart';
-import '../search_flight_utils/widgets/airblue_flight_card.dart';
+import '../booking_flight/pia_booking_flight.dart';
+import '../pia/pia_flight_model.dart';
+import '../pia/pia_flight_controller.dart';
+import '../search_flight_utils/widgets/pia_flight_card.dart';
 
-class AirBlueReviewTripPage extends StatefulWidget {
-  final AirBlueFlight flight;
+class PIAReviewTripPage extends StatefulWidget {
+  final PIAFlight flight;
   final bool isReturn;
 
-  const AirBlueReviewTripPage({
+  const PIAReviewTripPage({
     super.key,
     required this.flight,
     this.isReturn = false,
   });
 
   @override
-  AirBlueReviewTripPageState createState() => AirBlueReviewTripPageState();
+  PIAReviewTripPageState createState() => PIAReviewTripPageState();
 }
 
-class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
+class PIAReviewTripPageState extends State<PIAReviewTripPage> {
   List<BoxShadow> _animatedShadow = [
     BoxShadow(
       color: TColors.primary.withOpacity(0.4),
@@ -35,7 +36,7 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
   late Timer _shadowTimer;
 
   final travelersController = Get.find<TravelersController>();
-  final airBlueController = Get.find<AirBlueFlightController>();
+  final piaController = Get.find<PIAFlightController>();
 
   late double adultPrice;
   late double childPrice;
@@ -57,94 +58,117 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
   }
 
   void _calculatePrices() {
-    // Calculate outbound flight prices
+    // Reset all prices
     adultPrice = 0.0;
     childPrice = 0.0;
     infantPrice = 0.0;
     totalPrice = 0.0;
     currency = 'PKR';
 
-    final ptcFareBreakdowns = airBlueController.selectedOutboundFareOption!.pricingInfo['PTC_FareBreakdowns']['PTC_FareBreakdown'];
+    returnAdultPrice = 0.0;
+    returnChildPrice = 0.0;
+    returnInfantPrice = 0.0;
+    returnTotalPrice = 0.0;
+    returnCurrency = 'PKR';
 
-    if (ptcFareBreakdowns is List) {
-      for (var breakdown in ptcFareBreakdowns) {
-        final passengerType = breakdown['PassengerTypeQuantity']['Code'];
-        final passengerFare = breakdown['PassengerFare'];
-        final price = double.tryParse(passengerFare['TotalFare']['Amount'].toString()) ?? 0.0;
-        currency = passengerFare['TotalFare']['CurrencyCode'] ?? 'PKR';
+    // Calculate outbound flight prices
+    if (piaController.selectedOutboundFareOption != null) {
+      final fareOption = piaController.selectedOutboundFareOption!;
+      currency = fareOption.currency;
 
-        if (passengerType == 'ADT') {
-          adultPrice = price;
-        } else if (passengerType == 'CHD') {
-          childPrice = price;
-        } else if (passengerType == 'INF') {
-          infantPrice = price;
+      // Extract prices for each passenger type from rawData
+      final passengerFareInfoList = fareOption.rawData['passengerFareInfoList'];
+      if (passengerFareInfoList != null) {
+        final List<dynamic> fareInfos = passengerFareInfoList is List
+            ? passengerFareInfoList
+            : [passengerFareInfoList];
+
+        for (var fareInfo in fareInfos) {
+          final passengerType = _extractPassengerType(fareInfo);
+          final pricingInfo = fareInfo['pricingInfo'] ?? {};
+          final totalFare = pricingInfo['totalFare']?['amount'] ?? {};
+          final priceValue = totalFare['value']?.toString() ?? '0';
+          final price = double.tryParse(priceValue) ?? 0.0;
+
+          switch (passengerType) {
+            case 'ADLT':
+              adultPrice = price;
+              break;
+            case 'CHLD':
+              childPrice = price;
+              break;
+            case 'INFT':
+              infantPrice = price;
+              break;
+          }
         }
-
-        totalPrice += price;
-      }
-    } else if (ptcFareBreakdowns is Map) {
-      final passengerType = ptcFareBreakdowns['PassengerTypeQuantity']['Code'];
-      final passengerFare = ptcFareBreakdowns['PassengerFare'];
-      final price = double.tryParse(passengerFare['TotalFare']['Amount'].toString()) ?? 0.0;
-      currency = passengerFare['TotalFare']['CurrencyCode'] ?? 'PKR';
-
-      if (passengerType == 'ADT') {
-        adultPrice = price;
-      } else if (passengerType == 'CHD') {
-        childPrice = price;
-      } else if (passengerType == 'INF') {
-        infantPrice = price;
       }
 
-      totalPrice = price;
+      // If no specific prices found, use the main price for adults
+      if (adultPrice == 0.0) {
+        adultPrice = fareOption.price;
+      }
     }
 
     // Calculate return flight prices if available
-    if (widget.isReturn && airBlueController.selectedReturnFareOption != null) {
-      returnAdultPrice = 0.0;
-      returnChildPrice = 0.0;
-      returnInfantPrice = 0.0;
-      returnTotalPrice = 0.0;
-      returnCurrency = 'PKR';
+    if (widget.isReturn && piaController.selectedReturnFareOption != null) {
+      final returnFareOption = piaController.selectedReturnFareOption!;
+      returnCurrency = returnFareOption.currency;
 
-      final returnPtcFareBreakdowns = airBlueController.selectedReturnFareOption!.pricingInfo['PTC_FareBreakdowns']['PTC_FareBreakdown'];
+      // Extract prices for each passenger type from rawData
+      final passengerFareInfoList = returnFareOption.rawData['passengerFareInfoList'];
+      if (passengerFareInfoList != null) {
+        final List<dynamic> fareInfos = passengerFareInfoList is List
+            ? passengerFareInfoList
+            : [passengerFareInfoList];
 
-      if (returnPtcFareBreakdowns is List) {
-        for (var breakdown in returnPtcFareBreakdowns) {
-          final passengerType = breakdown['PassengerTypeQuantity']['Code'];
-          final passengerFare = breakdown['PassengerFare'];
-          final price = double.tryParse(passengerFare['TotalFare']['Amount'].toString()) ?? 0.0;
-          returnCurrency = passengerFare['TotalFare']['CurrencyCode'] ?? 'PKR';
+        for (var fareInfo in fareInfos) {
+          final passengerType = _extractPassengerType(fareInfo);
+          final pricingInfo = fareInfo['pricingInfo'] ?? {};
+          final totalFare = pricingInfo['totalFare']?['amount'] ?? {};
+          final priceValue = totalFare['value']?.toString() ?? '0';
+          final price = double.tryParse(priceValue) ?? 0.0;
 
-          if (passengerType == 'ADT') {
-            returnAdultPrice = price;
-          } else if (passengerType == 'CHD') {
-            returnChildPrice = price;
-          } else if (passengerType == 'INF') {
-            returnInfantPrice = price;
+          switch (passengerType) {
+            case 'ADLT':
+              returnAdultPrice = price;
+              break;
+            case 'CHLD':
+              returnChildPrice = price;
+              break;
+            case 'INF':
+              returnInfantPrice = price;
+              break;
           }
-
-          returnTotalPrice += price;
         }
-      } else if (returnPtcFareBreakdowns is Map) {
-        final passengerType = returnPtcFareBreakdowns['PassengerTypeQuantity']['Code'];
-        final passengerFare = returnPtcFareBreakdowns['PassengerFare'];
-        final price = double.tryParse(passengerFare['TotalFare']['Amount'].toString()) ?? 0.0;
-        returnCurrency = passengerFare['TotalFare']['CurrencyCode'] ?? 'PKR';
+      }
 
-        if (passengerType == 'ADT') {
-          returnAdultPrice = price;
-        } else if (passengerType == 'CHD') {
-          returnChildPrice = price;
-        } else if (passengerType == 'INF') {
-          returnInfantPrice = price;
-        }
-
-        returnTotalPrice = price;
+      // If no specific prices found, use the main price for adults
+      if (returnAdultPrice == 0.0) {
+        returnAdultPrice = returnFareOption.price;
       }
     }
   }
+
+// Helper method to extract passenger type
+  String _extractPassengerType(Map<String, dynamic> fareInfo) {
+    try {
+      // Try different paths to get passenger type
+      if (fareInfo['passengerTypeQuantity'] != null) {
+        return fareInfo['passengerTypeQuantity']?['passengerType']?['code'] ?? 'ADLT';
+      }
+      if (fareInfo['passengerTypeCode'] != null) {
+        return fareInfo['passengerTypeCode'] ?? 'ADLT';
+      }
+      if (fareInfo['pricingInfo']?['passengerTypeCode'] != null) {
+        return fareInfo['pricingInfo']?['passengerTypeCode'] ?? 'ADLT';
+      }
+    } catch (e) {
+      return 'ADLT';
+    }
+    return 'ADLT';
+  }
+
 
   void _startShadowAnimation() {
     _shadowTimer = Timer.periodic(const Duration(milliseconds: 1500), (_) {
@@ -192,8 +216,8 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
   @override
   Widget build(BuildContext context) {
     final double combinedTotalPrice = widget.isReturn
-        ? totalPrice + returnTotalPrice
-        : totalPrice;
+        ? _calculateOutboundSubtotal() + _calculateInboundSubtotal()
+        : _calculateOutboundSubtotal();
 
     return Scaffold(
       backgroundColor: TColors.background,
@@ -228,16 +252,14 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
                     ),
                   ),
                 ),
-                // if (airBlueController.selectedOutboundFlight != null)
-                  AirBlueFlightCard(
-                    flight: airBlueController.selectedOutboundFlight ?? widget.flight,
-                  ),
-
+                PIAFlightCard(
+                  flight: piaController.selectedOutboundFlight ?? widget.flight,
+                ),
               ],
             ),
 
             // Return Flight Card if it's a round trip
-            if (widget.isReturn && airBlueController.selectedReturnFlight != null)
+            if (widget.isReturn && piaController.selectedReturnFlight != null)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -251,8 +273,8 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
                       ),
                     ),
                   ),
-                  AirBlueFlightCard(
-                    flight: airBlueController.selectedReturnFlight!,
+                  PIAFlightCard(
+                    flight: piaController.selectedReturnFlight!,
                   ),
                 ],
               ),
@@ -292,38 +314,25 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    if (travelersController.adultCount.value > 0)
+                    if (travelersController.adultCount.value > 0 && adultPrice > 0)
                       _buildPriceRow(
                         'Adult Price x ${travelersController.adultCount.value}',
                         '$currency ${_formatPrice(adultPrice * travelersController.adultCount.value)}',
                       ),
-
-                    if (travelersController.childrenCount.value > 0)
-                      Column(
-                        children: [
-                          const SizedBox(height: 8),
-                          _buildPriceRow(
-                            'Child Price x ${travelersController.childrenCount.value}',
-                            '$currency ${_formatPrice(childPrice * travelersController.childrenCount.value)}',
-                          ),
-                        ],
+                    if (travelersController.childrenCount.value > 0 && childPrice > 0)
+                      _buildPriceRow(
+                        'Child Price x ${travelersController.childrenCount.value}',
+                        '$currency ${_formatPrice(childPrice * travelersController.childrenCount.value)}',
                       ),
-
-                    if (travelersController.infantCount.value > 0)
-                      Column(
-                        children: [
-                          const SizedBox(height: 8),
-                          _buildPriceRow(
-                            'Infant Price x ${travelersController.infantCount.value}',
-                            '$currency ${_formatPrice(infantPrice * travelersController.infantCount.value)}',
-                          ),
-                        ],
+                    if (travelersController.infantCount.value > 0 && infantPrice > 0)
+                      _buildPriceRow(
+                        'Infant Price x ${travelersController.infantCount.value}',
+                        '$currency ${_formatPrice(infantPrice * travelersController.infantCount.value)}',
                       ),
-
                     const SizedBox(height: 8),
                     _buildPriceRow(
                       'Subtotal',
-                      '$currency ${_formatPrice(totalPrice)}',
+                      '$currency ${_formatPrice(_calculateOutboundSubtotal())}',
                       isSubtotal: true,
                     ),
                   ],
@@ -332,7 +341,7 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
             ),
 
             // Return Flight Pricing if it's a round trip
-            if (widget.isReturn && airBlueController.selectedReturnFareOption != null)
+            if (widget.isReturn && piaController.selectedReturnFareOption != null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 8),
                 child: AnimatedContainer(
@@ -387,7 +396,7 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
                       const SizedBox(height: 8),
                       _buildPriceRow(
                         'Subtotal',
-                        '$returnCurrency ${_formatPrice(returnTotalPrice)}',
+                        '$returnCurrency ${_formatPrice(_calculateInboundSubtotal())}',
                         isSubtotal: true,
                       ),
                     ],
@@ -430,9 +439,9 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
                 children: [
                   Column(
                     children: [
-                      Text(
-                        widget.isReturn ? 'Round Trip Total' : 'One Way Total',
-                        style: const TextStyle(
+                      const Text(
+                        'Review Details',
+                        style: TextStyle(
                             fontWeight: FontWeight.bold, color: TColors.grey),
                       ),
                       const SizedBox(height: 2),
@@ -449,19 +458,12 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
                     width: 200,
                     child: ElevatedButton(
                       onPressed: () {
-                        // Get.to(() => BookingForm(
-                        //   flight: widget.flight,
-                        //   returnFlight: widget.isReturn ? airBlueController.selectedReturnFlight : null,
-                        // ));
-                        Get.to(() => AirBlueBookingFlight(
-                          flight: airBlueController.selectedOutboundFlight ?? widget.flight,
-                          returnFlight: widget.isReturn ? airBlueController.selectedReturnFlight : null,
+                        Get.to(() => PIAFlightBookingForm(
+                          flight: piaController.selectedOutboundFlight ?? widget.flight,
+                          returnFlight: widget.isReturn ? piaController.selectedReturnFlight : null,
                           totalPrice: combinedTotalPrice,
                           currency: currency,
-                          outboundFareOption: airBlueController.selectedOutboundFareOption,
-                          returnFareOption: airBlueController.selectedReturnFareOption,
                         ));
-
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: TColors.primary,
@@ -472,7 +474,8 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
                       ),
                       child: const Text(
                         'Book',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -486,6 +489,33 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
     );
   }
 
+  // Add this helper method to calculate outbound subtotal
+  double _calculateOutboundSubtotal() {
+    double subtotal = 0.0;
+    if (travelersController.adultCount.value > 0 && adultPrice > 0) {
+      subtotal += adultPrice * travelersController.adultCount.value;
+    }
+    if (travelersController.childrenCount.value > 0 && childPrice > 0) {
+      subtotal += childPrice * travelersController.childrenCount.value;
+    }
+    if (travelersController.infantCount.value > 0 && infantPrice > 0) {
+      subtotal += infantPrice * travelersController.infantCount.value;
+    }
+    return subtotal;
+  }
+  double _calculateInboundSubtotal() {
+    double returnedSubTotal = 0.0;
+    if (travelersController.adultCount.value > 0 && returnAdultPrice > 0) {
+      returnedSubTotal += returnAdultPrice * travelersController.adultCount.value;
+    }
+    if (travelersController.childrenCount.value > 0 && returnChildPrice > 0) {
+      returnedSubTotal += returnChildPrice * travelersController.childrenCount.value;
+    }
+    if (travelersController.infantCount.value > 0 && returnInfantPrice > 0) {
+      returnedSubTotal += returnInfantPrice * travelersController.infantCount.value;
+    }
+    return returnedSubTotal;
+  }
   Widget _buildPriceRow(String label, String amount, {bool isTotal = false, bool isSubtotal = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,

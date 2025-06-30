@@ -1,12 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../../utility/colors.dart';
-import '../../flight_package/airblue/airblue_flight_model.dart';
-import '../../flight_package/sabre/sabre_flight_models.dart';
-
+import '../../airblue/airblue_flight_model.dart';
+import '../../sabre/sabre_flight_models.dart';
 class AirBlueFlightCard extends StatefulWidget {
   final AirBlueFlight flight;
   final bool showReturnFlight;
@@ -103,10 +101,6 @@ class _AirBlueFlightCardState extends State<AirBlueFlightCard>
 
   @override
   Widget build(BuildContext context) {
-    String formatTime(String time) {
-      if (time.isEmpty) return 'N/A';
-      return time.split(':').sublist(0, 2).join(':');
-    }
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -369,6 +363,7 @@ class _AirBlueFlightCardState extends State<AirBlueFlightCard>
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Row(
                     children: [
@@ -389,12 +384,38 @@ class _AirBlueFlightCardState extends State<AirBlueFlightCard>
                       ),
                     ],
                   ),
+                  Container(
+                    width: 60,
+                    // height: 60,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2850B6),
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'Air Blue',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
                   ElevatedButton(
                     onPressed: () {
                       // Add booking functionality here
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: TColors.secondary,
+                      backgroundColor: TColors.third,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(32),
                       ),

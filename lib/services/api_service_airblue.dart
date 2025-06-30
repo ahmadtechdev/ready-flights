@@ -1,26 +1,34 @@
+// ignore_for_file: depend_on_referenced_packages, non_constant_identifier_names, empty_catches
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:xml2json/xml2json.dart';
 import 'package:xml/xml.dart' as xml;
+import '../views/flight/search_flights/airblue/airblue_flight_model.dart';
+import '../views/flight/search_flights/airblue/airblue_pnr_pricing.dart';
 import '../views/flight/search_flights/booking_flight/booking_flight_controller.dart';
-import '../views/flight/search_flights/flight_package/airblue/airblue_flight_model.dart';
-import '../views/flight/search_flights/flight_package/sabre/sabre_flight_models.dart';
+import '../views/flight/search_flights/sabre/sabre_flight_models.dart';
 
 class AirBlueFlightApiService {
-  final String link = 'https://otatest2.zapways.com/v2.0/OTAAPI.asmx';
-  final String sslCert = 'https://agent1.pk/flight/classes/toc/cert.pem';
-  final String sslKey = 'https://agent1.pk/flight/classes/toc/key.pem';
-  final String airsslCert = 'https://agent1.pk/flight/classes/toc/cert.pem';
-  final String airsslKey = 'https://agent1.pk/flight/classes/toc/key.pem';
-  final String ERSP_UserID = '2012/86B5EFDFF02E2966CBB6EECFF6FC339222';
-  final String ID = 'travelocityota';
-  final String MessagePassword = 'nRve2!EzPrc4cdvt';
-  final String Target = 'Test';
+  // final String link = 'https://otatest2.zapways.com/v2.0/OTAAPI.asmx';
+  final String link = 'https://ota2.zapways.com/v2.0/OTAAPI.asmx';
+  final String sslCert = 'https://onerooftravel.net/flights/classes/airBlue/oneroof/cert.pem';
+  final String sslKey = 'https://onerooftravel.net/flights/classes/airBlue/oneroof/key.pem';
+
+  // final String ERSP_UserID = '2012/86B5EFDFF02E2966CBB6EECFF6FC339222';
+  // final String ID = 'travelocityota';
+  // final String MessagePassword = 'nRve2!EzPrc4cdvt';
+  // final String Target = 'Test';
+  final String ERSP_UserID = '1995/5EE590B47346FDCCDBC589A53398F9AF25';
+  final String ID = 'OneRoofTravelsOTA';
+  final String MessagePassword = 'Jpn3nZnkd9@fR';
+  final String Target = 'Production';
   final String Version = '1.04';
   final String Type = '29';
 
@@ -49,18 +57,15 @@ class AirBlueFlightApiService {
       // print(depDateArray);
 
       String originDestination = "";
-      String cabins = 'Y'; // Default to Economy
+// Default to Economy
 
       // Cabin type mapping
       switch (cabin) {
         case 'Economy':
-          cabins = 'Y';
           break;
         case 'Business':
-          cabins = 'C';
           break;
         case 'First-Class':
-          cabins = 'F';
           break;
       }
 
@@ -142,7 +147,10 @@ class AirBlueFlightApiService {
 
       // print("request");
       final xmlRequest = request.toString();
-      final jsonRequest = _convertXmlToJson(xmlRequest);
+      _convertXmlToJson(xmlRequest);
+      printDebugData('Air Blue Request', xmlRequest);
+
+
       // _printJsonPretty(jsonRequest);
 
       // Log the request (matching PHP format)
@@ -160,6 +168,7 @@ class AirBlueFlightApiService {
       await certFile.writeAsBytes(certData.buffer.asUint8List());
       await keyFile.writeAsBytes(keyData.buffer.asUint8List());
 
+
       // Configure Dio with SSL certificates
       final dio = Dio(
         BaseOptions(
@@ -167,7 +176,6 @@ class AirBlueFlightApiService {
           headers: {'Content-Type': 'text/xml; charset=utf-8'},
         ),
       );
-
       // Create SecurityContext with certificates
       final SecurityContext securityContext = SecurityContext();
       securityContext.useCertificateChain(certFile.path);
@@ -187,7 +195,6 @@ class AirBlueFlightApiService {
       dio.httpClientAdapter = IOHttpClientAdapter(
         createHttpClient: () => httpClient,
       );
-
       // Make the API call
       final response = await dio.post(
         link,
@@ -197,20 +204,24 @@ class AirBlueFlightApiService {
           responseType: ResponseType.plain,
         ),
       );
+
       // Convert XML to JSON using xml2json package
       final xmlResponse = response.data.toString();
-      final jsonResponse = _convertXmlToJson(xmlResponse);
+      _convertXmlToJson(xmlResponse);
 
-      // print("response");
-      // _printJsonPretty(jsonResponse);
+      printDebugData('Air Blue Response', xmlResponse);
 
-      // Log the response (matching PHP format)
+      // printJsonPretty(jsonResponse);
+
+      // // Log the response (matching PHP format)
       // await _logResponse(response.data.toString(), 'Shopping_response');
 
       // Convert XML to JSON
       return _convertXmlToJson(response.data.toString());
     } catch (e) {
-      // print('Error in shoppingFlight: $e');
+      if (kDebugMode) {
+        print('Error in shoppingFlight: $e');
+      }
       rethrow;
     }
   }
@@ -239,18 +250,6 @@ class AirBlueFlightApiService {
     );
   }
 
-  void _printJsonPretty(dynamic jsonData) {
-    const int chunkSize = 1000;
-    final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);
-    for (int i = 0; i < jsonString.length; i += chunkSize) {
-      print(
-        jsonString.substring(
-          i,
-          i + chunkSize > jsonString.length ? jsonString.length : i + chunkSize,
-        ),
-      );
-    }
-  }
 
   // Add this to api_service_airblue.dart
 
@@ -427,9 +426,7 @@ class AirBlueFlightApiService {
         statusCode: e.response?.statusCode,
         errors: {},
       );
-    } catch (e, stackTrace) {
-      print('Error saving AirBlue booking: $e');
-      print('Stack trace: $stackTrace');
+    } catch (e) {
       throw ApiException(message: e.toString(), statusCode: null, errors: {});
     }
   }
@@ -898,10 +895,35 @@ class AirBlueFlightApiService {
       // Convert XML to JSON
       final jsonResponse = _convertXmlToJson(response.data.toString());
       printDebugData('PNR RESPONSE (JSON)', jsonResponse);
-      return jsonResponse;
-    } catch (e, stackTrace) {
-      print('Error creating AirBlue PNR: $e');
-      print('Stack trace: $stackTrace');
+
+      // Parse the pricing information
+      List<AirBluePNRPricing> pnrPricing = [];
+      try {
+        final ptcBreakdowns = jsonResponse['soap\$Envelope']['soap\$Body']['AirBookResponse']
+        ['AirBookResult']['AirReservation']['PriceInfo']['PTC_FareBreakdowns']['PTC_FareBreakdown'];
+
+        if (ptcBreakdowns is List) {
+          for (var breakdown in ptcBreakdowns) {
+            pnrPricing.add(AirBluePNRPricing.fromJson(breakdown));
+          }
+        } else if (ptcBreakdowns is Map) {
+          pnrPricing.add(AirBluePNRPricing.fromJson(ptcBreakdowns));
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('Error parsing PNR pricing: $e');
+        }
+      }
+
+// Add the pricing info to the return map
+      final result = {
+        ...jsonResponse,
+        'pnrPricing': pnrPricing.map((p) => p.toJson()).toList(),
+        'rawPricingObjects': pnrPricing, // Add the actual objects if needed
+      };
+
+      return result;
+    } catch (e) {
       throw ApiException(
         message: 'Failed to create PNR: $e',
         statusCode: null,
@@ -910,103 +932,6 @@ class AirBlueFlightApiService {
     }
   }
 
-  Map<String, dynamic> _prepareBookingClass(AirBlueFlight flight) {
-    // This should return the raw flight data that was used to create the AirBlueFlight object
-    // You might need to store this in the AirBlueFlight model or get it from somewhere else
-    // For now, I'll create a simplified version based on the structure we have
-
-    return {
-      "OriginDestinationRefNumber":
-          flight.rph.startsWith('return_') ? "2" : "1",
-      "AirItinerary": {
-        "OriginDestinationOptions": {
-          "OriginDestinationOption": {
-            "RPH": flight.rph,
-            "FlightSegment": {
-              "DepartureDateTime":
-                  flight.legSchedules.first['departure']['dateTime'],
-              "ArrivalDateTime":
-                  flight.legSchedules.first['arrival']['dateTime'],
-              "StopQuantity": "0",
-              "RPH": flight.rph,
-              "FlightNumber": flight.id.split('-').first,
-              "ResBookDesigCode": flight.segmentInfo.first.bookingCode,
-              "Status": "ONTIME",
-              "DepartureAirport": {
-                "LocationCode":
-                    flight.legSchedules.first['departure']['airport'],
-              },
-              "ArrivalAirport": {
-                "LocationCode": flight.legSchedules.first['arrival']['airport'],
-              },
-              "OperatingAirline": {"Code": flight.airlineCode},
-              "Equipment": {
-                "AirEquipType":
-                    "A320", // Default - you might want to store this in the model
-              },
-              "MarketingAirline": {"Code": flight.airlineCode},
-            },
-          },
-        },
-      },
-      "AirItineraryPricingInfo": {
-        // Simplified pricing info - you'll need to include the actual data from the original response
-        "ItinTotalFare": {
-          "BaseFare": {
-            "CurrencyCode": flight.currency,
-            "Amount": flight.price.toString(),
-          },
-          "TotalFare": {
-            "CurrencyCode": flight.currency,
-            "Amount": flight.price.toString(),
-          },
-        },
-        "PTC_FareBreakdowns": {
-          "PTC_FareBreakdown": [
-            {
-              "PassengerTypeQuantity": {"Code": "ADT", "Quantity": "1"},
-              "PassengerFare": {
-                "BaseFare": {
-                  "CurrencyCode": flight.currency,
-                  "Amount": flight.price.toString(),
-                },
-                "TotalFare": {
-                  "CurrencyCode": flight.currency,
-                  "Amount": flight.price.toString(),
-                },
-              },
-              "FareInfo": {
-                "DepartureDate":
-                    flight.legSchedules.first['departure']['dateTime'],
-                "DepartureAirport": {
-                  "LocationCode":
-                      flight.legSchedules.first['departure']['airport'],
-                },
-                "ArrivalAirport": {
-                  "LocationCode":
-                      flight.legSchedules.first['arrival']['airport'],
-                },
-                "FareInfo": {
-                  "FareBasisCode": flight.segmentInfo.first.bookingCode,
-                  "FareType": "EX",
-                },
-                "PassengerFare": {
-                  "BaseFare": {
-                    "CurrencyCode": flight.currency,
-                    "Amount": flight.price.toString(),
-                  },
-                  "TotalFare": {
-                    "CurrencyCode": flight.currency,
-                    "Amount": flight.price.toString(),
-                  },
-                },
-              },
-            },
-          ],
-        },
-      },
-    };
-  }
 
   Map<String, dynamic> _prepareTravelerData(
     TravelerInfo traveler,
@@ -1037,59 +962,54 @@ class AirBlueFlightApiService {
       // Print in chunks to avoid truncation in console
       const int chunkSize = 1000;
       for (int i = 0; i < prettyXml.length; i += chunkSize) {
-        print(
-          prettyXml.substring(
-            i,
-            i + chunkSize > prettyXml.length ? prettyXml.length : i + chunkSize,
-          ),
-        );
       }
     } catch (e) {
       // If XML parsing fails, print as is with a warning
-      print('WARNING: Could not parse as valid XML. Printing raw string:');
-      print(xmlString);
     }
   }
 
-  /// Prints both XML and corresponding JSON representation
   void printDebugData(String label, dynamic data) {
-    print('\n===== $label =====');
+    // print('--- DEBUG: $label ---');
 
     if (data is String && data.trim().startsWith('<')) {
       // Handle XML string
-      print('--- XML FORMAT ---');
-      printXmlPretty(data);
+      // print('Raw XML:\n$data');
 
       try {
-        // Try to convert XML to JSON for comparison
+        // Convert XML to JSON
         final jsonData = _convertXmlToJson(data);
-        print('\n--- JSON EQUIVALENT ---');
         printJsonPretty(jsonData);
       } catch (e) {
-        print('Could not convert XML to JSON: $e');
+        if (kDebugMode) {
+          print('Error converting XML to JSON: $e');
+        }
       }
     } else if (data is String) {
-      // Handle plain string
-      print(data);
+      // Plain string
+      // print('Plain String:\n$data');
     } else {
-      // Handle JSON/Map data
-      print('--- JSON FORMAT ---');
+      // JSON/Map or other object
       printJsonPretty(data);
     }
-    print('===== END $label =====\n');
+
+    // print('--- END DEBUG: $label ---\n');
   }
 
-  /// Prints JSON in a nicely formatted way with chunking to avoid console truncation
+  /// Converts XML string to JSON (Map)
+
+
+  /// Prints JSON nicely with chunking
   void printJsonPretty(dynamic jsonData) {
     const int chunkSize = 1000;
     final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);
     for (int i = 0; i < jsonString.length; i += chunkSize) {
-      print(
-        jsonString.substring(
-          i,
-          i + chunkSize > jsonString.length ? jsonString.length : i + chunkSize,
-        ),
+      final chunk = jsonString.substring(
+        i,
+        i + chunkSize < jsonString.length ? i + chunkSize : jsonString.length,
       );
+      if (kDebugMode) {
+        print(chunk);
+      }
     }
   }
 }

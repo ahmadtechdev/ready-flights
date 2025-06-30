@@ -1,9 +1,13 @@
+// ignore_for_file: unused_local_variable
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../services/api_service_airblue.dart';
 import '../../../../utility/colors.dart';
 import '../../../../widgets/travelers_selection_bottom_sheet.dart';
-import '../flight_package/airblue/airblue_flight_model.dart';
+import '../airblue/airblue_flight_controller.dart';
+import '../airblue/airblue_flight_model.dart';
+import '../airblue/airblue_pnr_pricing.dart';
 import '../search_flight_utils/widgets/airblue_flight_card.dart';
 import 'booking_flight_controller.dart';
 import 'flight_print_voucher.dart';
@@ -13,13 +17,15 @@ class AirBlueBookingFlight extends StatefulWidget {
   final AirBlueFlight? returnFlight;
   final double totalPrice;
   final String currency;
+  final AirBlueFareOption? outboundFareOption;
+  final AirBlueFareOption? returnFareOption;
 
   const AirBlueBookingFlight({
     super.key,
     required this.flight,
     this.returnFlight,
     required this.totalPrice,
-    required this.currency,
+    required this.currency, this.outboundFareOption, this.returnFareOption,
   });
 
   @override
@@ -34,6 +40,8 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
   final TravelersController travelersController = Get.put(
     TravelersController(),
   );
+  final AirBlueFlightController flightController = Get.find<AirBlueFlightController>();
+
   bool termsAccepted = false;
 
   @override
@@ -650,9 +658,9 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                       colorText: Colors.white,
                     );
 
-                    try {
-                      print('Creating PNR for booking...'); // Debug print
+                    // In airblue_booking_flight.dart, update the button onPressed handler:
 
+                    try {
                       final pnrResponse = await AirBlueFlightApiService().createAirBluePNR(
                         flight: widget.flight,
                         returnFlight: widget.returnFlight,
@@ -661,7 +669,27 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                         clientPhone: bookingController.phoneController.text,
                       );
 
-                      print('PNR created successfully: $pnrResponse'); // Debug print
+
+                      // Access the pricing information
+                      if (pnrResponse['pnrPricing'] != null) {
+                        for (var price in pnrResponse['rawPricingObjects'] as List<AirBluePNRPricing>) {
+                        }
+                      }
+
+                      // Update the flight with PNR pricing
+                      final updatedOutboundFlight = widget.flight.copyWithPNRPricing(
+                        pnrResponse['rawPricingObjects'] ?? [],
+                      );
+
+// If you have a return flight
+                      AirBlueFlight? updatedReturnFlight;
+                      if (widget.returnFlight != null) {
+                        updatedReturnFlight = widget.returnFlight?.copyWithPNRPricing(
+                          pnrResponse['rawPricingObjects'] ?? [],
+                        );
+                      }
+
+
                       Get.snackbar(
                         'Success',
                         'PNR created successfully',
@@ -669,12 +697,24 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                         colorText: Colors.white,
                       );
 
+
+                      Get.to(() => FlightBookingDetailsScreen(
+                        outboundFlight: updatedOutboundFlight,
+                        returnFlight: updatedReturnFlight,
+                        outboundFareOption: widget.outboundFareOption,
+                        returnFareOption: widget.returnFareOption,
+                      ));
+
                     } catch (e) {
-                      print('Error creating PNR but booking was saved: $e'); // Debug print
-                      // Return booking response even if PNR creation failed
+                      Get.snackbar(
+                        'Error',
+                        'Failed to create PNR: $e',
+                        backgroundColor: Colors.red,
+                        colorText: Colors.white,
+                      );
                     }
 
-                    Get.to(() => const FlightBookingDetailsScreen());
+
                   } else {
                     // Handle API success response with error status
                     String errorMessage = response['message'] ?? 'Failed to create booking';
@@ -695,10 +735,9 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                   Get.back();
                   String errorMessage = e.message;
                   if (e.errors.isNotEmpty) {
-                    errorMessage += '\n' +
-                        e.errors.entries.map((e) {
+                    errorMessage += '\n${e.errors.entries.map((e) {
                           return '${e.key}: ${e.value}';
-                        }).join('\n');
+                        }).join('\n')}';
                   }
                   Get.snackbar(
                     'Error (${e.statusCode ?? 'Unknown'})',

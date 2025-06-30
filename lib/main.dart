@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ready_flights/common/bottom_navbar.dart';
+import 'package:ready_flights/services/api_service_airarabia.dart';
+import 'package:ready_flights/views/flight/search_flights/airarabia/airarabia_flight_controller.dart';
+import 'package:ready_flights/views/flight/search_flights/airblue/airblue_flight_controller.dart';
 import 'utility/colors.dart';
 import 'views/flight/form/controllers/flight_date_controller.dart';
 import 'views/hotel/hotel/guests/guests_controller.dart';
@@ -25,6 +28,9 @@ class MyApp extends StatelessWidget {
     Get.lazyPut(() => SearchHotelController(), fenix: true);
     Get.lazyPut(() => FlightDateController(), fenix: true);
     Get.lazyPut(() => TravelersController(), fenix: true);
+    Get.lazyPut(() => AirArabiaFlightController(), fenix: true);
+    Get.lazyPut(() => ApiServiceAirArabia(), fenix: true);
+    Get.lazyPut(() => AirBlueFlightController(), fenix: true);
     Get.put(AuthController());
 
     return GetMaterialApp(

@@ -2,7 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../flight_package/sabre/sabre_flight_controller.dart';
+import '../../sabre/sabre_flight_controller.dart';
+
 
 class CurrencyDialog extends StatelessWidget {
   final FlightController controller;

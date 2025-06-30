@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../widgets/colors.dart';
+import '../../../../utility/colors.dart';
+
 
 class TripTypeSelector extends StatefulWidget {
   final ValueChanged<String> onTripTypeChanged;

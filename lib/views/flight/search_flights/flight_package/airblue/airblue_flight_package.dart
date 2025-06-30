@@ -1,17 +1,15 @@
+// ignore_for_file: dead_code, empty_catches
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../../../services/api_service_flight.dart';
+import '../../../../../services/api_service_sabre.dart';
 import '../../../../../utility/colors.dart';
-import '../../../../../widgets/travelers_selection_bottom_sheet.dart';
-import '../../../form/controllers/flight_date_controller.dart';
 import '../../../form/flight_booking_controller.dart';
+import '../../airblue/airblue_flight_model.dart';
+import '../../airblue/airblue_return_flight_page.dart';
 import '../../review_flight/airblue_review_flight.dart';
-import '../../review_flight/review_flight.dart';
-import 'airblue_flight_controller.dart';
-import 'airblue_flight_model.dart';
+import '../../airblue/airblue_flight_controller.dart';
 import '../../search_flight_utils/widgets/airblue_flight_card.dart';
-import '../../search_flights.dart';
-import 'return_flight_page.dart';
 
 class AirBluePackageSelectionDialog extends StatelessWidget {
   final AirBlueFlight flight;
@@ -73,26 +71,35 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
 
   Future<void> _prefetchMarginData() async {
     try {
+
       if (marginData.value.isEmpty) {
-        final apiService = Get.find<ApiServiceFlight>();
+
+        final apiService = Get.find<ApiServiceSabre>();
         marginData.value = await apiService.getMargin();
+
       }
 
       // Pre-calculate prices for all fare options
       final fareOptions = airBlueController.getFareOptionsForFlight(flight);
       for (var option in fareOptions) {
         final String packageKey = '${option.cabinCode}-${option.brandName}';
+
         if (!finalPrices.containsKey(packageKey)) {
-          final apiService = Get.find<ApiServiceFlight>();
-          final price = apiService.calculatePriceWithMargin(
-            option.price,
+
+          final apiService = Get.find<ApiServiceSabre>();
+
+          final marginedBasePrice = apiService.calculatePriceWithMargin(
+            option.basePrice,
             marginData.value,
           );
-          finalPrices[packageKey] = price.obs;
+
+          final totalPrice = marginedBasePrice + option.taxAmount + option.feeAmount;
+
+          finalPrices[packageKey] =totalPrice.obs;
+
         }
       }
     } catch (e) {
-      print('Error prefetching margin data: $e');
     }
   }
 
@@ -228,7 +235,7 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
   Widget _buildPackageCard(AirBlueFareOption package, int index) {
     final headerColor = TColors.primary;
     final isSoldOut = false;
-    final price = finalPrices['${package.fareName}-${package.cabinCode}']?.value ?? package.price;
+    final price = finalPrices['${package.cabinCode}-${package.fareName}']?.value ?? package.price;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -428,10 +435,6 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
           airBlueController.selectedOutboundFareOption = selectedFareOption;
         }
 
-        print("return");
-        print(airBlueController.selectedReturnFareOption);
-        print("outbound");
-        print(airBlueController.selectedOutboundFareOption);
 
         // TODO: Navigate to booking details page
         Get.snackbar(
@@ -460,7 +463,6 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
         _showReturnFlights();
       }
     } catch (e) {
-      print('Error selecting AirBlue flight package: $e');
       Get.snackbar(
         'Error',
         'This flight package is no longer available. Please select another option.',
@@ -490,7 +492,7 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
 
     // Navigate to a new screen showing return flights
     Get.to(
-          () => ReturnFlightsPage(returnFlights: returnFlights),
+          () => AirblueReturnFlightsPage(returnFlights: returnFlights),
       transition: Transition.rightToLeft,
     );
   }

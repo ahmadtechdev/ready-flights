@@ -27,7 +27,7 @@ class TravelDataController extends GetxController {
     try {
       // Use combined airlines method
       final List<dynamic> airlineData =
-          await apiController.fetchCombinedAirlines_logos();
+          await apiController.fetchCombinedAirlinesLogos();
       print("Combined airline data received: ${airlineData.length} airlines");
 
       airlines.value =

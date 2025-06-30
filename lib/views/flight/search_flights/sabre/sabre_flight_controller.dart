@@ -1,93 +1,22 @@
-import 'package:flutter/material.dart';
+// ignore_for_file: empty_catches
+
 import 'package:get/get.dart';
-import 'dart:math';
 
-import '../../../../../services/api_service_flight.dart';
-import 'sabre_flight_package.dart';
-import 'sabre_package_modal.dart';
-import '../../search_flights.dart';
-import '../../search_flight_utils/helper_functions.dart';
-import '../airblue/airblue_flight_model.dart';
+import '../../../../../services/api_service_sabre.dart';
+import '../flight_package/sabre/sabre_flight_package.dart';
+import '../search_flight_utils/filter_flight_model.dart';
+import '../search_flight_utils/helper_functions.dart';
+import '../search_flights.dart';
 import 'sabre_flight_models.dart';
+import 'sabre_package_modal.dart';
 
-class FilterState {
-  final RangeValues priceRange;
-  final Set<String> selectedAirlines;
-  final bool isRefundable; // This will represent "Refundable"
-  final bool isNonRefundable; // This will represent "Non-Refundable"
-  final bool isRefundableAll; // This will represent "All"
-  final bool isNonStop;
-  final Set<String> departureTimeRanges;
-  final Set<String> arrivalTimeRanges;
-  final Set<String> selectedStops;
-
-  FilterState({
-    required this.priceRange,
-    required this.selectedAirlines,
-    this.isRefundable = false,
-    this.isNonRefundable = false,
-    this.isRefundableAll = true, // Default to true to include all
-    this.isNonStop = false,
-    required this.departureTimeRanges,
-    required this.arrivalTimeRanges,
-    required this.selectedStops,
-  });
-
-  // Factory constructor for default values with "All" options selected
-  factory FilterState.defaultState(RangeValues priceRange) {
-    return FilterState(
-      priceRange: priceRange,
-      selectedAirlines: {"All Airlines"},
-      isRefundable: false,
-      isNonRefundable: false,
-      isRefundableAll: true,
-      isNonStop: false,
-      departureTimeRanges: {"All Times"},
-      arrivalTimeRanges: {"All Times"},
-      selectedStops: {"All"},
-    );
-  }
-
-  FilterState copyWith({
-    RangeValues? priceRange,
-    Set<String>? selectedAirlines,
-    bool? isRefundable,
-    bool? isNonRefundable,
-    bool? isRefundableAll,
-    bool? isNonStop,
-    Set<String>? departureTimeRanges,
-    Set<String>? arrivalTimeRanges,
-    Set<String>? selectedStops,
-  }) {
-    return FilterState(
-      priceRange: priceRange ?? this.priceRange,
-      selectedAirlines: selectedAirlines ?? this.selectedAirlines,
-      isRefundable: isRefundable ?? this.isRefundable,
-      isNonRefundable: isNonRefundable ?? this.isNonRefundable,
-      isRefundableAll: isRefundableAll ?? this.isRefundableAll,
-      isNonStop: isNonStop ?? this.isNonStop,
-      departureTimeRanges: departureTimeRanges ?? this.departureTimeRanges,
-      arrivalTimeRanges: arrivalTimeRanges ?? this.arrivalTimeRanges,
-      selectedStops: selectedStops ?? this.selectedStops,
-    );
-  }
-}
 
 class FlightController extends GetxController {
   var selectedCurrency = 'PKR'.obs;
-  var flights = <Flight>[].obs;
+  var flights = <SabreFlight>[].obs;
   final isLoading = true.obs;
-  var availabilityFlights = <Flight>[].obs; // Separate list for availability check
-  var filteredFlights = <Flight>[].obs;
-  var filterState = Rx<FilterState>(FilterState(
-    priceRange: const RangeValues(0, 100000),
-    selectedAirlines: {},
-    isRefundable: false,
-    isNonStop: false,
-    departureTimeRanges: {},
-    arrivalTimeRanges: {},
-    selectedStops: {},
-  ));
+  var availabilityFlights = <SabreFlight>[].obs; // Separate list for availability check
+  var filteredFlights = <SabreFlight>[].obs;
 
   // Error message
   final RxString errorMessage = ''.obs;
@@ -102,65 +31,17 @@ class FlightController extends GetxController {
     errorMessage.value = message;
   }
 
-  void toggleRefundableAll(bool value) {
-    filterState.value = filterState.value.copyWith(
-      isRefundableAll: value,
-      isRefundable:
-          !value, // Ensure that if "All" is selected, other options are deselected
-      isNonRefundable: !value,
-    );
-  }
 
-  void toggleRefundable(bool value) {
-    filterState.value = filterState.value.copyWith(
-      isRefundable: value,
-      isRefundableAll: false, // Deselect "All" if "Refundable" is selected
-      isNonRefundable: false,
-    );
-  }
 
-  void toggleNonRefundable(bool value) {
-    filterState.value = filterState.value.copyWith(
-      isNonRefundable: value,
-      isRefundableAll: false, // Deselect "All" if "Non-Refundable" is selected
-      isRefundable: false,
-    );
-  }
 
-//  / For Stops filter
-  void toggleStopOption(String option, bool isSelected) {
-    var stops = Set<String>.from(filterState.value.selectedStops);
-
-    // If selecting a new option
-    if (isSelected) {
-      // Clear all other options if selecting a specific option
-      stops.clear();
-      stops.add(option);
-
-      // If "All" is being selected, make sure it's the only option
-      if (option == 'All') {
-        stops = {'All'};
-      }
-    } else {
-      // If deselecting an option
-      stops.remove(option);
-
-      // If no options remain, select "All"
-      if (stops.isEmpty) {
-        stops.add('All');
-      }
-    }
-
-    filterState.value = filterState.value.copyWith(selectedStops: stops);
-  }
 
   // Scenario tracking
   final Rx<FlightScenario> currentScenario = FlightScenario.oneWay.obs;
 
   // Flight selection tracking
   final Rx<bool> isSelectingFirstFlight = true.obs;
-  final Rx<Flight?> selectedFirstFlight = Rx<Flight?>(null);
-  final Rx<Flight?> selectedSecondFlight = Rx<Flight?>(null);
+  final Rx<SabreFlight?> selectedFirstFlight = Rx<SabreFlight?>(null);
+  final Rx<SabreFlight?> selectedSecondFlight = Rx<SabreFlight?>(null);
 
   void resetFlightSelection() {
     isSelectingFirstFlight.value = true;
@@ -173,10 +54,10 @@ class FlightController extends GetxController {
     resetFlightSelection();
   }
 
-  void handleFlightSelection(Flight flight) {
+  void handleFlightSelection(SabreFlight flight) {
     if (currentScenario.value == FlightScenario.oneWay) {
       // Directly proceed to package selection for one-way trips
-      Get.to(() => PackageSelectionDialog(
+      Get.to(() => SabrePackageSelectionDialog(
         flight: flight,
         isAnyFlightRemaining: false,
         // pricingInformation: flight.pricingInforArray, // Pass pricing information
@@ -187,7 +68,7 @@ class FlightController extends GetxController {
         // Select the first flight
         selectedFirstFlight.value = flight;
         isSelectingFirstFlight.value = false;
-        Get.to(() => PackageSelectionDialog(
+        Get.to(() => SabrePackageSelectionDialog(
           flight: flight,
           isAnyFlightRemaining: true,
           // pricingInformation: flight.pricingInforArray, // Pass pricing information
@@ -195,7 +76,7 @@ class FlightController extends GetxController {
       } else {
         // Select the second flight and move to the review page
         selectedSecondFlight.value = flight;
-        Get.to(() => PackageSelectionDialog(
+        Get.to(() => SabrePackageSelectionDialog(
           flight: flight,
           isAnyFlightRemaining: false,
           // pricingInformation: flight.pricingInforArray, // Pass pricing information
@@ -216,126 +97,7 @@ class FlightController extends GetxController {
     Get.back();
   }
 
-  @override
-  void onInit() {
-    super.onInit();
 
-    initializeFilterRanges();
-
-    // Initialize filter state with "All" options selected by default
-    filterState.value = FilterState(
-      priceRange: const RangeValues(0, 100000),
-      selectedAirlines: {"All Airlines"},
-      isRefundable: false,
-      isNonRefundable: false,
-      isRefundableAll: true,
-      departureTimeRanges: {"All Times"},
-      arrivalTimeRanges: {"All Times"},
-      selectedStops: {"All"},
-      isNonStop: false,
-    );
-
-    ever(filterState, (_) => applyFilters());
-    ever(sortType, (_) => sortFlights());
-  }
-
-  void initializeFilterRanges() {
-    if (flights.isEmpty) return;
-
-    double minPrice = flights.map((f) => f.price).reduce(min);
-    double maxPrice = flights.map((f) => f.price).reduce(max);
-
-    filterState.value = filterState.value.copyWith(
-      priceRange: RangeValues(minPrice, maxPrice),
-    );
-  }
-
-  void applyFilters() {
-    var filtered = flights.where((flight) {
-      // Price filter
-      if (flight.price < filterState.value.priceRange.start ||
-          flight.price > filterState.value.priceRange.end) {
-        return false;
-      }
-
-      // Airline filter - skip if "All Airlines" is selected
-      if (!filterState.value.selectedAirlines.contains("All Airlines") &&
-          !filterState.value.selectedAirlines.contains(flight.airline)) {
-        return false;
-      }
-
-      // Refundable filter logic
-      if (!filterState.value.isRefundableAll) {
-        if (filterState.value.isRefundable && !flight.isRefundable) {
-          return false;
-        }
-        if (filterState.value.isNonRefundable && flight.isRefundable) {
-          return false;
-        }
-      }
-
-      // Non-stop filter
-      if (filterState.value.isNonStop && !flight.isNonStop) {
-        return false;
-      }
-
-      // Time range filters for departure - skip if "All Times" is selected
-      if (!filterState.value.departureTimeRanges.contains("All Times") &&
-          filterState.value.departureTimeRanges.isNotEmpty) {
-        bool matchesDeparture = false;
-        for (var range in filterState.value.departureTimeRanges) {
-          if (range != "All Times" &&
-              isTimeInRange(flight.departureTime, range)) {
-            matchesDeparture = true;
-            break;
-          }
-        }
-        if (!matchesDeparture) return false;
-      }
-
-      // Time range filters for arrival - skip if "All Times" is selected
-      if (!filterState.value.arrivalTimeRanges.contains("All Times") &&
-          filterState.value.arrivalTimeRanges.isNotEmpty) {
-        bool matchesArrival = false;
-        for (var range in filterState.value.arrivalTimeRanges) {
-          if (range != "All Times" &&
-              isTimeInRange(flight.arrivalTime, range)) {
-            matchesArrival = true;
-            break;
-          }
-        }
-        if (!matchesArrival) return false;
-      }
-
-      // Stop options filter
-      if (!filterState.value.selectedStops.contains("All")) {
-        int stopCount = flight.stopSchedules.length - 1;
-        String stopOption =
-            stopCount.toString() + (stopCount == 1 ? ' Stop' : ' Stops');
-        if (!filterState.value.selectedStops.contains(stopOption)) {
-          return false;
-        }
-      }
-
-      return true;
-    }).toList();
-
-    filteredFlights.value = filtered;
-  }
-
-  void sortFlights() {
-    if (sortType.value == 'Cheapest') {
-      filteredFlights.sort((a, b) => a.price.compareTo(b.price));
-    } else if (sortType.value == 'Fastest') {
-      filteredFlights.sort((a, b) {
-        return parseTimeToDouble(a.duration)
-            .compareTo(parseTimeToDouble(b.duration));
-      });
-    } else {
-      filteredFlights.value =
-          flights.toList(); // Default: Suggested (original order)
-    }
-  }
 
   // New: Update the sorting type
   void updateSortType(String type) {
@@ -387,102 +149,10 @@ class FlightController extends GetxController {
     }
   }
 
-  void updatePriceRange(RangeValues values) {
-    filterState.value = filterState.value.copyWith(priceRange: values);
-  }
 
-  void toggleAirline(String airline) {
-    var airlines = Set<String>.from(filterState.value.selectedAirlines);
 
-    // Check if we're toggling an "All Airlines" option
-    if (airline == "All Airlines") {
-      if (!airlines.contains(airline)) {
-        // Clear all selected airlines and select only "All Airlines"
-        airlines.clear();
-        airlines.add(airline);
-      } else {
-        // If deselecting "All Airlines", leave empty (will be handled below)
-        airlines.remove(airline);
-      }
-    } else {
-      // If selecting a specific airline
-      if (!airlines.contains(airline)) {
-        // Remove "All Airlines" if it's selected
-        airlines.remove("All Airlines");
-        // Add the specific airline
-        airlines.add(airline);
-      } else {
-        // If deselecting a specific airline
-        airlines.remove(airline);
-      }
-    }
 
-    // If no airlines are selected, select "All Airlines"
-    if (airlines.isEmpty) {
-      airlines.add("All Airlines");
-    }
 
-    filterState.value = filterState.value.copyWith(selectedAirlines: airlines);
-  }
-
-  void toggleTimeRange(String range, bool isDeparture) {
-    var ranges = isDeparture
-        ? Set<String>.from(filterState.value.departureTimeRanges)
-        : Set<String>.from(filterState.value.arrivalTimeRanges);
-
-    // Check if we're toggling an "All Times" option
-    if (range == "All Times") {
-      if (!ranges.contains(range)) {
-        // Clear all time ranges and select only "All Times"
-        ranges.clear();
-        ranges.add(range);
-      } else {
-        // If deselecting "All Times", leave empty (will be handled below)
-        ranges.remove(range);
-      }
-    } else {
-      // If selecting a specific time range
-      if (!ranges.contains(range)) {
-        // Remove "All Times" if it's selected
-        ranges.remove("All Times");
-        // Add the specific time range
-        ranges.add(range);
-      } else {
-        // If deselecting a specific time range
-        ranges.remove(range);
-      }
-    }
-
-    // If no time ranges are selected, select "All Times"
-    if (ranges.isEmpty) {
-      ranges.add("All Times");
-    }
-
-    filterState.value = filterState.value.copyWith(
-      departureTimeRanges: isDeparture ? ranges : null,
-      arrivalTimeRanges: isDeparture ? null : ranges,
-    );
-  }
-
-  void toggleNonStop(bool value) {
-    filterState.value = filterState.value.copyWith(isNonStop: value);
-  }
-
-  void resetFilters() {
-    initializeFilterRanges();
-    filterState.value = FilterState(
-      priceRange: filterState.value.priceRange,
-      selectedAirlines: {"All Airlines"},
-      isRefundable: false,
-      isNonRefundable: false,
-      isRefundableAll: true,
-      isNonStop: false,
-      departureTimeRanges: {"All Times"},
-      arrivalTimeRanges: {"All Times"},
-      selectedStops: {"All"},
-    );
-    sortType.value = 'Suggested';
-  }
 }
 
 extension FlightDateTimeExtension on FlightController {
@@ -502,7 +172,6 @@ extension FlightDateTimeExtension on FlightController {
         }
       }
     } catch (e) {
-      print('Error parsing fareComponentDescs: $e');
     }
 
     return fareComponentDescsMap;
@@ -575,7 +244,7 @@ extension FlightDateTimeExtension on FlightController {
       }
 
       // If we still have no mappings, use a fallback approach
-      if (legFareBasisMap.isEmpty && !segmentInfoList.isEmpty) {
+      if (legFareBasisMap.isEmpty && segmentInfoList.isNotEmpty) {
         // Just repeat the segment info for each leg if we can't map properly
         segmentInfoList = List.generate(legs.length, (index) =>
         index < segmentInfoList.length
@@ -590,7 +259,6 @@ extension FlightDateTimeExtension on FlightController {
         );
       }
     } catch (e) {
-      print('Error parsing segment info: $e');
     }
 
     return segmentInfoList;
@@ -637,7 +305,6 @@ extension FlightDateTimeExtension on FlightController {
       isLoading.value = true;
 
       if (response == null || response['groupedItineraryResponse'] == null) {
-        print('Error: Invalid API response structure');
         if (isAvailabilityCheck) {
           availabilityFlights.value = [];
         } else {
@@ -673,10 +340,9 @@ extension FlightDateTimeExtension on FlightController {
         }
       }
 
-      final List<Flight> parsedFlights = [];
+      final List<SabreFlight> parsedFlights = [];
       final itineraryGroups = groupedResponse['itineraryGroups'] as List?;
       if (itineraryGroups == null) {
-        print('Error: No itinerary groups found');
         if (isAvailabilityCheck) {
           availabilityFlights.value = [];
         } else {
@@ -728,7 +394,6 @@ extension FlightDateTimeExtension on FlightController {
                 }
               }
             } catch (e) {
-              print('Error parsing package: $e');
             }
           }
 
@@ -793,7 +458,6 @@ extension FlightDateTimeExtension on FlightController {
               }
             }
           } catch (e) {
-            print('Error mapping legs to fareComponents: $e');
           }
 
           for (var legIndex = 0; legIndex < legs.length; legIndex++) {
@@ -845,7 +509,7 @@ extension FlightDateTimeExtension on FlightController {
               // Extract airline information
               final carrier = schedule['carrier'];
               final airlineCode = carrier['marketing'] as String? ?? 'Unknown';
-              final ApiServiceFlight apiService = Get.put(ApiServiceFlight());
+              final ApiServiceSabre apiService = Get.put(ApiServiceSabre());
               final airlineMap = apiService.getAirlineMap();
               final airlineInfo = getAirlineInfo(airlineCode, airlineMap);
 
@@ -891,11 +555,11 @@ extension FlightDateTimeExtension on FlightController {
             final lastSchedule = allStopSchedules.last;
             final carrier = firstSchedule['carrier'];
             final airlineCode = carrier['marketing'] as String? ?? 'Unknown';
-            final ApiServiceFlight apiService = Get.put(ApiServiceFlight());
+            final ApiServiceSabre apiService = Get.put(ApiServiceSabre());
             final airlineMap = apiService.getAirlineMap();
             final airlineInfo = getAirlineInfo(airlineCode, airlineMap);
 
-            final flight = Flight(
+            final flight = SabreFlight(
               imgPath: airlineInfo.logoPath,
               airline: airlineInfo.name,
               flightNumber:
@@ -954,7 +618,6 @@ extension FlightDateTimeExtension on FlightController {
             );
             parsedFlights.add(flight);
           } catch (e) {
-            print('Error creating flight: $e');
           }
         }
       }
@@ -966,12 +629,8 @@ extension FlightDateTimeExtension on FlightController {
         filteredFlights.value = parsedFlights;
       }
 
-      if (parsedFlights.isNotEmpty && !isAvailabilityCheck) {
-        initializeFilterRanges();
-      }
-    } catch (e, stackTrace) {
-      print('Error parsing API response: $e');
-      print('Stack trace: $stackTrace');
+
+    } catch (e) {
       if (isAvailabilityCheck) {
         availabilityFlights.value = [];
       } else {
@@ -1019,7 +678,6 @@ extension FlightDateTimeExtension on FlightController {
         }
       }
     } catch (e) {
-      print('Error parsing baggage allowance: $e');
     }
 
     return BaggageAllowance(
@@ -1158,12 +816,53 @@ extension FlightSegmentExtension on FlightController {
         allSegmentInfoLists.add(segmentInfoList);
       }
     } catch (e) {
-      print('Error parsing all segment info: $e');
     }
 
     return allSegmentInfoLists;
   }
 
 
+
+}
+
+
+// In sabre_flight_controller.dart
+extension FlightFiltering on FlightController {
+  void applyFilters(FlightFilter filter) {
+    // Filter by airlines
+    List<SabreFlight> airlineFiltered = flights.where((flight) {
+      if (filter.selectedAirlines.isEmpty) return true;
+      return filter.selectedAirlines.contains(flight.airline);
+    }).toList();
+
+    // Filter by stops
+    List<SabreFlight> stopsFiltered = airlineFiltered.where((flight) {
+      if (filter.maxStops == null) return true;
+      return flight.stops.length <= filter.maxStops!;
+    }).toList();
+
+    // Sort
+    List<SabreFlight> sorted = [...stopsFiltered];
+    switch (filter.sortType) {
+      case 'Cheapest':
+        sorted.sort((a, b) => a.price.compareTo(b.price));
+        break;
+      case 'Fastest':
+        sorted.sort((a, b) => (a.legElapsedTime ?? 0).compareTo(b.legElapsedTime ?? 0));
+        break;
+      default:
+      // Suggested sorting (you can define your default)
+        break;
+    }
+
+    filteredFlights.value = sorted;
+  }
+
+  Set<String> getAvailableAirlines() {
+    return flights
+        .map((f) => f.legSchedules.isNotEmpty ? f.legSchedules[0]['airlineCode'] as String? : null)
+        .whereType<String>() // removes nulls
+        .toSet();
+  }
 
 }

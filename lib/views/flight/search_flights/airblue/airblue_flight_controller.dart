@@ -1,21 +1,19 @@
+// ignore_for_file: empty_catches
+
 import 'package:get/get.dart';
 
-import '../../../../../services/api_service_flight.dart';
+import '../../../../services/api_service_sabre.dart';
 
-import 'airblue_flight_package.dart';
+import '../search_flight_utils/filter_flight_model.dart';
+import '../flight_package/airblue/airblue_flight_package.dart';
 import 'airblue_flight_model.dart';
 
 class AirBlueFlightController extends GetxController {
-  final ApiServiceFlight apiService = Get.find<ApiServiceFlight>();
+  final ApiServiceSabre apiService = Get.find<ApiServiceSabre>();
 
   // List of AirBlue flights (now with unique RPH)
   final RxList<AirBlueFlight> flights = <AirBlueFlight>[].obs;
 
-  @override
-  void onInit() {
-    super.onInit();
-
-  }
 
 
   // Map to store all fare options for each RPH
@@ -34,6 +32,7 @@ class AirBlueFlightController extends GetxController {
   final RxString errorMessage = ''.obs;
 
   void clearFlights() {
+
     flights.clear();
     fareOptionsByRPH.clear();
     errorMessage.value = '';
@@ -103,7 +102,6 @@ class AirBlueFlightController extends GetxController {
               returnFlightsByRPH[rph]!.add(itinerary);
             }
           } catch (e) {
-            print('Error grouping AirBlue flight by RPH: $e');
           }
         }
       } else if (pricedItineraries is Map) {
@@ -120,7 +118,6 @@ class AirBlueFlightController extends GetxController {
             returnFlightsByRPH[rph] = [Map<String, dynamic>.from(pricedItineraries)];
           }
         } catch (e) {
-          print('Error processing single AirBlue flight: $e');
         }
       }
 
@@ -137,7 +134,6 @@ class AirBlueFlightController extends GetxController {
               );
               fareOptions.add(AirBlueFareOption.fromFlight(flight, itinerary));
             } catch (e) {
-              print('Error creating fare option: $e');
             }
           }
 
@@ -154,7 +150,6 @@ class AirBlueFlightController extends GetxController {
             flights.add(representativeFlight);
           }
         } catch (e) {
-          print('Error processing RPH group: $e');
         }
       });
 
@@ -171,7 +166,6 @@ class AirBlueFlightController extends GetxController {
               );
               fareOptions.add(AirBlueFareOption.fromFlight(flight, itinerary));
             } catch (e) {
-              print('Error creating fare option: $e');
             }
           }
 
@@ -181,7 +175,6 @@ class AirBlueFlightController extends GetxController {
             fareOptionsByRPH['return_$rph'] = fareOptions;
           }
         } catch (e) {
-          print('Error processing return RPH group: $e');
         }
       });
 
@@ -189,7 +182,6 @@ class AirBlueFlightController extends GetxController {
       flights.sort((a, b) => a.price.compareTo(b.price));
     } catch (e) {
       errorMessage.value = 'Failed to load AirBlue flights: $e';
-      print('Error searching AirBlue flights: $e');
     } finally {
       isLoading.value = false;
     }
@@ -264,5 +256,48 @@ class AirBlueFlightController extends GetxController {
       ),
       barrierDismissible: false,
     );
+  }
+}
+
+// In airblue_flight_controller.dart
+extension AirBlueFlightFiltering on AirBlueFlightController {
+  void applyFilters(FlightFilter filter) {
+    // Filter by airlines (AirBlue only)
+    List<AirBlueFlight> airlineFiltered = flights.where((flight) {
+      if (filter.selectedAirlines.isEmpty) return true;
+      return filter.selectedAirlines.contains('PA'); // AirBlue's code
+    }).toList();
+
+    // Filter by stops (AirBlue flights are usually non-stop)
+    List<AirBlueFlight> stopsFiltered = airlineFiltered.where((flight) {
+      if (filter.maxStops == null) return true;
+      return flight.stopSchedules.length <= filter.maxStops! + 1;
+    }).toList();
+
+    // Sort
+    List<AirBlueFlight> sorted = [...stopsFiltered];
+    switch (filter.sortType) {
+      case 'Cheapest':
+        sorted.sort((a, b) => a.price.compareTo(b.price));
+        break;
+      case 'Fastest':
+        sorted.sort((a, b) {
+          int aDuration = _calculateTotalDuration(a.legSchedules);
+          int bDuration = _calculateTotalDuration(b.legSchedules);
+          return aDuration.compareTo(bDuration);
+        });
+        break;
+      default:
+      // Suggested sorting
+        break;
+    }
+
+    flights.value = sorted;
+  }
+
+  int _calculateTotalDuration(List<Map<String, dynamic>> legSchedules) {
+    return legSchedules.fold(0, (sum, leg) {
+      return sum + (leg['elapsedTime'] as int? ?? 0);
+    });
   }
 }

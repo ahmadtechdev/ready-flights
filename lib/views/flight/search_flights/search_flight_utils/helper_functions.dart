@@ -1,11 +1,9 @@
 // 1. First, let's update the Flight model to match the API response
 
-import '../../../../widgets/colors.dart';
+
+import '../../../../utility/colors.dart';
 import '../../../../widgets/snackbar.dart';
-
-import '../flight_package/sabre/sabre_flight_models.dart';
-
-
+import '../sabre/sabre_flight_models.dart';
 
 String getFareType(Map<String, dynamic> fareInfo) {
   try {
@@ -38,7 +36,6 @@ List<TaxDesc> parseTaxes(List<dynamic> taxes) {
             ))
         .toList();
   } catch (e) {
-    print('Error parsing taxes: $e');
     return [];
   }
 }
@@ -73,7 +70,6 @@ BaggageAllowance parseBaggageAllowance(List<dynamic> baggageInfo) {
     return BaggageAllowance(
         pieces: 0, weight: 0, unit: '', type: 'Check airline policy');
   } catch (e) {
-    print('Error parsing baggage allowance: $e');
     return BaggageAllowance(
         pieces: 0, weight: 0, unit: '', type: 'Check airline policy');
   }

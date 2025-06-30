@@ -5,10 +5,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:ready_flights/utility/utils.dart';
-import 'package:ready_flights/views/hotel/search_hotels/booking_hotel/booking_controller.dart';
 
+import '../utility/utils.dart';
 import '../views/hotel/hotel/guests/guests_controller.dart';
+import '../views/hotel/search_hotels/booking_hotel/booking_controller.dart';
 import '../views/hotel/search_hotels/search_hotel_controller.dart';
 
 class ApiServiceHotel extends GetxService {

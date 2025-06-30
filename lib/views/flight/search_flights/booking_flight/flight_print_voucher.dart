@@ -1,26 +1,48 @@
+// ignore_for_file: empty_catches
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import '../../../../services/api_service_sabre.dart';
 import '../../../../utility/colors.dart';
-
+import '../airblue/airblue_flight_controller.dart';
+import '../airblue/airblue_flight_model.dart';
+import 'booking_flight_controller.dart';
 
 class FlightBookingDetailsScreen extends StatefulWidget {
-  const FlightBookingDetailsScreen({super.key});
+  final AirBlueFlight outboundFlight;
+  final AirBlueFlight? returnFlight;
+  final AirBlueFareOption? outboundFareOption;
+  final AirBlueFareOption? returnFareOption;
+
+  const FlightBookingDetailsScreen({
+    super.key,
+    required this.outboundFlight,
+    this.returnFlight,
+    this.outboundFareOption,
+    this.returnFareOption,
+  });
 
   @override
-  State<FlightBookingDetailsScreen> createState() =>
-      _FlightBookingDetailsScreenState();
+  State<FlightBookingDetailsScreen> createState() => _FlightBookingDetailsScreenState();
 }
 
-class _FlightBookingDetailsScreenState
-    extends State<FlightBookingDetailsScreen> {
+class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen> {
+  final BookingFlightController bookingController = Get.find<BookingFlightController>();
+  final AirBlueFlightController flightController = Get.find<AirBlueFlightController>();
+  // Get margin data from API service
+  final apiService = Get.find<ApiServiceSabre>();
+  late Map<String, dynamic> marginData = <String, dynamic>{};
   DateTime selectedDate = DateTime.now();
+  String bookingReference = 'ORD-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
+  String pnrNumber = 'PNR-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
 
-  // Agent data from the image
+  // Agent data
   final Agent agent = Agent(
     name: 'Ali Usman',
     email: 'aliusmangulhar8@gmail.com',
@@ -28,15 +50,30 @@ class _FlightBookingDetailsScreenState
     designation: 'Goolaar',
   );
 
+  Future<void> _prefetchMarginData() async {
+    try {
+
+      if (marginData.isEmpty) {
+
+        final apiService = Get.find<ApiServiceSabre>();
+        marginData = await apiService.getMargin();
+
+      }
+    } catch (e) {
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
+    _prefetchMarginData();
     return Scaffold(
       backgroundColor: TColors.background,
       appBar: AppBar(
         backgroundColor: TColors.secondary,
         elevation: 0,
         title: const Text(
-          'Journey Online Testing',
+          'OneRoof Travel',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -83,7 +120,7 @@ class _FlightBookingDetailsScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Journey',
+                    'OneRoof',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -91,7 +128,7 @@ class _FlightBookingDetailsScreenState
                     ),
                   ),
                   const Text(
-                    'Online',
+                    'Travel',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -99,7 +136,7 @@ class _FlightBookingDetailsScreenState
                     ),
                   ),
                   const Text(
-                    'testing',
+                    'Booking Voucher',
                     style: TextStyle(
                       fontSize: 14,
                       color: TColors.grey,
@@ -187,9 +224,9 @@ class _FlightBookingDetailsScreenState
                           color: TColors.grey,
                         ),
                       ),
-                      const Text(
-                        '1585',
-                        style: TextStyle(
+                      Text(
+                        bookingReference,
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
@@ -237,9 +274,9 @@ class _FlightBookingDetailsScreenState
                       color: TColors.grey,
                     ),
                   ),
-                  const Text(
-                    'TRUX3H',
-                    style: TextStyle(
+                  Text(
+                    pnrNumber,
+                    style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
@@ -252,8 +289,7 @@ class _FlightBookingDetailsScreenState
                 style: ElevatedButton.styleFrom(
                   backgroundColor: TColors.primary,
                   foregroundColor: Colors.white,
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   elevation: 0,
                 ),
                 icon: const Icon(Icons.print, size: 18),
@@ -265,8 +301,99 @@ class _FlightBookingDetailsScreenState
       ),
     );
   }
+  Widget _buildFlightSegments(AirBlueFlight flight) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 8),
+        const Text(
+          'Flight Segments',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...flight.stopSchedules.map((schedule) {
+          final departure = schedule['departure'];
+          final arrival = schedule['arrival'];
+          final carrier = schedule['carrier'];
+          final flightNumber = '${carrier['marketing']}-${carrier['marketingFlightNumber']}';
 
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      flight.airlineName,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      flightNumber,
+                      style: const TextStyle(color: TColors.grey),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          formatTime(departure['dateTime']),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(departure['airport']),
+                        Text(departure['city'] ?? "N/A"),
+                      ],
+                    ),
+                    const Icon(Icons.flight, color: TColors.primary),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          formatTime(arrival['dateTime']),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(arrival['airport']),
+                        Text(arrival['city'] ?? "N/A"),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  String formatTime(String dateTime) {
+    try {
+      final dt = DateTime.parse(dateTime);
+      return DateFormat('HH:mm').format(dt);
+    } catch (e) {
+      return dateTime;
+    }
+  }
   Widget _buildBody() {
+    final outboundFlight = widget.outboundFlight;
+    final returnFlight = widget.returnFlight;
+    final outboundFareOption =widget.outboundFareOption;
+    final returnFareOption = widget.returnFareOption;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -281,55 +408,30 @@ class _FlightBookingDetailsScreenState
             ),
           ),
           const SizedBox(height: 12),
+
+          // Outbound Flight
+          ...[
           _buildFlightCard(
-            departureCode: 'DXB',
-            departureCity: 'Dubai',
-            departureCountry: 'UNITED ARAB EMIRATES',
-            arrivalCode: 'MUX',
-            arrivalCity: 'Quaid',
-            arrivalCountry: 'PAKISTAN',
-            departureDate: '26-03-2025',
-            departureTime: '16:25',
-            arrivalDate: '26-03-2025',
-            arrivalTime: '17:50',
-            duration: '02 H 25 M',
-            flightNumber: 'FZ-336',
-            passengerName: 'Muhammad Zain Sajid',
-            passengerType: 'Adult',
-            extraBaggage: '10 Kg Baggage Upgrade',
-            extraMeal: 'Standard meal',
-            seat: '9B',
-            handBaggage: '7 Kg',
-            checkedBaggage: '30 Kg',
-            isConnecting: false,
+            flight: outboundFlight,
+            fareOption: outboundFareOption,
+            isReturn: false,
           ),
           const SizedBox(height: 16),
-          _buildFlightCard(
-            departureCode: 'DXB',
-            departureCity: 'Dubai',
-            departureCountry: 'UNITED ARAB EMIRATES',
-            arrivalCode: 'JED',
-            arrivalCity: 'Jeddah',
-            arrivalCountry: 'SAUDI ARABIA',
-            departureDate: '26-03-2025',
-            departureTime: '19:45',
-            arrivalDate: '26-03-2025',
-            arrivalTime: '22:05',
-            duration: '03 H 20 M',
-            flightNumber: 'FZ-907',
-            passengerName: 'Muhammad Zain Sajid',
-            passengerType: 'Adult',
-            extraBaggage: '10 Kg Baggage Upgrade',
-            extraMeal: 'Standard meal',
-            seat: 'N/A',
-            handBaggage: '7 Kg',
-            checkedBaggage: '30 Kg',
-            isConnecting: true,
-          ),
-          const SizedBox(height: 24),
+        ],
+
+          // Return Flight
+          if (returnFlight != null) ...[
+            _buildFlightCard(
+              flight: returnFlight,
+              fareOption: returnFareOption,
+              isReturn: true,
+            ),
+            const SizedBox(height: 16),
+          ],
+
           _buildPassengerDetailsCard(),
-          // const SizedBox(height: 24),
-          // _buildSummaryCard(),
+          const SizedBox(height: 24),
+          _buildPriceBreakdownCard(),
           const SizedBox(height: 16),
         ],
       ),
@@ -337,27 +439,18 @@ class _FlightBookingDetailsScreenState
   }
 
   Widget _buildFlightCard({
-    required String departureCode,
-    required String departureCity,
-    required String departureCountry,
-    required String arrivalCode,
-    required String arrivalCity,
-    required String arrivalCountry,
-    required String departureDate,
-    required String departureTime,
-    required String arrivalDate,
-    required String arrivalTime,
-    required String duration,
-    required String flightNumber,
-    required String passengerName,
-    required String passengerType,
-    required String extraBaggage,
-    required String extraMeal,
-    required String seat,
-    required String handBaggage,
-    required String checkedBaggage,
-    required bool isConnecting,
+    required AirBlueFlight flight,
+    required AirBlueFareOption? fareOption,
+    required bool isReturn,
   }) {
+    final firstLeg = flight.legSchedules.first;
+    final lastLeg = flight.legSchedules.last;
+    final departureDateTime = DateTime.parse(firstLeg['departure']['dateTime']);
+    final arrivalDateTime = DateTime.parse(lastLeg['arrival']['dateTime']);
+    final duration = arrivalDateTime.difference(departureDateTime);
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+
     return Card(
       elevation: 2,
       shadowColor: Colors.black.withOpacity(0.1),
@@ -374,7 +467,7 @@ class _FlightBookingDetailsScreenState
               children: [
                 Flexible(
                   child: Text(
-                    'Fly $departureCity ($flightNumber)',
+                    '${isReturn ? 'Return' : 'Outbound'} Flight: ${flight.airlineName} (${flight.id.split('-').first})',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: TColors.primary,
@@ -383,15 +476,14 @@ class _FlightBookingDetailsScreenState
                   ),
                 ),
                 Container(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: TColors.secondary,
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: const Text(
-                    'ECONOMY',
-                    style: TextStyle(
+                  child: Text(
+                    fareOption?.cabinName ?? 'N/A',
+                    style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: TColors.background,
@@ -401,273 +493,58 @@ class _FlightBookingDetailsScreenState
               ],
             ),
             const SizedBox(height: 16),
-            // Flight timeline with responsive design
-            LayoutBuilder(builder: (context, constraints) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Departure section
-                  Expanded(
-                    flex: 3,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.flight_takeoff,
-                              size: 16,
-                              color: TColors.grey,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                '$departureDate\n$departureTime',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                departureCode,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              Text(
-                                departureCity,
-                                style: const TextStyle(
-                                  color: TColors.grey,
-                                  fontSize: 12,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Text(
-                                departureCountry,
-                                style: const TextStyle(
-                                  color: TColors.grey,
-                                  fontSize: 10,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Middle duration section
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      children: [
-                        const Text(
-                          'Duration',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: TColors.grey,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 4, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: TColors.background,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            duration,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        SizedBox(
-                          width: 60,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Container(
-                                height: 1,
-                                color: TColors.grey.withOpacity(0.5),
-                              ),
-                              const Icon(
-                                Icons.flight,
-                                size: 16,
-                                color: TColors.primary,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Arrival section
-                  Expanded(
-                    flex: 3,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                '$arrivalDate\n$arrivalTime',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.right,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            const Icon(
-                              Icons.flight_land,
-                              size: 16,
-                              color: TColors.grey,
-                            ),
-                          ],
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(right: 20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                arrivalCode,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              Text(
-                                arrivalCity,
-                                style: const TextStyle(
-                                  color: TColors.grey,
-                                  fontSize: 12,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Text(
-                                arrivalCountry,
-                                style: const TextStyle(
-                                  color: TColors.grey,
-                                  fontSize: 10,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            }),
+            // Add flight segments
+            _buildFlightSegments(flight),
             const SizedBox(height: 16),
+
+            // Baggage information
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _buildFlightDetailItem(
                   label: 'Hand Baggage',
-                  value: handBaggage,
+                  value: '7 Kg',
                   icon: Icons.work_outline,
                 ),
-
                 _buildFlightDetailItem(
                   label: 'Checked Baggage',
-                  value: checkedBaggage,
+                  value: '${flight.baggageAllowance.weight} ${flight.baggageAllowance.unit}',
                   icon: Icons.luggage,
                 ),
               ],
             ),
             const Divider(),
             const SizedBox(height: 8),
-            // Passenger info
-            Row(
-              children: [
-                const Icon(
-                  Icons.person,
-                  size: 16,
-                  color: TColors.grey,
-                ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    passengerName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+
+
+            // Fare details
+            if (fareOption != null) ...[
+              Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: [
+                  _buildFlightDetailItem(
+                    label: 'Fare Type',
+                    value: fareOption.fareName,
+                    icon: Icons.airplane_ticket,
                   ),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '($passengerType)',
-                  style: const TextStyle(
-                    color: TColors.grey,
-                    fontSize: 12,
+                  _buildFlightDetailItem(
+                    label: 'Meal',
+                    value: fareOption.mealCode == 'M' ? 'Included' : 'Not Included',
+                    icon: Icons.restaurant,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Flexible extra details
-            Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: [
-                _buildFlightDetailItem(
-                  label: 'Extra Baggage',
-                  value: extraBaggage,
-                  icon: Icons.luggage,
-                ),
-                _buildFlightDetailItem(
-                  label: 'Extra Meal',
-                  value: extraMeal,
-                  icon: Icons.restaurant,
-                ),
-                _buildFlightDetailItem(
-                  label: 'Seat',
-                  value: seat,
-                  icon: Icons.event_seat,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Wrap(
-            //   spacing: 16,
-            //   runSpacing: 16,
-            //   children: [
-            //     _buildFlightDetailItem(
-            //       label: 'Hand Baggage',
-            //       value: handBaggage,
-            //       icon: Icons.work_outline,
-            //     ),
-            //     _buildFlightDetailItem(
-            //       label: 'Checked Baggage',
-            //       value: checkedBaggage,
-            //       icon: Icons.luggage,
-            //     ),
-            //   ],
-            // ),
-            if (isConnecting) ...[
+                  _buildFlightDetailItem(
+                    label: 'Refundable',
+                    value: fareOption.isRefundable ? 'Yes' : 'No',
+                    icon: Icons.currency_exchange,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Connecting flight notice
+            if (flight.legSchedules.length > 1) ...[
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(8),
@@ -790,24 +667,235 @@ class _FlightBookingDetailsScreenState
                       children: [
                         _buildTableCell('Sr', isHeader: true),
                         _buildTableCell('Name', isHeader: true),
+                        _buildTableCell('Type', isHeader: true),
                         _buildTableCell('Passport#', isHeader: true),
                         _buildTableCell('Ticket #', isHeader: true),
                       ],
                     ),
-                    TableRow(
-                      children: [
-                        _buildTableCell('1'),
-                        _buildTableCell('MUHAMMAD ZAIN SAJID (Adult)'),
-                        _buildTableCell('345783'),
-                        _buildTableCell('N/A'),
-                      ],
-                    ),
+                    ...List.generate(bookingController.adults.length, (index) {
+                      final adult = bookingController.adults[index];
+                      return TableRow(
+                        children: [
+                          _buildTableCell('${index + 1}'),
+                          _buildTableCell('${adult.firstNameController.text} ${adult.lastNameController.text}'),
+                          _buildTableCell('Adult'),
+                          _buildTableCell(adult.passportController.text),
+                          _buildTableCell('N/A'),
+                        ],
+                      );
+                    }),
+                    ...List.generate(bookingController.children.length, (index) {
+                      final child = bookingController.children[index];
+                      return TableRow(
+                        children: [
+                          _buildTableCell('${bookingController.adults.length + index + 1}'),
+                          _buildTableCell('${child.firstNameController.text} ${child.lastNameController.text}'),
+                          _buildTableCell('Child'),
+                          _buildTableCell(child.passportController.text),
+                          _buildTableCell('N/A'),
+                        ],
+                      );
+                    }),
+                    ...List.generate(bookingController.infants.length, (index) {
+                      final infant = bookingController.infants[index];
+                      return TableRow(
+                        children: [
+                          _buildTableCell('${bookingController.adults.length + bookingController.children.length + index + 1}'),
+                          _buildTableCell('${infant.firstNameController.text} ${infant.lastNameController.text}'),
+                          _buildTableCell('Infant'),
+                          _buildTableCell(infant.passportController.text),
+                          _buildTableCell('N/A'),
+                        ],
+                      );
+                    }),
                   ],
                 ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPriceBreakdownCard()  {
+    final outboundFlight = widget.outboundFlight;
+    final returnFlight = widget.returnFlight;
+    final outboundFareOption = widget.outboundFareOption;
+    final returnFareOption = widget.returnFareOption;
+
+
+
+    // Calculate prices with margin for each passenger type
+    final adultPrice = _calculatePassengerPrice(
+      'ADT',
+      outboundFlight,
+      outboundFareOption,
+      returnFlight,
+      returnFareOption,
+      marginData,
+    );
+
+    final childPrice = _calculatePassengerPrice(
+      'CHD',
+      outboundFlight,
+      outboundFareOption,
+      returnFlight,
+      returnFareOption,
+      marginData,
+    );
+
+    final infantPrice = _calculatePassengerPrice(
+      'INF',
+      outboundFlight,
+      outboundFareOption,
+      returnFlight,
+      returnFareOption,
+      marginData,
+    );
+
+    final currency = outboundFlight.currency;
+
+
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Price Breakdown',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Adult pricing
+            if (bookingController.adults.isNotEmpty) ...[
+              _buildPassengerPriceRow('Adult', adultPrice, currency),
+              const SizedBox(height: 8),
+            ],
+
+            // Child pricing
+            if (bookingController.children.isNotEmpty) ...[
+              _buildPassengerPriceRow('Child', childPrice, currency),
+              const SizedBox(height: 8),
+            ],
+
+            // Infant pricing
+            if (bookingController.infants.isNotEmpty) ...[
+              _buildPassengerPriceRow('Infant', infantPrice, currency),
+              const SizedBox(height: 8),
+            ],
+
+            const Divider(),
+            _buildPriceRow(
+              'Total Amount',
+              '$currency ${(adultPrice['total']! * bookingController.adults.length + childPrice['total']! * bookingController.children.length + infantPrice['total']! * bookingController.infants.length).toStringAsFixed(2)}',
+              isTotal: true,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Update this method in flight_print_voucher.dart
+  Map<String, double> _calculatePassengerPrice(
+      String passengerType,
+      AirBlueFlight outboundFlight,
+      AirBlueFareOption? outboundFareOption,
+      AirBlueFlight? returnFlight,
+      AirBlueFareOption? returnFareOption,
+      Map<String, dynamic> marginData,
+      ) {
+    double base = 0;
+    double tax = 0;
+    double fee = 0;
+
+
+    // Check if we have PNR pricing data
+    if (outboundFlight.pnrPricing != null && outboundFlight.pnrPricing!.isNotEmpty) {
+
+      // Find pricing for this passenger type
+      for (var pricing in outboundFlight.pnrPricing!) {
+        if (pricing.passengerType == passengerType) {
+          base = pricing.baseFare;
+          tax = pricing.totalTax;
+          fee = pricing.totalFees;
+          break;
+        }
+      }
+    } else {
+      Get.snackbar("Ahmad", "hello");
+    }
+
+
+    // Apply margin if needed (assuming apiService has calculatePriceWithMargin method)
+    base = apiService.calculatePriceWithMargin(base, marginData);
+    Get.snackbar(base.toString(), "hello");
+    return {
+      'base': base,
+      'tax': tax,
+      'fee': fee,
+      'total': (base + tax + fee),
+    };
+  }
+
+  Widget _buildPassengerPriceRow(String label, Map<String, double> price, String currency) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$label Price',
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 4),
+        _buildPriceRow('Base Fare', '$currency ${price['base']!.toStringAsFixed(2)}'),
+        _buildPriceRow('Taxes', '$currency ${price['tax']!.toStringAsFixed(2)}'),
+        _buildPriceRow('Fees', '$currency ${price['fee']!.toStringAsFixed(2)}'),
+        _buildPriceRow(
+          'Subtotal',
+          '$currency ${price['total']!.toStringAsFixed(2)}',
+          // isSubtotal: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPriceRow(String label, String value, {bool isTotal = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+              color: isTotal ? TColors.primary : TColors.text,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+              color: isTotal ? TColors.primary : TColors.text,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -826,183 +914,187 @@ class _FlightBookingDetailsScreenState
     );
   }
 
-
-
-
   Future<void> _generatePDF() async {
+    final outboundFlight = widget.outboundFlight;
+    final returnFlight = widget.returnFlight;
+    final outboundFareOption =widget.outboundFareOption;
+    final returnFareOption = widget.returnFareOption;
+
     final pdf = pw.Document();
 
     // Add page
     pdf.addPage(
-      pw.Page(
+      pw.MultiPage(
         build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              // Header
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        'Journey Online Testing',
-                        style: pw.TextStyle(
-                          fontSize: 18,
-                          fontWeight: pw.FontWeight.bold,
-                        ),
+          return [
+            // Header
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'Journey Online Booking Voucher',
+                      style: pw.TextStyle(
+                        fontSize: 18,
+                        fontWeight: pw.FontWeight.bold,
                       ),
-                      pw.SizedBox(height: 4),
-                      pw.Text(
-                        'Flight Booking Details',
-                        style: pw.TextStyle(
-                          fontSize: 12,
-                          color: PdfColors.grey700,
-                        ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      'Flight Booking Details',
+                      style: pw.TextStyle(
+                        fontSize: 12,
+                        color: PdfColors.grey700,
                       ),
-                    ],
-                  ),
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.end,
-                    children: [
-                      pw.Text(
-                        'Agent: ${agent.name}',
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 10,
-                        ),
-                      ),
-                      pw.Text(
-                        agent.email,
-                        style: pw.TextStyle(
-                          fontSize: 10,
-                          color: PdfColors.grey700,
-                        ),
-                      ),
-                      pw.Text(
-                        'Phone: ${agent.phone}',
-                        style: pw.TextStyle(
-                          fontSize: 10,
-                          color: PdfColors.grey700,
-                        ),
-                      ),
-                      pw.SizedBox(height: 4),
-                      pw.Text(
-                        'Reference # 1585 | PNR: TRUX3H',
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              pw.SizedBox(height: 20),
-
-              // Flight Details
-              pw.Text(
-                'Flight Details',
-                style: pw.TextStyle(
-                  fontSize: 16,
-                  fontWeight: pw.FontWeight.bold,
+                    ),
+                  ],
                 ),
-              ),
-              pw.Divider(),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Text(
+                      'Agent: ${agent.name}',
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 10,
+                      ),
+                    ),
+                    pw.Text(
+                      agent.email,
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
+                    pw.Text(
+                      'Phone: ${agent.phone}',
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      'Reference # $bookingReference | PNR: $pnrNumber',
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 20),
 
-              // First Flight
+            // Flight Details
+            pw.Text(
+              'Flight Details',
+              style: pw.TextStyle(
+                fontSize: 16,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+            pw.Divider(),
+
+            // Outbound Flight
+            _buildPdfFlightSection(
+              flight: outboundFlight,
+              fareOption: outboundFareOption,
+              isReturn: false,
+            ),
+            pw.SizedBox(height: 16),
+
+            // Return Flight
+            if (returnFlight != null) ...[
               _buildPdfFlightSection(
-                'Dubai (DXB) → Quaid (MUX), PAKISTAN',
-                'FZ-336',
-                '26-03-2025 16:25',
-                '26-03-2025 17:50',
-                '02 H 25 M',
-                'Muhammad Zain Sajid (Adult)',
-                '10 Kg Baggage Upgrade',
-                'Standard meal',
-                '9B',
-                '7 Kg',
-                '30 Kg',
+                flight: returnFlight,
+                fareOption: returnFareOption,
+                isReturn: true,
               ),
               pw.SizedBox(height: 16),
+            ],
 
-              // Second Flight
-              _buildPdfFlightSection(
-                'Dubai (DXB) → Jeddah (JED), SAUDI ARABIA',
-                'FZ-907',
-                '26-03-2025 19:45',
-                '26-03-2025 22:05',
-                '03 H 20 M',
-                'Muhammad Zain Sajid (Adult)',
-                '10 Kg Baggage Upgrade',
-                'Standard meal',
-                'N/A',
-                '7 Kg',
-                '30 Kg',
+            // Passenger Details
+            pw.Text(
+              'Passenger Details',
+              style: pw.TextStyle(
+                fontSize: 16,
+                fontWeight: pw.FontWeight.bold,
               ),
-              pw.SizedBox(height: 20),
+            ),
+            pw.Divider(),
+            pw.TableHelper. fromTextArray(
+              context: context,
+              border: pw.TableBorder.all(color: PdfColors.grey300),
+              headerDecoration: pw.BoxDecoration(color: PdfColors.grey200),
+              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              headers: ['Sr', 'Name', 'Type', 'Passport#', 'Ticket #'],
+              data: [
+                ...bookingController.adults.map((adult) => [
+                  '${bookingController.adults.indexOf(adult) + 1}',
+                  '${adult.firstNameController.text} ${adult.lastNameController.text}',
+                  'Adult',
+                  adult.passportController.text,
+                  'N/A',
+                ]),
+                ...bookingController.children.map((child) => [
+                  '${bookingController.adults.length + bookingController.children.indexOf(child) + 1}',
+                  '${child.firstNameController.text} ${child.lastNameController.text}',
+                  'Child',
+                  child.passportController.text,
+                  'N/A',
+                ]),
+                ...bookingController.infants.map((infant) => [
+                  '${bookingController.adults.length + bookingController.children.length + bookingController.infants.indexOf(infant) + 1}',
+                  '${infant.firstNameController.text} ${infant.lastNameController.text}',
+                  'Infant',
+                  infant.passportController.text,
+                  'N/A',
+                ]),
+              ],
+            ),
+            pw.SizedBox(height: 20),
 
-              // Passenger Details
-              pw.Text(
-                'Passenger Details',
+            // Price Breakdown
+            pw.Text(
+              'Price Breakdown',
+              style: pw.TextStyle(
+                fontSize: 16,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+            pw.Divider(),
+            _buildPdfPriceRow('Base Fare', '${outboundFlight.currency} ${outboundFareOption?.basePrice.toStringAsFixed(2) ?? '0.00'}'),
+            if (returnFareOption != null)
+              _buildPdfPriceRow('Return Base Fare', '${returnFlight?.currency} ${returnFareOption.basePrice.toStringAsFixed(2)}'),
+            _buildPdfPriceRow('Taxes', '${outboundFlight.currency} ${outboundFareOption?.taxAmount.toStringAsFixed(2) ?? '0.00'}'),
+            if (returnFareOption != null)
+              _buildPdfPriceRow('Return Taxes', '${returnFlight?.currency} ${returnFareOption.taxAmount.toStringAsFixed(2)}'),
+            _buildPdfPriceRow('Fees', '${outboundFlight.currency} ${outboundFareOption?.feeAmount.toStringAsFixed(2) ?? '0.00'}'),
+            if (returnFareOption != null)
+              _buildPdfPriceRow('Return Fees', '${returnFlight?.currency} ${returnFareOption.feeAmount.toStringAsFixed(2)}'),
+            pw.Divider(),
+            _buildPdfPriceRow(
+              'Total Amount',
+              '${outboundFlight.currency} ${((outboundFareOption?.price ?? 0) + (returnFareOption?.price ?? 0)).toStringAsFixed(2)}',
+              isTotal: true,
+            ),
+            pw.SizedBox(height: 20),
+
+            // Footer
+            pw.Center(
+              child: pw.Text(
+                'Thank you for booking with Journey Online!',
                 style: pw.TextStyle(
-                  fontSize: 16,
-                  fontWeight: pw.FontWeight.bold,
+                  fontSize: 12,
+                  color: PdfColors.grey700,
                 ),
               ),
-              pw.Divider(),
-              pw.Table(
-                border: pw.TableBorder.all(color: PdfColors.grey300),
-                children: [
-                  pw.TableRow(
-                    decoration: pw.BoxDecoration(color: PdfColors.grey200),
-                    children: [
-                      _buildPdfTableCell('Sr', isHeader: true),
-                      _buildPdfTableCell('Name', isHeader: true),
-                      _buildPdfTableCell('Passport#', isHeader: true),
-                      _buildPdfTableCell('Ticket #', isHeader: true),
-                    ],
-                  ),
-                  pw.TableRow(
-                    children: [
-                      _buildPdfTableCell('1'),
-                      _buildPdfTableCell('MUHAMMAD ZAIN SAJID (Adult)'),
-                      _buildPdfTableCell('345783'),
-                      _buildPdfTableCell('N/A'),
-                    ],
-                  ),
-                ],
-              ),
-              pw.SizedBox(height: 20),
-
-              // Payment Summary
-              // pw.Text(
-              //   'Payment Summary',
-              //   style: pw.TextStyle(
-              //     fontSize: 16,
-              //     fontWeight: pw.FontWeight.bold,
-              //   ),
-              // ),
-              // pw.Divider(),
-              // _buildPdfSummaryRow('Total Amount', '₹ 1,245.00'),
-              // _buildPdfSummaryRow('Payment Received', '₹ 1,245.00'),
-              // pw.Divider(),
-              // _buildPdfSummaryRow('Closing Balance', '₹ 0.00', isPrimary: true),
-
-              // // Footer
-              // pw.SizedBox(height: 20),
-              // pw.Center(
-              //   child: pw.Text(
-              //     'Thank you for booking with Journey Online!',
-              //     style: pw.TextStyle(
-              //       fontSize: 12,
-              //       color: PdfColors.grey700,
-              //     ),
-              //   ),
-              // ),
-            ],
-          );
+            ),
+          ];
         },
       ),
     );
@@ -1012,19 +1104,19 @@ class _FlightBookingDetailsScreenState
     );
   }
 
-  pw.Widget _buildPdfFlightSection(
-      String route,
-      String flightNumber,
-      String departureDateTime,
-      String arrivalDateTime,
-      String duration,
-      String passengerName,
-      String extraBaggage,
-      String extraMeal,
-      String seat,
-      String handBaggage,
-      String checkedBaggage,
-      ) {
+  pw.Widget _buildPdfFlightSection({
+    required AirBlueFlight flight,
+    required AirBlueFareOption? fareOption,
+    required bool isReturn,
+  }) {
+    final firstLeg = flight.legSchedules.first;
+    final lastLeg = flight.legSchedules.last;
+    final departureDateTime = DateTime.parse(firstLeg['departure']['dateTime']);
+    final arrivalDateTime = DateTime.parse(lastLeg['arrival']['dateTime']);
+    final duration = arrivalDateTime.difference(departureDateTime);
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+
     return pw.Container(
       padding: const pw.EdgeInsets.all(10),
       decoration: pw.BoxDecoration(
@@ -1038,13 +1130,13 @@ class _FlightBookingDetailsScreenState
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
               pw.Text(
-                'Flight: $flightNumber',
+                '${isReturn ? 'Return' : 'Outbound'} Flight: ${flight.airlineName} (${flight.id.split('-').first})',
                 style: pw.TextStyle(
                   fontWeight: pw.FontWeight.bold,
                 ),
               ),
               pw.Text(
-                'ECONOMY',
+                fareOption?.cabinName ?? 'ECONOMY',
                 style: pw.TextStyle(
                   fontWeight: pw.FontWeight.bold,
                 ),
@@ -1053,7 +1145,7 @@ class _FlightBookingDetailsScreenState
           ),
           pw.SizedBox(height: 8),
           pw.Text(
-            route,
+            '${firstLeg['departure']['airport']} → ${lastLeg['arrival']['airport']}',
             style: pw.TextStyle(
               fontSize: 12,
             ),
@@ -1062,9 +1154,9 @@ class _FlightBookingDetailsScreenState
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
-              pw.Text('Departure: $departureDateTime'),
-              pw.Text('Duration: $duration'),
-              pw.Text('Arrival: $arrivalDateTime'),
+              pw.Text('Departure: ${departureDateTime.day}-${departureDateTime.month}-${departureDateTime.year} ${departureDateTime.hour.toString().padLeft(2, '0')}:${departureDateTime.minute.toString().padLeft(2, '0')}'),
+              pw.Text('Duration: ${hours}h ${minutes}m'),
+              pw.Text('Arrival: ${arrivalDateTime.day}-${arrivalDateTime.month}-${arrivalDateTime.year} ${arrivalDateTime.hour.toString().padLeft(2, '0')}:${arrivalDateTime.minute.toString().padLeft(2, '0')}'),
             ],
           ),
           pw.SizedBox(height: 8),
@@ -1081,7 +1173,7 @@ class _FlightBookingDetailsScreenState
                         color: PdfColors.grey700,
                       ),
                     ),
-                    pw.Text(handBaggage),
+                    pw.Text('7 Kg'),
                   ],
                 ),
               ),
@@ -1096,7 +1188,7 @@ class _FlightBookingDetailsScreenState
                         color: PdfColors.grey700,
                       ),
                     ),
-                    pw.Text(checkedBaggage),
+                    pw.Text('${flight.baggageAllowance.weight} ${flight.baggageAllowance.unit}'),
                   ],
                 ),
               ),
@@ -1105,79 +1197,81 @@ class _FlightBookingDetailsScreenState
           pw.SizedBox(height: 8),
           pw.Divider(),
           pw.SizedBox(height: 8),
-          pw.Divider(),
-          pw.SizedBox(height: 8),
-          pw.Text(
-            'Passenger: $passengerName',
-            style: pw.TextStyle(
-              fontWeight: pw.FontWeight.bold,
-            ),
-          ),
-          pw.SizedBox(height: 8),
-          pw.Row(
+          if (fareOption != null) pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
               pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Text(
-                    'Extra Baggage:',
+                    'Fare Type:',
                     style: pw.TextStyle(
                       fontSize: 10,
                       color: PdfColors.grey700,
                     ),
                   ),
-                  pw.Text(extraBaggage),
+                  pw.Text(fareOption.fareName),
                 ],
               ),
               pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Text(
-                    'Extra Meal:',
+                    'Meal:',
                     style: pw.TextStyle(
                       fontSize: 10,
                       color: PdfColors.grey700,
                     ),
                   ),
-                  pw.Text(extraMeal),
+                  pw.Text(fareOption.mealCode == 'M' ? 'Included' : 'Not Included'),
                 ],
               ),
               pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Text(
-                    'Seat:',
+                    'Refundable:',
                     style: pw.TextStyle(
                       fontSize: 10,
                       color: PdfColors.grey700,
                     ),
                   ),
-                  pw.Text(seat),
+                  pw.Text(fareOption.isRefundable ? 'Yes' : 'No'),
                 ],
               ),
             ],
           ),
-
         ],
       ),
     );
   }
 
-  pw.Widget _buildPdfTableCell(String text, {bool isHeader = false}) {
+  pw.Widget _buildPdfPriceRow(String label, String value, {bool isTotal = false}) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.all(6),
-      child: pw.Text(
-        text,
-        style: pw.TextStyle(
-          fontSize: 10,
-          fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
-        ),
-        textAlign: isHeader ? pw.TextAlign.center : pw.TextAlign.left,
+      padding: const pw.EdgeInsets.symmetric(vertical: 4),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(
+            label,
+            style: pw.TextStyle(
+              fontSize: 12,
+              fontWeight: isTotal ? pw.FontWeight.bold : pw.FontWeight.normal,
+              color: isTotal ? PdfColors.blue800 : PdfColors.black,
+            ),
+          ),
+          pw.Text(
+            value,
+            style: pw.TextStyle(
+              fontSize: 12,
+              fontWeight: isTotal ? pw.FontWeight.bold : pw.FontWeight.normal,
+              color: isTotal ? PdfColors.blue800 : PdfColors.black,
+            ),
+          ),
+        ],
       ),
     );
   }
-
 }
 
 // Sample Agent model class
@@ -1192,90 +1286,5 @@ class Agent {
     required this.email,
     required this.phone,
     required this.designation,
-  });
-}
-
-// Sample Flight model class
-class VoucherFlight {
-  final String departureCode;
-  final String departureCity;
-  final String departureCountry;
-  final String arrivalCode;
-  final String arrivalCity;
-  final String arrivalCountry;
-  final String departureDate;
-  final String departureTime;
-  final String arrivalDate;
-  final String arrivalTime;
-  final String duration;
-  final String flightNumber;
-  final List<Passenger> passengers;
-  final String cabinClass;
-  final String handBaggage;
-  final String checkedBaggage;
-  final bool isConnecting;
-
-  VoucherFlight({
-    required this.departureCode,
-    required this.departureCity,
-    required this.departureCountry,
-    required this.arrivalCode,
-    required this.arrivalCity,
-    required this.arrivalCountry,
-    required this.departureDate,
-    required this.departureTime,
-    required this.arrivalDate,
-    required this.arrivalTime,
-    required this.duration,
-    required this.flightNumber,
-    required this.passengers,
-    required this.cabinClass,
-    required this.handBaggage,
-    required this.checkedBaggage,
-    this.isConnecting = false,
-  });
-}
-
-// Sample Passenger model class
-class Passenger {
-  final String name;
-  final String type;
-  final String extraBaggage;
-  final String extraMeal;
-  final String seat;
-  final String passportNumber;
-  final String ticketNumber;
-
-  Passenger({
-    required this.name,
-    required this.type,
-    required this.extraBaggage,
-    required this.extraMeal,
-    required this.seat,
-    required this.passportNumber,
-    required this.ticketNumber,
-  });
-}
-
-// Sample Booking model class
-class Booking {
-  final String referenceNumber;
-  final String pnr;
-  final String status;
-  final List<VoucherFlight> flights;
-  final double totalAmount;
-  final double paymentReceived;
-  final double closingBalance;
-  final Agent agent;
-
-  Booking({
-    required this.referenceNumber,
-    required this.pnr,
-    required this.status,
-    required this.flights,
-    required this.totalAmount,
-    required this.paymentReceived,
-    required this.closingBalance,
-    required this.agent,
   });
 }
