@@ -2,7 +2,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-
 import '../../../../../services/api_service_sabre.dart';
 
 import '../../../../../utility/colors.dart';
@@ -528,7 +527,7 @@ class _FlightCardState extends State<FlightCard>
                       // Add booking functionality here
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: TColors.third,
+                      backgroundColor: TColors.secondary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(32),
                       ),

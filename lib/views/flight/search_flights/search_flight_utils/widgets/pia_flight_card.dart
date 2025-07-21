@@ -408,7 +408,7 @@ class _PIAFlightCardState extends State<PIAFlightCard>
                       piaController.handlePIAFlightSelection(widget.flight);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: TColors.third,
+                      backgroundColor: TColors.secondary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(32),
                       ),

@@ -1,22 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import '../../../utility/colors.dart';
 import 'airarabia/airarabia_flight_controller.dart';
 import 'airblue/airblue_flight_controller.dart';
+import 'filters/flight_filter_service.dart';
 import 'pia/pia_flight_controller.dart';
 import 'sabre/sabre_flight_controller.dart';
 import 'search_flight_utils/filter_flight_model.dart';
 import 'search_flight_utils/widgets/airarabia_flight_card.dart';
 import 'search_flight_utils/widgets/airblue_flight_card.dart';
 import 'search_flight_utils/widgets/currency_dialog.dart';
-import 'search_flight_utils/widgets/flight_bottom_sheet.dart';
+import 'filters/flight_bottom_sheet.dart';
 import 'search_flight_utils/widgets/pia_flight_card.dart';
 import 'search_flight_utils/widgets/sabre_flight_card.dart';
 
 enum FlightScenario { oneWay, returnFlight, multiCity }
-
-
 
 class FlightBookingPage extends StatelessWidget {
   final FlightScenario scenario;
@@ -24,6 +22,7 @@ class FlightBookingPage extends StatelessWidget {
   final AirBlueFlightController airBlueController = Get.find<AirBlueFlightController>();
   final PIAFlightController piaController = Get.put(PIAFlightController());
   final AirArabiaFlightController airArabiaController = Get.put(AirArabiaFlightController());
+  final FilterController filterController = Get.put(FilterController());
 
   FlightBookingPage({super.key, required this.scenario}) {
     controller.setScenario(scenario);
@@ -39,8 +38,14 @@ class FlightBookingPage extends StatelessWidget {
         leading: const BackButton(),
         title: Obx(() {
           // Get total flight count
-          final totalFlights = controller.filteredFlights.length + airBlueController.flights.length + piaController.filteredFlights.length;
-          final isLoading = controller.isLoading.value || airBlueController.isLoading.value;
+          final totalFlights = controller.filteredFlights.length +
+              airBlueController.flights.length +
+              piaController.filteredFlights.length +
+              airArabiaController.flights.length;
+          final isLoading = controller.isLoading.value ||
+              airBlueController.isLoading.value ||
+              piaController.isLoading.value ||
+              airArabiaController.isLoading.value;
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,15 +106,14 @@ class FlightBookingPage extends StatelessWidget {
       ),
       body: Column(
         children: [
-          _buildFilterSection(),
+          _buildFilterSection(context),
           _buildFlightList(),
         ],
       ),
     );
   }
 
-
-  Widget _buildFilterSection() {
+  Widget _buildFilterSection(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 16),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
@@ -130,27 +134,35 @@ class FlightBookingPage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             Obx(() => _filterButton(
-                'Suggested', controller.sortType.value == 'Suggested')),
+                'Suggested',
+                filterController.sortType.value == 'Suggested',
+                    () => filterController.setSuggested()
+            )),
             Obx(() => _filterButton(
-                'Cheapest', controller.sortType.value == 'Cheapest')),
-            Obx(() =>
-                _filterButton('Fastest', controller.sortType.value == 'Fastest')),
+                'Cheapest',
+                filterController.sortType.value == 'Cheapest',
+                    () => filterController.setCheapest()
+            )),
+            Obx(() => _filterButton(
+                'Fastest',
+                filterController.sortType.value == 'Fastest',
+                    () => filterController.setFastest()
+            )),
             OutlinedButton(
               onPressed: () {
                 showModalBottomSheet(
-                  context: Get.context!,
+                  context: context,
                   isScrollControlled: true,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                  ),
-                  builder: (_) => FilterBottomSheet(
-                    controller: controller,
-                    airBlueController: airBlueController,
-                    piaController: piaController,
-                  ),
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => const FlightFilterBottomSheet(),
                 );
               },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: TColors.grey,
+                side: BorderSide(color: TColors.grey.withOpacity(0.3)),
+              ),
               child: const Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.tune, size: 12),
                   SizedBox(width: 4),
@@ -197,11 +209,10 @@ class FlightBookingPage extends StatelessWidget {
                 },
               );
             }),
-        
-            // AirBlue flights section (only if not multi-city)
+
+            // AirBlue flights section
             Obx(() {
-              // if (tripType.value == TripType.multiCity) return const SizedBox();
-              if (airBlueController.isLoading.value && airBlueController.flights.isEmpty) {
+              if (airBlueController.isLoading.value && airBlueController.filteredFlights.isEmpty) {
                 return const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8.0),
                   child: Center(child: CircularProgressIndicator()),
@@ -210,9 +221,9 @@ class FlightBookingPage extends StatelessWidget {
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: airBlueController.flights.length,
+                itemCount: airBlueController.filteredFlights.length,
                 itemBuilder: (context, index) {
-                  final flight = airBlueController.flights[index];
+                  final flight = airBlueController.filteredFlights[index];
                   return GestureDetector(
                     onTap: () => airBlueController.handleAirBlueFlightSelection(flight),
                     child: AirBlueFlightCard(flight: flight),
@@ -220,7 +231,7 @@ class FlightBookingPage extends StatelessWidget {
                 },
               );
             }),
-        
+
             // PIA flights section
             Obx(() {
               if (piaController.isLoading.value && piaController.filteredFlights.isEmpty) {
@@ -243,10 +254,9 @@ class FlightBookingPage extends StatelessWidget {
               );
             }),
 
-
             // Air Arabia flights section
             Obx(() {
-              if (airArabiaController.isLoading.value && airArabiaController.flights.isEmpty) {
+              if (airArabiaController.isLoading.value && airArabiaController.filteredFlights.isEmpty) {
                 return const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8.0),
                   child: Center(child: CircularProgressIndicator()),
@@ -255,9 +265,9 @@ class FlightBookingPage extends StatelessWidget {
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: airArabiaController.flights.length,
+                itemCount: airArabiaController.filteredFlights.length, // ✅ Using filteredFlights
                 itemBuilder: (context, index) {
-                  final flight = airArabiaController.flights[index];
+                  final flight = airArabiaController.filteredFlights[index]; // ✅ Using filteredFlights
                   return GestureDetector(
                     onTap: () {
                       // Handle Air Arabia flight selection
@@ -267,30 +277,30 @@ class FlightBookingPage extends StatelessWidget {
                 },
               );
             }),
-
-
           ],
         ),
       ),
     );
   }
-  Widget _filterButton(String text, bool isSelected) {
+
+  Widget _filterButton(String text, bool isSelected, VoidCallback onPressed) {
     return TextButton(
-      onPressed: () {
-        // Update sort type in all controllers
-        controller.updateSortType(text);
-        airBlueController.applyFilters(FlightFilter(sortType: text));
-        airArabiaController.applyFilters(FlightFilter(sortType: text));
-        piaController.applyFilters(FlightFilter(sortType: text));
-      },
+      onPressed: onPressed,
       style: TextButton.styleFrom(
         foregroundColor: isSelected ? TColors.primary : TColors.grey,
+        backgroundColor: isSelected ? TColors.primary.withOpacity(0.1) : Colors.transparent,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
       ),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 12),
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        ),
       ),
     );
   }
 }
-

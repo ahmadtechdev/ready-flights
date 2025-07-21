@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import '../../../../services/api_service_sabre.dart';
 
+import '../filters/filter_flight_model.dart';
 import '../search_flight_utils/filter_flight_model.dart';
 import '../flight_package/airblue/airblue_flight_package.dart';
 import 'airblue_flight_model.dart';
@@ -11,10 +12,14 @@ import 'airblue_flight_model.dart';
 class AirBlueFlightController extends GetxController {
   final ApiServiceSabre apiService = Get.find<ApiServiceSabre>();
 
-  // List of AirBlue flights (now with unique RPH)
-  final RxList<AirBlueFlight> flights = <AirBlueFlight>[].obs;
+  // Original list of AirBlue flights (never modified after parsing)
+  final RxList<AirBlueFlight> _originalFlights = <AirBlueFlight>[].obs;
 
+  // Filtered list of AirBlue flights (shown in UI)
+  final RxList<AirBlueFlight> filteredFlights = <AirBlueFlight>[].obs;
 
+  // Keep the flights getter for backward compatibility
+  RxList<AirBlueFlight> get flights => filteredFlights;
 
   // Map to store all fare options for each RPH
   final RxMap<String, List<AirBlueFareOption>> fareOptionsByRPH = <String, List<AirBlueFareOption>>{}.obs;
@@ -31,9 +36,11 @@ class AirBlueFlightController extends GetxController {
   // Error message
   final RxString errorMessage = ''.obs;
 
-  void clearFlights() {
+  final RxString sortType = 'Suggested'.obs;
 
-    flights.clear();
+  void clearFlights() {
+    _originalFlights.clear();
+    filteredFlights.clear();
     fareOptionsByRPH.clear();
     errorMessage.value = '';
 
@@ -55,7 +62,8 @@ class AirBlueFlightController extends GetxController {
       errorMessage.value = '';
 
       // Clear previous flights and options
-      flights.clear();
+      _originalFlights.clear();
+      filteredFlights.clear();
       fareOptionsByRPH.clear();
 
       // Parse the response
@@ -147,7 +155,7 @@ class AirBlueFlightController extends GetxController {
               apiService.airlineMap.value,
             ).copyWithFareOptions(fareOptions);
 
-            flights.add(representativeFlight);
+            _originalFlights.add(representativeFlight);
           }
         } catch (e) {
         }
@@ -178,8 +186,11 @@ class AirBlueFlightController extends GetxController {
         }
       });
 
-      // Sort flights by price
-      flights.sort((a, b) => a.price.compareTo(b.price));
+      // Sort original flights by price
+      _originalFlights.sort((a, b) => a.price.compareTo(b.price));
+
+      // Initialize filtered flights with all flights
+      filteredFlights.assignAll(_originalFlights);
     } catch (e) {
       errorMessage.value = 'Failed to load AirBlue flights: $e';
     } finally {
@@ -257,47 +268,104 @@ class AirBlueFlightController extends GetxController {
       barrierDismissible: false,
     );
   }
-}
 
-// In airblue_flight_controller.dart
-extension AirBlueFlightFiltering on AirBlueFlightController {
-  void applyFilters(FlightFilter filter) {
-    // Filter by airlines (AirBlue only)
-    List<AirBlueFlight> airlineFiltered = flights.where((flight) {
-      if (filter.selectedAirlines.isEmpty) return true;
-      return filter.selectedAirlines.contains('PA'); // AirBlue's code
-    }).toList();
+  // Updated apply filters method - now works on original flights and updates filtered flights
+  void applyFilters({
+    List<String>? airlines,
+    List<String>? stops,
+    String? sortType,
+  }) {
+    if (sortType != null) {
+      this.sortType.value = sortType;
+    }
+    _applySortingAndFiltering(airlines: airlines, stops: stops);
+  }
 
-    // Filter by stops (AirBlue flights are usually non-stop)
-    List<AirBlueFlight> stopsFiltered = airlineFiltered.where((flight) {
-      if (filter.maxStops == null) return true;
-      return flight.stopSchedules.length <= filter.maxStops! + 1;
-    }).toList();
+  // Method to apply sorting and filtering - works on _originalFlights, updates filteredFlights
+  void _applySortingAndFiltering({
+    List<String>? airlines,
+    List<String>? stops,
+  }) {
+    // Start with original flights (never modified)
+    List<AirBlueFlight> filtered = List.from(_originalFlights);
 
-    // Sort
-    List<AirBlueFlight> sorted = [...stopsFiltered];
-    switch (filter.sortType) {
+    // Apply airline filter
+    if (airlines != null && !airlines.contains('all')) {
+      filtered = filtered.where((flight) {
+        // For AirBlue, check if PA is in the selected airlines
+        // Since all AirBlue flights have airlineCode 'PA'
+        return airlines.any((airlineCode) =>
+        flight.airlineCode.toUpperCase() == airlineCode.toUpperCase());
+      }).toList();
+    }
+
+    // Apply stops filter
+    if (stops != null && !stops.contains('all')) {
+      filtered = filtered.where((flight) {
+        // Calculate stops based on segmentInfo
+        int stopCount = flight.segmentInfo.length - 1;
+
+        if (stops.contains('nonstop')) {
+          return stopCount == 0;
+        }
+        if (stops.contains('1stop')) {
+          return stopCount == 1;
+        }
+        if (stops.contains('2stop')) {
+          return stopCount == 2;
+        }
+        if (stops.contains('3stop')) {
+          return stopCount == 3;
+        }
+        return false;
+      }).toList();
+    }
+
+    // Apply sorting
+    switch (sortType.value) {
       case 'Cheapest':
-        sorted.sort((a, b) => a.price.compareTo(b.price));
+        filtered.sort((a, b) => a.price.compareTo(b.price));
         break;
       case 'Fastest':
-        sorted.sort((a, b) {
-          int aDuration = _calculateTotalDuration(a.legSchedules);
-          int bDuration = _calculateTotalDuration(b.legSchedules);
+        filtered.sort((a, b) {
+          // Calculate total duration from legSchedules
+          final aDuration = a.legSchedules.fold(0, (sum, leg) => sum + (leg['elapsedTime'] as int));
+          final bDuration = b.legSchedules.fold(0, (sum, leg) => sum + (leg['elapsedTime'] as int));
           return aDuration.compareTo(bDuration);
         });
         break;
+      case 'Suggested':
       default:
-      // Suggested sorting
+      // Keep original order (already sorted by price during parsing)
         break;
     }
 
-    flights.value = sorted;
+    // Update the filtered flights list (this is what the UI shows)
+    filteredFlights.assignAll(filtered);
   }
 
-  int _calculateTotalDuration(List<Map<String, dynamic>> legSchedules) {
-    return legSchedules.fold(0, (sum, leg) {
-      return sum + (leg['elapsedTime'] as int? ?? 0);
-    });
+  // Method to get filtered flights by airline
+  List<AirBlueFlight> getFlightsByAirline(String airlineCode) {
+    return filteredFlights.where((flight) {
+      return flight.airlineCode.toUpperCase() == airlineCode.toUpperCase();
+    }).toList();
+  }
+
+  // Method to get flight count by airline
+  int getFlightCountByAirline(String airlineCode) {
+    return getFlightsByAirline(airlineCode).length;
+  }
+
+  // Method to get available airlines (for AirBlue, it's always just PA)
+  List<FilterAirline> getAvailableAirlines() {
+    if (_originalFlights.isEmpty) return [];
+
+    return [
+      FilterAirline(
+        code: 'PA',
+        name: 'Air Blue',
+        logoPath: 'https://images.kiwi.com/airlines/64/PA.png',
+      )
+    ];
   }
 }

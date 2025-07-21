@@ -1,5 +1,8 @@
 // airarabia_flight_model.dart
 import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
+
+import '../../../../widgets/custom_textfield.dart';
 
 class AirArabiaFlight {
   final String id;
@@ -12,6 +15,9 @@ class AirArabiaFlight {
   final String cabinClass;
   final bool isRefundable;
   final String availabilityStatus;
+  final bool isRoundTrip;
+  final Map<String, dynamic>? outboundFlight;
+  final Map<String, dynamic>? inboundFlight;
 
   AirArabiaFlight({
     required this.id,
@@ -24,45 +30,102 @@ class AirArabiaFlight {
     required this.cabinClass,
     this.isRefundable = false,
     required this.availabilityStatus,
+    this.isRoundTrip = false,
+    this.outboundFlight,
+    this.inboundFlight,
   });
 
   factory AirArabiaFlight.fromJson(Map<String, dynamic> json) {
     try {
       final flightSegments = (json['flightSegments'] as List).map((segment) {
+        // Cast segment to Map<String, dynamic>
+        final segmentMap = Map<String, dynamic>.from(segment as Map);
+        final originMap = Map<String, dynamic>.from(segmentMap['origin'] as Map);
+        final destinationMap = Map<String, dynamic>.from(segmentMap['destination'] as Map);
+
         return {
-          'flightNumber': segment['flightNumber'],
+          'flightNumber': segmentMap['flightNumber'],
           'departure': {
-            'airport': segment['origin']['airportCode'],
-            'city': _getCityName(segment['origin']['airportCode']),
-            'terminal': segment['origin']['terminal'] ?? 'Main',
-            'dateTime': segment['departureDateTimeLocal'],
+            'airport': originMap['airportCode'],
+            'city': originMap['airportCode'],
+            'terminal': originMap['terminal'] ?? 'Main',
+            'dateTime': segmentMap['departureDateTimeLocal'],
           },
           'arrival': {
-            'airport': segment['destination']['airportCode'],
-            'city': _getCityName(segment['destination']['airportCode']),
-            'terminal': segment['destination']['terminal'] ?? 'Main',
-            'dateTime': segment['arrivalDateTimeLocal'],
+            'airport': destinationMap['airportCode'],
+            'city': destinationMap['airportCode'],
+            'terminal': destinationMap['terminal'] ?? 'Main',
+            'dateTime': segmentMap['arrivalDateTimeLocal'],
           },
-          'aircraftModel': segment['aircraftModel'] ?? 'A320',
+          'aircraftModel': segmentMap['aircraftModel'] ?? 'A320',
           'elapsedTime': _calculateFlightDuration(
-            segment['departureDateTimeLocal'],
-            segment['arrivalDateTimeLocal'],
+            segmentMap['departureDateTimeLocal'],
+            segmentMap['arrivalDateTimeLocal'],
           ),
         };
       }).toList();
 
-      // Get the first available cabin price
-      final cabinPrice = json['cabinPrices'].firstWhere(
-            (price) => price['availabilityStatus'] == 'AVAILABLE',
-        orElse: () => json['cabinPrices'].first,
-      );
+      // Safely get cabin price with proper type casting
+      Map<String, dynamic> cabinPrice;
+      try {
+           // Check if cabinPrices exists and is not null
+        if (json['cabinPrices'] != null) {
+          final cabinPricesRaw = json['cabinPrices'] as List;
+
+          // Convert each cabin price to proper Map<String, dynamic>
+          final cabinPrices = cabinPricesRaw.map((price) =>
+          Map<String, dynamic>.from(price as Map)
+          ).toList();
+
+          // First try to find available cabin price
+          final availablePrices = cabinPrices
+              .where((price) => price['availabilityStatus'] == 'AVAILABLE')
+              .toList();
+
+
+          if (availablePrices.isNotEmpty) {
+
+            cabinPrice = availablePrices.first;
+
+          } else {
+            // Fallback to first cabin price if none are available
+            cabinPrice = cabinPrices.first;
+
+          }
+        } else {
+          // If cabinPrices is null, create a default cabin price
+          throw Exception('cabinPrices is null');
+        }
+      } catch (e) {
+        // If all else fails, create a default cabin price
+        cabinPrice = {
+          'cabinClass': 'Y',
+          'price': 0.0,
+          'availabilityStatus': 'UNAVAILABLE'
+        };
+
+        print("Error: $e");
+      }
+
+      // Get flight segments for outbound/inbound logic
+      final flightSegmentsRaw = json['flightSegments'] as List;
+      final flightSegmentsList = flightSegmentsRaw.map((seg) =>
+      Map<String, dynamic>.from(seg as Map)
+      ).toList();
 
       return AirArabiaFlight(
-        id: '${json['flightSegments'].first['flightNumber']}-${DateTime.now().millisecondsSinceEpoch}',
+        id: '${flightSegmentsList.first['flightNumber']}-${DateTime.now().millisecondsSinceEpoch}',
         price: (cabinPrice['price'] as num).toDouble(),
         flightSegments: flightSegments,
-        cabinClass: cabinPrice['cabinClass'],
-        availabilityStatus: json['availabilityStatus'],
+        cabinClass: cabinPrice['cabinClass'] ?? 'Y',
+        availabilityStatus: json['availabilityStatus'] ?? 'UNAVAILABLE',
+        isRoundTrip: json['isRoundTrip'] ?? false,
+        outboundFlight: json['outboundFlight'] != null
+            ? Map<String, dynamic>.from(json['outboundFlight'] as Map)
+            : _findOutboundFlight(flightSegmentsList),
+        inboundFlight: json['inboundFlight'] != null
+            ? Map<String, dynamic>.from(json['inboundFlight'] as Map)
+            : _findInboundFlight(flightSegmentsList),
       );
     } catch (e, stackTrace) {
       if (kDebugMode) {
@@ -70,6 +133,28 @@ class AirArabiaFlight {
         print('Stack trace: $stackTrace');
       }
       rethrow;
+    }
+  }
+
+  // Helper method to find outbound flight
+  static Map<String, dynamic>? _findOutboundFlight(List<Map<String, dynamic>> segments) {
+    try {
+      return segments.firstWhere(
+            (seg) => seg['isOutbound'] == true,
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Helper method to find inbound flight
+  static Map<String, dynamic>? _findInboundFlight(List<Map<String, dynamic>> segments) {
+    try {
+      return segments.firstWhere(
+            (seg) => seg['isOutbound'] == false,
+      );
+    } catch (e) {
+      return null;
     }
   }
 
@@ -86,16 +171,6 @@ class AirArabiaFlight {
     }
   }
 
-  static String _getCityName(String airportCode) {
-    const cityMap = {
-      'SKT': 'Sialkot',
-      'DAC': 'Dhaka',
-      'SHJ': 'Sharjah',
-      // Add more airport codes as needed
-    };
-    return cityMap[airportCode] ?? airportCode;
-  }
-
   int get totalDuration {
     return flightSegments.fold(0, (sum, segment) {
       return sum + (segment['elapsedTime'] as int);
@@ -103,19 +178,4 @@ class AirArabiaFlight {
   }
 
   bool get isDirectFlight => flightSegments.length == 1;
-}
-
-// airarabia_roundtrip_model.dart
-class AirArabiaRoundTrip {
-  final AirArabiaFlight outbound;
-  final AirArabiaFlight inbound;
-  final double totalPrice;
-
-  AirArabiaRoundTrip({
-    required this.outbound,
-    required this.inbound,
-    required this.totalPrice,
-  });
-
-  int get totalDuration => outbound.totalDuration + inbound.totalDuration;
 }

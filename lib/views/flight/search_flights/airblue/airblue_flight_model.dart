@@ -65,7 +65,7 @@ class AirBlueFlight {
           AirlineInfo('Air Blue', 'https://images.kiwi.com/airlines/64/PA.png');
 
       // Extract pricing info
-      final pricingInfo = json['AirItineraryPricingInfo'];
+      final pricingInfo = json['AirItineraryPricingInfo']!;
       final totalFare = pricingInfo['ItinTotalFare']['TotalFare'];
       final basePrice = pricingInfo['ItinTotalFare']['BaseFare'];
       final taxAmount = pricingInfo['ItinTotalFare']['Taxes'];

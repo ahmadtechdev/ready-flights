@@ -3,8 +3,8 @@
 import 'package:get/get.dart';
 
 import '../../../../../services/api_service_sabre.dart';
+import '../filters/filter_flight_model.dart';
 import '../flight_package/sabre/sabre_flight_package.dart';
-import '../search_flight_utils/filter_flight_model.dart';
 import '../search_flight_utils/helper_functions.dart';
 import '../search_flights.dart';
 import 'sabre_flight_models.dart';
@@ -683,11 +683,9 @@ extension FlightDateTimeExtension on FlightController {
     return BaggageAllowance(
         pieces: 0, weight: 0, unit: '', type: 'Check airline policy');
   }
+
 }
 
-
-
-// Update the extension for parsing all segment info
 extension FlightSegmentExtension on FlightController {
   // Update to include fareComponentDescsMap
   List<List<FlightSegmentInfo>> parseAllSegmentInfo(
@@ -823,46 +821,153 @@ extension FlightSegmentExtension on FlightController {
 
 
 
+
 }
 
+extension AirlineFilter on FlightController {
 
-// In sabre_flight_controller.dart
-extension FlightFiltering on FlightController {
-  void applyFilters(FlightFilter filter) {
-    // Filter by airlines
-    List<SabreFlight> airlineFiltered = flights.where((flight) {
-      if (filter.selectedAirlines.isEmpty) return true;
-      return filter.selectedAirlines.contains(flight.airline);
-    }).toList();
+  // Method to get available airlines from current flights
+  List<FilterAirline> getAvailableAirlines() {
+    final Set<String> uniqueAirlineCodes = {};
+    final List<FilterAirline> availableAirlines = [];
 
-    // Filter by stops
-    List<SabreFlight> stopsFiltered = airlineFiltered.where((flight) {
-      if (filter.maxStops == null) return true;
-      return flight.stops.length <= filter.maxStops!;
-    }).toList();
+    // Get unique airlines from current flights
+    for (var flight in flights) {
+      // Extract airline code from flight number (e.g., "PK-304" -> "PK")
+      String airlineCode = flight.flightNumber.split('-').first;
 
-    // Sort
-    List<SabreFlight> sorted = [...stopsFiltered];
-    switch (filter.sortType) {
+      if (!uniqueAirlineCodes.contains(airlineCode)) {
+        uniqueAirlineCodes.add(airlineCode);
+
+        availableAirlines.add(FilterAirline(
+          code: airlineCode,
+          name: flight.airline,
+          logoPath: flight.imgPath,
+        ));
+      }
+    }
+
+    // Sort airlines alphabetically by name
+    availableAirlines.sort((a, b) => a.name.compareTo(b.name));
+
+    return availableAirlines;
+  }
+
+  // Method to get airline information by code
+  FilterAirline? getAirlineByCode(String code) {
+    final availableAirlines = getAvailableAirlines();
+    try {
+      return availableAirlines.firstWhere((airline) => airline.code == code);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Method to get all airline codes
+  List<String> getAirlineCodes() {
+    return getAvailableAirlines().map((airline) => airline.code).toList();
+  }
+
+  // Method to get all airline names
+  List<String> getAirlineNames() {
+    return getAvailableAirlines().map((airline) => airline.name).toList();
+  }
+
+  // Method to check if an airline exists in current flights
+  bool hasAirline(String code) {
+    return getAirlineCodes().contains(code);
+  }
+
+  // Method to get airline count
+  int getAirlineCount() {
+    return getAvailableAirlines().length;
+  }
+}
+
+// Update the FilterFlight extension to handle airline filtering by code
+extension FilterFlightUpdated on FlightController {
+
+  // Updated apply filters method with better airline filtering
+  void applyFilters({
+    List<String>? airlines,
+    List<String>? stops,
+    String? sortType,
+  }) {
+    if (sortType != null) {
+      this.sortType.value = sortType;
+    }
+    _applySortingAndFiltering(airlines: airlines, stops: stops);
+  }
+
+  // Updated sorting and filtering with airline code support
+  void _applySortingAndFiltering({
+    List<String>? airlines,
+    List<String>? stops,
+  }) {
+    List<SabreFlight> filtered = List.from(flights);
+
+    // Apply airline filter
+    if (airlines != null && !airlines.contains('all')) {
+      filtered = filtered.where((flight) {
+        // Extract airline code from flight number (e.g., "PK-304" -> "PK")
+        String flightAirlineCode = flight.flightNumber.split('-').first;
+
+        return airlines.any((airlineCode) =>
+        flightAirlineCode.toUpperCase() == airlineCode.toUpperCase() ||
+            flight.airline.toLowerCase().contains(airlineCode.toLowerCase())
+        );
+      }).toList();
+    }
+
+    // Apply stops filter
+    if (stops != null && !stops.contains('all')) {
+      filtered = filtered.where((flight) {
+        if (stops.contains('nonstop')) {
+          return flight.isNonStop;
+        }
+        if (stops.contains('1stop')) {
+          return flight.legSchedules[0]['stops'].length == 1;
+        }
+        if (stops.contains('2stop')) {
+          return flight.legSchedules[0]['stops'].length == 2;
+        }
+        if (stops.contains('3stop')) {
+          return flight.legSchedules[0]['stops'].length == 3;
+        }
+        return true;
+      }).toList();
+    }
+
+    // Apply sorting
+    switch (sortType.value) {
       case 'Cheapest':
-        sorted.sort((a, b) => a.price.compareTo(b.price));
+        filtered.sort((a, b) => a.price.compareTo(b.price));
         break;
       case 'Fastest':
-        sorted.sort((a, b) => (a.legElapsedTime ?? 0).compareTo(b.legElapsedTime ?? 0));
+        filtered.sort((a, b) => (a.legElapsedTime ?? 0).compareTo(b.legElapsedTime ?? 0));
         break;
+      case 'Suggested':
       default:
-      // Suggested sorting (you can define your default)
+      // Keep original order or apply suggested logic
         break;
     }
 
-    filteredFlights.value = sorted;
+    filteredFlights.value = filtered;
   }
 
-  Set<String> getAvailableAirlines() {
-    return flights
-        .map((f) => f.legSchedules.isNotEmpty ? f.legSchedules[0]['airlineCode'] as String? : null)
-        .whereType<String>() // removes nulls
-        .toSet();
+  // Method to get filtered flights by airline
+  List<SabreFlight> getFlightsByAirline(String airlineCode) {
+    return flights.where((flight) {
+      String flightAirlineCode = flight.flightNumber.split('-').first;
+      return flightAirlineCode.toUpperCase() == airlineCode.toUpperCase();
+    }).toList();
   }
 
+  // Method to get flight count by airline
+  int getFlightCountByAirline(String airlineCode) {
+    return getFlightsByAirline(airlineCode).length;
+  }
 }
+
+
+

@@ -415,7 +415,7 @@ class _AirBlueFlightCardState extends State<AirBlueFlightCard>
                       // Add booking functionality here
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: TColors.third,
+                      backgroundColor: TColors.secondary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(32),
                       ),

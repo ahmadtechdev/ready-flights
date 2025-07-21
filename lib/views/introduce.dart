@@ -8,6 +8,8 @@ import 'package:ready_flights/views/ui/themes/theme_radius.dart';
 import 'package:ready_flights/views/ui/themes/theme_spacing.dart';
 import 'package:ready_flights/views/ui/themes/theme_text.dart';
 
+import '../utility/colors.dart';
+
 class IntroScreen extends StatefulWidget {
   const IntroScreen({super.key, required this.saveIntroStatus});
 
@@ -26,26 +28,25 @@ class _IntroScreenState extends State<IntroScreen> {
     final List<Widget> introList = [
       _contentIntro(
         context,
-        'Lorem ipsum dolor sit amet',
-        'Integer sem massa, interdum commodo leo ac, posuere molestie.',
+        'Book Flights with Ease',
+        'Find the best flight deals worldwide. Compare prices, choose your preferred airlines, and book tickets in just a few taps.',
         ImgApi.intro[0],
       ),
       _contentIntro(
         context,
-        'Donec ultrices vestibulum nibh elementum eget',
-        'Donec blandit turpis nulla, nec bibendum urna elementum eget. Fusce et sagittis risus.',
+        'Discover Amazing Hotels',
+        'From luxury resorts to budget-friendly stays, explore thousands of hotels with real reviews and instant booking confirmation.',
         ImgApi.intro[1],
       ),
       _contentIntro(
         context,
-        'Vivamus dui tortor',
-        'Nullam felis mauris, egestas eu velit ut, porttitor fermentum dolor. Ut iaculis sapien sit amet quam convallis.',
+        'Plan Your Perfect Trip',
+        'Combine flights and hotels for exclusive package deals. Track your bookings, get travel updates, and enjoy hassle-free travel planning.',
         ImgApi.intro[2],
       ),
     ];
-
     return Scaffold(
-      backgroundColor: ThemePalette.primaryMain,
+      backgroundColor: TColors.primary,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -78,28 +79,28 @@ class _IntroScreenState extends State<IntroScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children:
-                  introList.asMap().entries.map((entry) {
-                    int curSlide = entry.key;
-                    return GestureDetector(
-                      onTap: () => _sliderRef.animateToPage(curSlide),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        curve: Curves.easeOut,
-                        width: _current == curSlide ? 30 : 12,
-                        height: 12.0,
-                        margin: const EdgeInsets.symmetric(
-                          vertical: 8.0,
-                          horizontal: 4.0,
-                        ),
-                        decoration: BoxDecoration(
-                          borderRadius: ThemeRadius.big,
-                          color: Colors.white.withValues(
-                            alpha: _current == curSlide ? 0.9 : 0.2,
-                          ),
-                        ),
+              introList.asMap().entries.map((entry) {
+                int curSlide = entry.key;
+                return GestureDetector(
+                  onTap: () => _sliderRef.animateToPage(curSlide),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOut,
+                    width: _current == curSlide ? 30 : 12,
+                    height: 12.0,
+                    margin: const EdgeInsets.symmetric(
+                      vertical: 8.0,
+                      horizontal: 4.0,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: ThemeRadius.big,
+                      color: Colors.white.withValues(
+                        alpha: _current == curSlide ? 0.9 : 0.2,
                       ),
-                    );
-                  }).toList(),
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ],
         ),
@@ -129,41 +130,46 @@ class _IntroScreenState extends State<IntroScreen> {
             /// NEXT BUTTON
             _current < introList.length - 1
                 ? FilledButton(
-                  style: ThemeButton.btnBig.merge(
-                    ThemeButton.tonalPrimary(context),
-                  ),
-                  onPressed: () => _sliderRef.nextPage(),
-                  child: Row(
-                    children: [
-                      const Text('NEXT', style: ThemeText.subtitle),
-                      const SizedBox(width: 4),
-                      Icon(
-                        Icons.arrow_forward_ios,
-                        size: 16,
-                        color: colorScheme(context).onPrimaryContainer,
-                      ),
-                    ],
-                  ),
-                )
-                : FilledButton(
-                  style: ThemeButton.btnBig.merge(
-                    ThemeButton.tonalPrimary(context),
-                  ),
-                  onPressed: () {
-                    widget.saveIntroStatus();
-                  },
-                  child: Row(
-                    children: [
-                      const Text('CONTINUE', style: ThemeText.subtitle),
-                      const SizedBox(width: 4),
-                      Icon(
-                        Icons.arrow_forward_ios,
-                        size: 16,
-                        color: colorScheme(context).onPrimaryContainer,
-                      ),
-                    ],
-                  ),
+              style: ThemeButton.btnBig.merge(
+                ThemeButton.tonalPrimary(context).copyWith(
+                  backgroundColor: MaterialStateProperty.all(TColors.background4),
                 ),
+              ),
+              onPressed: () => _sliderRef.nextPage(),
+              child: Row(
+                children: [
+                   Text('NEXT', style: ThemeText.subtitle.copyWith(color: Colors.white)),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: colorScheme(context).onPrimaryContainer,
+                  ),
+                ],
+              ),
+            )
+                : FilledButton(
+              style: ThemeButton.btnBig.merge(
+                ThemeButton.tonalPrimary(context).copyWith(
+                  backgroundColor: MaterialStateProperty.all(TColors.background4),
+                ),
+              ),
+              onPressed: () {
+                widget.saveIntroStatus();
+              },
+              child: Row(
+                children: [
+                  Text('CONTINUE', style: ThemeText.subtitle.copyWith(color: Colors.white)),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: colorScheme(context).onPrimaryContainer,
+                  ),
+                ],
+              ),
+            )
+
           ],
         ),
       ),
@@ -171,11 +177,11 @@ class _IntroScreenState extends State<IntroScreen> {
   }
 
   Widget _contentIntro(
-    BuildContext context,
-    String title,
-    String desc,
-    String image,
-  ) {
+      BuildContext context,
+      String title,
+      String desc,
+      String image,
+      ) {
     return Padding(
       padding: EdgeInsets.all(spacingUnit(2)),
       child: Column(

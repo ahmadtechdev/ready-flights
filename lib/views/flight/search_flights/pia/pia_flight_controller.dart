@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 
-import '../search_flight_utils/filter_flight_model.dart';
+import '../filters/filter_flight_model.dart';
 import 'pia_flight_model.dart';
 import '../flight_package/pia/pia_flight_package.dart';
 
@@ -23,6 +23,8 @@ class PIAFlightController extends GetxController {
   PIAFlight? selectedReturnFlight;
   PIAFareOption? selectedReturnFareOption;
   int i=0;
+
+  final RxString sortType = 'Suggested'.obs;
 
   void updateCurrency(String currency) {
     selectedCurrency.value = currency;
@@ -440,41 +442,110 @@ class PIAFlightController extends GetxController {
   }
 }
 
-// In pia_flight_controller.dart
+// Update the PIAFlightController with new filter methods
 extension PIAFlightFiltering on PIAFlightController {
-  void applyFilters(FlightFilter filter) {
-    // Filter by airlines (PIA only)
-    List<PIAFlight> airlineFiltered =
-    outboundFlights.where((flight) {
-      if (filter.selectedAirlines.isEmpty) return true;
-      return filter.selectedAirlines.contains('PK'); // PIA's code
-    }).toList();
+  void applyFilters({
+    List<String>? airlines,
+    List<String>? stops,
+    String? sortType,
+  }) {
+    if (sortType != null) {
+      this.sortType.value = sortType;
+    }
+    _applySortingAndFiltering(airlines: airlines, stops: stops);
+  }
 
-    // Filter by stops (PIA flights are usually non-stop)
-    List<PIAFlight> stopsFiltered =
-    airlineFiltered.where((flight) {
-      if (filter.maxStops == null) return true;
-      return flight.isNonStop
-          ? 0 <= filter.maxStops!
-          : 1 <= filter.maxStops!;
-    }).toList();
+  void _applySortingAndFiltering({
+    List<String>? airlines,
+    List<String>? stops,
+  }) {
+    List<PIAFlight> filtered = List.from(outboundFlights);
 
-    // Sort
-    List<PIAFlight> sorted = [...stopsFiltered];
-    switch (filter.sortType) {
+    // Apply airline filter (PIA's code is 'PK')
+    if (airlines != null && !airlines.contains('all')) {
+      filtered = filtered.where((flight) {
+        return airlines.any((airlineCode) =>
+        'PK'.toUpperCase() == airlineCode.toUpperCase());
+      }).toList();
+    }
+
+    // Apply stops filter
+    if (stops != null && !stops.contains('all')) {
+      filtered = filtered.where((flight) {
+        final stopCount = flight.stops.length;
+
+        if (stops.contains('nonstop')) {
+          return stopCount == 0;
+        }
+        if (stops.contains('1stop')) {
+          return stopCount == 1;
+        }
+        if (stops.contains('2stop')) {
+          return stopCount == 2;
+        }
+        if (stops.contains('3stop')) {
+          return stopCount == 3;
+        }
+        return false;
+      }).toList();
+    }
+
+    // Apply sorting
+    switch (sortType.value) {
       case 'Cheapest':
-        sorted.sort((a, b) => a.price.compareTo(b.price));
+        filtered.sort((a, b) => a.price.compareTo(b.price));
         break;
       case 'Fastest':
-        sorted.sort(
-              (a, b) => (a.legElapsedTime ?? 0).compareTo(b.legElapsedTime ?? 0),
-        );
+        filtered.sort((a, b) {
+          final aDuration = _parseDurationToMinutes(a.duration);
+          final bDuration = _parseDurationToMinutes(b.duration);
+          return aDuration.compareTo(bDuration);
+        });
         break;
+      case 'Suggested':
       default:
-      // Suggested sorting
+      // Keep original order
         break;
     }
 
-    filteredFlights.value = sorted;
+    filteredFlights.value = filtered;
+  }
+
+  // Helper method to parse duration string to minutes
+  int _parseDurationToMinutes(String duration) {
+    try {
+      if (duration.startsWith('PT')) {
+        final parts = duration.substring(2).split(RegExp(r'[HMS]'));
+        final hours = int.tryParse(parts[0]) ?? 0;
+        final minutes = int.tryParse(parts[1]) ?? 0;
+        return hours * 60 + minutes;
+      }
+      return 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  // Method to get filtered flights by airline
+  List<PIAFlight> getFlightsByAirline(String airlineCode) {
+    return outboundFlights.where((flight) {
+      return 'PK'.toUpperCase() == airlineCode.toUpperCase();
+    }).toList();
+  }
+
+  // Method to get flight count by airline
+  int getFlightCountByAirline(String airlineCode) {
+    return getFlightsByAirline(airlineCode).length;
+  }
+
+  // Method to get available airlines (for PIA, it's always just PK)
+  List<FilterAirline> getAvailableAirlines() {
+    return [
+      FilterAirline(
+        code: 'PK',
+        name: 'Pakistan International Airlines',
+        logoPath: 'https://onerooftravel.net/assets/img/airline-logo/PIA-logo.png',
+      )
+    ];
   }
 }

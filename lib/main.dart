@@ -6,6 +6,7 @@ import 'package:ready_flights/views/flight/search_flights/airarabia/airarabia_fl
 import 'package:ready_flights/views/flight/search_flights/airblue/airblue_flight_controller.dart';
 import 'utility/colors.dart';
 import 'views/flight/form/controllers/flight_date_controller.dart';
+import 'views/home/home_screen.dart';
 import 'views/hotel/hotel/guests/guests_controller.dart';
 import 'views/hotel/hotel/hotel_date_controller.dart';
 import 'views/hotel/search_hotels/search_hotel_controller.dart';
@@ -55,7 +56,8 @@ class MyApp extends StatelessWidget {
       ),
       home: IntroScreen(
         saveIntroStatus: () {
-          Get.to(() => BottomNavbar());
+          Get.to(() => HomeScreen());
+          // Get.to(() => BottomNavbar());
         },
       ),
     );
