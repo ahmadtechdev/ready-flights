@@ -238,196 +238,173 @@ class _PIAFlightCardState extends State<PIAFlightCard>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Flight numbers and airlines row
+                // Header row with airline logo and flight details button
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Scrollable Flight Details
-                    Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            for (var i = 0; i < widget.flight.legSchedules.length; i++)
-                              Row(
-                                children: [
-                                  // Add vertical divider before each flight except the first one
-                                  if (i > 0)
-                                    Container(
-                                      height: 40,
-                                      width: 1,
-                                      margin: const EdgeInsets.symmetric(horizontal: 8.0),
-                                      color: TColors.grey.withOpacity(0.3),
-                                    ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "Flight ${i + 1}",
-                                          style: const TextStyle(
-                                            fontSize: 10,
-                                            color: TColors.third,
-                                          ),
-                                        ),
-                                        Text(
-                                          widget.flight.airline,
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          'PIA',
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: TColors.grey,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+
+                        children: [
+                          CachedNetworkImage(
+                            imageUrl: 'https://onerooftravel.net/assets/img/airline-logo/PIA-logo.png',
+                            height: 40,
+                            width: 40,
+                            placeholder: (context, url) => const SizedBox(
+                              height: 40,
+                              width: 40,
+                              child: Center(
+                                child: CircularProgressIndicator(strokeWidth: 2),
                               ),
+                            ),
+                            errorWidget: (context, url, error) => const Icon(Icons.flight, size: 40),
+                            fit: BoxFit.contain,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            "PIA Airline",
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Flight Details button (replacing the 30% OFF badge)
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          isExpanded = !isExpanded;
+                          if (isExpanded) {
+                            _controller.forward();
+                          } else {
+                            _controller.reverse();
+                          }
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'Best Value',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // Flight route and details for each leg
+                for (var i = 0; i < widget.flight.legSchedules.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 12),
+                  _buildCompactFlightRow(widget.flight.legSchedules[i]),
+                ],
+
+                const SizedBox(height: 16),
+
+                // Bottom row with economy class and price
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          isExpanded = !isExpanded;
+                          if (isExpanded) {
+                            _controller.forward();
+                          } else {
+                            _controller.reverse();
+                          }
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: TColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: TColors.primary.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Flight Details',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: TColors.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            AnimatedRotation(
+                              duration: const Duration(milliseconds: 300),
+                              turns: isExpanded ? 0.5 : 0,
+                              child: const Icon(
+                                Icons.keyboard_arrow_down,
+                                color: TColors.primary,
+                                size: 16,
+                              ),
+                            ),
                           ],
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    // Price section
                     Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Obx(
-                              () => Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: TColors.black.withOpacity(0.05),
-                              borderRadius: BorderRadius.circular(32),
-                              border: Border.all(
-                                color: TColors.black.withOpacity(0.3),
+                        Container(
+                          width: 60,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF47965D),
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
                               ),
-                            ),
+                            ],
+                          ),
+                          child: const Center(
                             child: Text(
-                              '${piaController.selectedCurrency.value} ${finalPrice.value.toStringAsFixed(0)}',
-                              style: const TextStyle(
-                                fontSize: 12,
+                              'PIA',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
                                 fontWeight: FontWeight.bold,
-                                color: TColors.black,
                               ),
+                              textAlign: TextAlign.center,
                             ),
                           ),
                         ),
+                        Obx(() => Text(
+                          '${piaController.selectedCurrency.value} ${finalPrice.value.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: TColors.primary,
+                          ),
+                        )),
                       ],
                     ),
                   ],
                 ),
 
-                // Flight segments
-                for (var leg in widget.flight.legSchedules)
-                  Column(
-                    children: [
-                      const SizedBox(height: 16),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: _buildFlightSegmentRow(leg),
-                      ),
-                    ],
-                  ),
               ],
-            ),
-          ),
-
-          // Rest of the code remains the same...
-          InkWell(
-            onTap: () {
-              setState(() {
-                isExpanded = !isExpanded;
-                if (isExpanded) {
-                  _controller.forward();
-                } else {
-                  _controller.reverse();
-                }
-              });
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Row(
-                    children: [
-                      const Text(
-                        'Flight Details',
-                        style: TextStyle(
-                          color: TColors.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      AnimatedRotation(
-                        duration: const Duration(milliseconds: 300),
-                        turns: isExpanded ? 0.5 : 0,
-                        child: const Icon(
-                          Icons.keyboard_arrow_down,
-                          color: TColors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    width: 60,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF47965D),
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'PIA',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      piaController.handlePIAFlightSelection(widget.flight);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: TColors.secondary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(32),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 8,
-                      ),
-                    ),
-                    child: const Text(
-                      "Book Now",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
 
@@ -462,6 +439,141 @@ class _PIAFlightCardState extends State<PIAFlightCard>
       ),
     );
   }
+
+  // Add this new method to your _PIAFlightCardState class
+  Widget _buildCompactFlightRow(Map<String, dynamic> leg) {
+    final segments = _getAllSegments(leg);
+    final firstDeparture = _getFirstDeparture(leg);
+    final lastArrival = _getLastArrival(leg);
+    final viaCities = _getViaCities(leg);
+
+    // Get airport codes
+    final fromCode = _extractNestedValue(firstDeparture, ['departureAirport', 'locationCode']) ?? 'N/A';
+    final toCode = _extractNestedValue(lastArrival, ['arrivalAirport', 'locationCode']) ?? 'N/A';
+
+    // Get times
+    final departureTime = formatTime(_extractStringValue(firstDeparture?['departureDateTime']));
+    final arrivalTime = formatTime(_extractStringValue(lastArrival?['arrivalDateTime']));
+
+    return Row(
+      children: [
+        // Left side - FROM
+        Expanded(
+          flex: 2,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                fromCode,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                departureTime,
+                style: TextStyle(
+                  color: TColors.grey,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Middle - Connection info
+        Expanded(
+          flex: 3,
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: TColors.primary,
+                    ),
+                  ),
+                  Expanded(
+                    child: Container(
+                      height: 2,
+                      decoration: BoxDecoration(
+                        color: TColors.primary.withOpacity(0.3),
+                      ),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.flight,
+                    size: 20,
+                    color: TColors.primary,
+                  ),
+                  Expanded(
+                    child: Container(
+                      height: 2,
+                      decoration: BoxDecoration(
+                        color: TColors.primary.withOpacity(0.3),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: TColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                segments.length > 1 ? 'Direct ${segments.length - 1} Stop' : 'Direct',
+                style: TextStyle(
+                  color: TColors.grey,
+                  fontSize: 12,
+                ),
+              ),
+              if (viaCities.isNotEmpty)
+                Text(
+                  'Via ${viaCities.join(', ')}',
+                  style: TextStyle(
+                    color: TColors.grey,
+                    fontSize: 10,
+                  ),
+                ),
+            ],
+          ),
+        ),
+
+        // Right side - TO
+        Expanded(
+          flex: 2,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                toCode,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                arrivalTime,
+                style: TextStyle(
+                  color: TColors.grey,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
 
   // New method to build the flight segment row
   Widget _buildFlightSegmentRow(Map<String, dynamic> leg) {
