@@ -4,21 +4,26 @@ import 'package:get/get.dart';
 import '../../../utility/colors.dart';
 
 class TravelersSelectionBottomSheet extends StatelessWidget {
-  final Function(int adults, int children, int infants) onTravelersSelected;
+  final Function(int adults, int children, int infants, String travelClass) onTravelersSelected;
+  final String initialClass;
 
   const TravelersSelectionBottomSheet({
     Key? key,
     required this.onTravelersSelected,
+    this.initialClass = 'Economy',
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final TravelersController controller = Get.put(TravelersController());
 
+    // Set initial travel class
+    controller.travelClass.value = initialClass;
+
     return Container(
-      height: MediaQuery.of(context).size.height*0.9,
+      height: MediaQuery.of(context).size.height * 0.7,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: TColors.white,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
@@ -33,10 +38,11 @@ class TravelersSelectionBottomSheet extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'No. of Travellers',
+                'Passengers & Class',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
+                  color: TColors.text,
                 ),
               ),
               TextButton(
@@ -45,13 +51,14 @@ class TravelersSelectionBottomSheet extends StatelessWidget {
                     controller.adultCount.value,
                     controller.childrenCount.value,
                     controller.infantCount.value,
+                    controller.travelClass.value,
                   );
                   Navigator.pop(context);
                 },
                 child: Text(
                   'Done',
                   style: TextStyle(
-                    color: Colors.blue,
+                    color: TColors.primary,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -60,36 +67,53 @@ class TravelersSelectionBottomSheet extends StatelessWidget {
             ],
           ),
           SizedBox(height: 20),
+
           // Adults section
           _buildTravelerSection(
-            'Adults (12+ yrs)',
+            'Adults',
+            'Ages 12+ years',
             controller.adultCount,
                 () => controller.decrementAdults(),
                 () => controller.incrementAdults(),
-            9,
+            1, // minimum
+            5, // maximum
           ),
           SizedBox(height: 20),
+
           // Children section
           _buildTravelerSection(
-            'Children (2-12 yrs)',
+            'Children',
+            'Ages 2-12 years',
             controller.childrenCount,
                 () => controller.decrementChildren(),
                 () => controller.incrementChildren(),
-            8,
+            0, // minimum
+            8, // maximum
           ),
           SizedBox(height: 20),
+
           // Infants section
           _buildTravelerSection(
-            'Infant (0-2 yrs)',
+            'Infant',
+            'Ages 0-2 years',
             controller.infantCount,
                 () => controller.decrementInfants(),
                 () => controller.incrementInfants(),
-            4,
+            0, // minimum
+            4, // maximum
           ),
           SizedBox(height: 20),
+
+          // Class Selection Dropdown
+          _buildClassDropdown(controller),
+          SizedBox(height: 20),
+
           Text(
             'For 10 Passengers or above kindly send the email on',
-            style: TextStyle(fontSize: 12),
+            style: TextStyle(
+              fontSize: 12,
+              color: TColors.grey,
+            ),
           ),
           InkWell(
             onTap: () {
@@ -99,12 +123,11 @@ class TravelersSelectionBottomSheet extends StatelessWidget {
               'groups@exampletrip.com',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.blue,
+                color: TColors.primary,
                 decoration: TextDecoration.underline,
               ),
             ),
           ),
-          SizedBox(height: 20),
         ],
       ),
     );
@@ -112,72 +135,155 @@ class TravelersSelectionBottomSheet extends StatelessWidget {
 
   Widget _buildTravelerSection(
       String title,
+      String subtitle,
       RxInt count,
       VoidCallback onDecrement,
       VoidCallback onIncrement,
+      int minCount,
       int maxCount,
       ) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: TColors.text,
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: TColors.grey,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Row(
+          children: [
+            // Minus Button
+            Obx(() => GestureDetector(
+              onTap: count.value > minCount ? onDecrement : null,
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: count.value > minCount
+                        ? TColors.primary
+                        : TColors.grey.withOpacity(0.3),
+                    width: 1,
+                  ),
+                  color: TColors.white,
+                ),
+                child: Icon(
+                  Icons.remove,
+                  color: count.value > minCount
+                      ? TColors.primary
+                      : TColors.grey.withOpacity(0.3),
+                  size: 18,
+                ),
+              ),
+            )),
+
+            // Count Display
+            Container(
+              width: 50,
+              alignment: Alignment.center,
+              child: Obx(() => Text(
+                count.value.toString(),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: TColors.text,
+                ),
+              )),
+            ),
+
+            // Plus Button
+            Obx(() => GestureDetector(
+              onTap: count.value < maxCount ? onIncrement : null,
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: count.value < maxCount
+                        ? TColors.primary
+                        : TColors.grey.withOpacity(0.3),
+                    width: 1,
+                  ),
+                  color: TColors.white,
+                ),
+                child: Icon(
+                  Icons.add,
+                  color: count.value < maxCount
+                      ? TColors.primary
+                      : TColors.grey.withOpacity(0.3),
+                  size: 18,
+                ),
+              ),
+            )),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildClassDropdown(TravelersController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          title,
-          style: TextStyle(fontSize: 14),
+          'Class',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: TColors.text,
+          ),
         ),
         SizedBox(height: 8),
-        SizedBox(
-          height: 50,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: maxCount + 1, // Include zero as an option
-            itemBuilder: (context, index) {
-              final number = index; // Start from 0
-              return Obx(() {
-                final isSelected = count.value == number;
-                return GestureDetector(
-                  onTap: () {
-                    if (isSelected) {
-                      // If the number is already selected, unselect it (set to 0)
-                      count.value = 0;
-                    } else {
-                      // Otherwise, select the number
-                      if (title.contains('Adults')) {
-                        if (number >= 1) {
-                          count.value = number;
-                          // Ensure infants don't exceed adults
-                          final infantController = Get.find<TravelersController>();
-                          if (infantController.infantCount.value > number) {
-                            infantController.infantCount.value = number;
-                          }
-                        }
-                      } else {
-                        count.value = number;
-                      }
-                    }
-                  },
-                  child: Container(
-                    margin: EdgeInsets.only(right: 8),
-                    width: 40,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: isSelected ? Colors.blue : Colors.grey.shade300,
-                      ),
-                      borderRadius: BorderRadius.circular(4),
-                      color: isSelected ? Colors.blue : Colors.white,
-                    ),
-                    child: Text(
-                      number.toString(),
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.black,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                );
-              });
-            },
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          decoration: BoxDecoration(
+            border: Border.all(color: TColors.grey.withOpacity(0.3)),
+            borderRadius: BorderRadius.circular(8),
+            color: TColors.white,
           ),
+          child: Obx(() => DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: controller.travelClass.value,
+              icon: Icon(Icons.keyboard_arrow_down, color: TColors.grey),
+              isExpanded: true,
+              style: TextStyle(
+                color: TColors.text,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+              items: controller.availableTravelClasses.map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                if (newValue != null) {
+                  controller.updateTravelClass(newValue);
+                }
+              },
+            ),
+          )),
         ),
       ],
     );
@@ -186,20 +292,19 @@ class TravelersSelectionBottomSheet extends StatelessWidget {
 
 class TravelersController extends GetxController {
   var adultCount = 1.obs;
-  var childrenCount = 0.obs; // Starting with 0 as default
-  var infantCount = 0.obs; // Starting with 0 as default
+  var childrenCount = 0.obs;
+  var infantCount = 0.obs;
   var travelClass = 'Economy'.obs;
 
-  // Available travel classes
+  // Updated travel classes (removed Premium Economy)
   final List<String> availableTravelClasses = [
     'Economy',
-    'Premium Economy',
     'Business',
     'First Class'
   ];
 
   void incrementAdults() {
-    if (adultCount.value < 9) {
+    if (adultCount.value < 5) { // Changed max from 9 to 5
       adultCount.value++;
     }
   }
@@ -207,6 +312,7 @@ class TravelersController extends GetxController {
   void decrementAdults() {
     if (adultCount.value > 1) {
       adultCount.value--;
+      // Ensure infants don't exceed adults
       if (infantCount.value > adultCount.value) {
         infantCount.value = adultCount.value;
       }

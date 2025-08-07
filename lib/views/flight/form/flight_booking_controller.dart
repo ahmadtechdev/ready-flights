@@ -732,20 +732,17 @@ class FlightBookingController extends GetxController {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder:
-          (context) => TravelersSelectionBottomSheet(
-        onTravelersSelected: (adults, children, infants) {
-          if (infants > adults) {
-            Get.snackbar(
-              'Error',
-              'Number of infants cannot exceed the number of adults.',
-              snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: Colors.red,
-              colorText: Colors.white,
-            );
-          } else {
-            updateTravellerCounts(adults, children, infants);
-          }
+      builder: (context) => TravelersSelectionBottomSheet(
+        initialClass: travelClass.value, // Pass current class
+        onTravelersSelected: (adults, children, infants, selectedClass) {
+          // Update all values including travel class
+          adultCount.value = adults;
+          childrenCount.value = children;
+          infantCount.value = infants;
+          travelClass.value = selectedClass;
+
+          // Update travelers count for display
+          travellersCount.value = adults + children + infants;
         },
       ),
     );

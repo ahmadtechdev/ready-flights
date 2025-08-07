@@ -115,7 +115,7 @@ class CustomDateRangeSelector extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     dateRange != null
-                        ? '${_formatDate(dateRange!.start)} - ${_formatDate(dateRange!.end)} • ${nights ?? dateRange!.duration.inDays} Night${(nights ?? dateRange!.duration.inDays) > 1 ? 's' : ''}'
+                        ? '${_formatDate(dateRange!.start)} - ${_formatDate(dateRange!.end)} '
                         : placeholder ?? 'Select dates',
                     style: const TextStyle(
                       color: Colors.black,

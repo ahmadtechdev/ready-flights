@@ -37,9 +37,7 @@ class FlightBookingScreen extends StatelessWidget {
                   _buildMultiCitySelector(context),
 
                 const SizedBox(height: 16),
-                _buildTravellerSelectors(context),
-                const SizedBox(height: 16),
-                _buildClassSelectors(context),
+                _buildTravellerAndClassSelectors(context),
                 const SizedBox(height: 24),
                 _buildSearchButton(),
               ],
@@ -52,7 +50,7 @@ class FlightBookingScreen extends StatelessWidget {
 
   Widget _buildTripTypeSelector() {
     return Obx(
-      () => Row(
+          () => Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
@@ -67,17 +65,17 @@ class FlightBookingScreen extends StatelessWidget {
                     bottomLeft: Radius.circular(8),
                   ),
                   color:
-                      controller.tripType.value == TripType.oneWay
-                          ? TColors.primary
-                          : Colors.white,
+                  controller.tripType.value == TripType.oneWay
+                      ? TColors.primary
+                      : Colors.white,
                 ),
                 child: Text(
                   'One Way',
                   style: TextStyle(
                     color:
-                        controller.tripType.value == TripType.oneWay
-                            ? Colors.white
-                            : TColors.primary,
+                    controller.tripType.value == TripType.oneWay
+                        ? Colors.white
+                        : TColors.primary,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -94,17 +92,17 @@ class FlightBookingScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   border: Border.all(color: TColors.primary, width: 1),
                   color:
-                      controller.tripType.value == TripType.roundTrip
-                          ? TColors.primary
-                          : Colors.white,
+                  controller.tripType.value == TripType.roundTrip
+                      ? TColors.primary
+                      : Colors.white,
                 ),
                 child: Text(
                   'Round Trip',
                   style: TextStyle(
                     color:
-                        controller.tripType.value == TripType.roundTrip
-                            ? Colors.white
-                            : TColors.primary,
+                    controller.tripType.value == TripType.roundTrip
+                        ? Colors.white
+                        : TColors.primary,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -125,17 +123,17 @@ class FlightBookingScreen extends StatelessWidget {
                     bottomRight: Radius.circular(8),
                   ),
                   color:
-                      controller.tripType.value == TripType.multiCity
-                          ? TColors.primary
-                          : Colors.white,
+                  controller.tripType.value == TripType.multiCity
+                      ? TColors.primary
+                      : Colors.white,
                 ),
                 child: Text(
                   'Multi City',
                   style: TextStyle(
                     color:
-                        controller.tripType.value == TripType.multiCity
-                            ? Colors.white
-                            : TColors.primary,
+                    controller.tripType.value == TripType.multiCity
+                        ? Colors.white
+                        : TColors.primary,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -160,9 +158,9 @@ class FlightBookingScreen extends StatelessWidget {
                 // Move GestureDetector to wrap entire Container
                 onTap:
                     () => controller.showCitySelectionBottomSheet(
-                      context,
-                      FieldType.departure,
-                    ),
+                  context,
+                  FieldType.departure,
+                ),
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -201,7 +199,7 @@ class FlightBookingScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Obx(
-                          () => Text(
+                              () => Text(
                             controller.fromCity.value,
                             style: const TextStyle(
                               color: Colors.black,
@@ -252,9 +250,9 @@ class FlightBookingScreen extends StatelessWidget {
         GestureDetector(
           onTap:
               () => controller.showCitySelectionBottomSheet(
-                context,
-                FieldType.destination,
-              ),
+            context,
+            FieldType.destination,
+          ),
           child: Container(
             decoration: BoxDecoration(
               color: Colors.grey.shade50,
@@ -293,7 +291,7 @@ class FlightBookingScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Obx(
-                    () => Text(
+                        () => Text(
                       controller.toCity.value,
                       style: const TextStyle(
                         color: Colors.black,
@@ -364,10 +362,10 @@ class FlightBookingScreen extends StatelessWidget {
                   // Move GestureDetector to wrap the entire clickable area
                   onTap:
                       () => controller.showCitySelectionBottomSheet(
-                        context,
-                        FieldType.departure,
-                        multiCityIndex: index,
-                      ),
+                    context,
+                    FieldType.departure,
+                    multiCityIndex: index,
+                  ),
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -393,7 +391,7 @@ class FlightBookingScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Obx(
-                          () => Text(
+                              () => Text(
                             controller.cityPairs[index].fromCity.value,
                             style: const TextStyle(
                               color: Colors.black,
@@ -448,10 +446,10 @@ class FlightBookingScreen extends StatelessWidget {
           GestureDetector(
             onTap:
                 () => controller.showCitySelectionBottomSheet(
-                  context,
-                  FieldType.destination,
-                  multiCityIndex: index,
-                ),
+              context,
+              FieldType.destination,
+              multiCityIndex: index,
+            ),
             child: Container(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -480,7 +478,7 @@ class FlightBookingScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Obx(
-                          () => Text(
+                              () => Text(
                             controller.cityPairs[index].toCity.value,
                             style: const TextStyle(
                               color: Colors.black,
@@ -521,7 +519,7 @@ class FlightBookingScreen extends StatelessWidget {
 
   Widget _buildAddRemoveButtons() {
     return Obx(
-      () => Row(
+          () => Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           if (controller.cityPairs.length < 4)
@@ -588,22 +586,22 @@ class FlightBookingScreen extends StatelessWidget {
           mode: DateSelectorMode.roundTrip,
           dateRange: DateTimeRange(
             start:
-                controller
-                    .departureDateTimeValue
-                    .value, // Use DateTime property directly
+            controller
+                .departureDateTimeValue
+                .value, // Use DateTime property directly
             end:
-                controller
-                    .returnDateTimeValue
-                    .value, // Use DateTime property directly
+            controller
+                .returnDateTimeValue
+                .value, // Use DateTime property directly
           ),
           onDateRangeChanged: (DateTimeRange newRange) {
             controller.updateDepartureDate(newRange.start);
             controller.updateReturnDate(newRange.end);
           },
           nights:
-              controller.returnDateTimeValue.value
-                  .difference(controller.departureDateTimeValue.value)
-                  .inDays,
+          controller.returnDateTimeValue.value
+              .difference(controller.departureDateTimeValue.value)
+              .inDays,
           label: 'Departure & Return Date',
           placeholder: 'Select departure and return dates',
         );
@@ -612,9 +610,9 @@ class FlightBookingScreen extends StatelessWidget {
         return CustomDateRangeSelector(
           mode: DateSelectorMode.oneWay,
           selectedDate:
-              controller
-                  .departureDateTimeValue
-                  .value, // Use DateTime property directly
+          controller
+              .departureDateTimeValue
+              .value, // Use DateTime property directly
           onDateChanged: (DateTime newDate) {
             controller.updateDepartureDate(newDate);
           },
@@ -625,7 +623,7 @@ class FlightBookingScreen extends StatelessWidget {
     });
   }
 
-  Widget _buildTravellerSelectors(BuildContext context) {
+  Widget _buildTravellerAndClassSelectors(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -652,7 +650,7 @@ class FlightBookingScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Passenger',
+                      'Passenger and Class',
                       style: TextStyle(
                         color: Colors.grey.shade600,
                         fontSize: 12,
@@ -661,8 +659,8 @@ class FlightBookingScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Obx(
-                      () => Text(
-                        '${controller.travellersCount.value} Passenger',
+                          () => Text(
+                        '${controller.travellersCount.value} Passenger, ${controller.travelClass.value}',
                         style: const TextStyle(
                           color: Colors.black,
                           fontSize: 16,
@@ -716,7 +714,7 @@ class FlightBookingScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Obx(
-                      () => Text(
+                          () => Text(
                         '${controller.travelClass.value}',
                         style: const TextStyle(
                           color: Colors.black,
@@ -737,7 +735,7 @@ class FlightBookingScreen extends StatelessWidget {
 
   Widget _buildSearchButton() {
     return Obx(
-      () => Container(
+          () => Container(
         width: double.infinity,
         height: 50,
         child: ElevatedButton(
@@ -750,23 +748,23 @@ class FlightBookingScreen extends StatelessWidget {
             elevation: 0,
           ),
           child:
-              controller.isSearching.value
-                  ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 3,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                  : const Text(
-                    'SEARCH FLIGHTS',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+          controller.isSearching.value
+              ? const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          )
+              : const Text(
+            'SEARCH FLIGHTS',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
       ),
     );
