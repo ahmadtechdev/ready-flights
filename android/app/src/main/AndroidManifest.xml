@@ -3,15 +3,12 @@
     <!-- Google Maps Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     
     <!-- Optional: For background location access (if needed) -->
     <!-- <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" /> -->
     
     <application
-        android:label="ready_flights"
+        android:label="Ready Flights"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         

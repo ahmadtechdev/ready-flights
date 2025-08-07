@@ -291,7 +291,7 @@ class _PIAFlightCardState extends State<PIAFlightCard>
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Text(
-                          'Best Value',
+                          'Book Now',
                           style: TextStyle(
                             fontSize: 10,
                             color: Colors.white,
@@ -394,7 +394,7 @@ class _PIAFlightCardState extends State<PIAFlightCard>
                         Obx(() => Text(
                           '${piaController.selectedCurrency.value} ${finalPrice.value.toStringAsFixed(0)}',
                           style: const TextStyle(
-                            fontSize: 18,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: TColors.primary,
                           ),

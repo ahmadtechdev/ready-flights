@@ -83,13 +83,6 @@ class _AirArabiaFlightCardState extends State<AirArabiaFlightCard>
 
   @override
   Widget build(BuildContext context) {
-    // Get origin and destination from the first and last segments
-    final origin =
-        widget.flight.flightSegments.first['departure']?['airport'] ?? 'N/A';
-    final destination =
-        widget.flight.flightSegments.last['arrival']?['airport'] ?? 'N/A';
-    final stops = widget.flight.flightSegments.length - 1;
-
     // Calculate total price - ensure it's not zero
     final price =
         widget.flight.price > 0
@@ -101,247 +94,228 @@ class _AirArabiaFlightCardState extends State<AirArabiaFlightCard>
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: TColors.background,
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
         boxShadow: [
           BoxShadow(
-            color: TColors.secondary.withOpacity(0.2),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
             offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Column(
         children: [
-          // Main Flight Card Content
-          Padding(
+          // Main Flight Card Content - NEW DESIGN
+          Container(
             padding: const EdgeInsets.all(16),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Airline and Price Row
+                // Top Row - Airline and Price
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Airline Info
-                    Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            for (
-                              var i = 0;
-                              i < widget.flight.flightSegments.length;
-                              i++
-                            )
-                              Row(
-                                children: [
-                                  if (i > 0)
-                                    Container(
-                                      height: 40,
-                                      width: 1,
-                                      margin: const EdgeInsets.symmetric(
-                                        horizontal: 8.0,
-                                      ),
-                                      color: TColors.grey.withOpacity(0.3),
-                                    ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8.0,
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "Flight ${i + 1}",
-                                          style: const TextStyle(
-                                            fontSize: 10,
-                                            color: TColors.third,
-                                          ),
-                                        ),
-                                        Text(
-                                          widget.flight.airlineName,
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          widget.flight.airlineCode,
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: TColors.grey,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                    // Left side - Airline info
+                    Row(
+                      children: [
+                        CachedNetworkImage(
+                          imageUrl: widget.flight.airlineImg,
+                          height: 24,
+                          width: 24,
+                          placeholder:
+                              (context, url) => const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
                                   ),
-                                ],
+                                ),
                               ),
-                          ],
+                          errorWidget:
+                              (context, url, error) =>
+                                  const Icon(Icons.flight, size: 24),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        Text(
+                          widget.flight.airlineName,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    // Price Section
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: TColors.black.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(32),
-                        border: Border.all(
-                          color: TColors.black.withOpacity(0.3),
+                    // Right side - Price and status
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          isExpanded = !isExpanded;
+                          if (isExpanded) {
+                            _controller.forward();
+                          } else {
+                            _controller.reverse();
+                          }
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'Book Now',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                      child: Text(
-                        'PKR ${widget.flight.price.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: TColors.black,
-                        ),
-                      ),
+
                     ),
                   ],
                 ),
 
-                Column(
+                const SizedBox(height: 16),
+
+                // Flight Route Section
+                if (widget.flight.isRoundTrip &&
+                    widget.flight.outboundFlight != null)
+                  _buildCompactFlightRoute(
+                    segments: widget.flight.outboundFlight!['flightSegments'],
+                    isReturn: true,
+                  ),
+
+                if (widget.flight.isRoundTrip &&
+                    widget.flight.inboundFlight != null) ...[
+                  const SizedBox(height: 12),
+                  _buildCompactFlightRoute(
+                    segments: widget.flight.inboundFlight!['flightSegments'],
+                    isReturn: true,
+                  ),
+                ],
+
+                if (!widget.flight.isRoundTrip)
+                  _buildCompactFlightRoute(
+                    segments: widget.flight.flightSegments,
+                    isReturn: false,
+                  ),
+
+                const SizedBox(height: 16),
+
+                // Bottom Row - Details button and Book button
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    SizedBox(
-                      height: 16,
+                    // Flight Details Button (replaces the discount badge)
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          isExpanded = !isExpanded;
+                          if (isExpanded) {
+                            _controller.forward();
+                          } else {
+                            _controller.reverse();
+                          }
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: TColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: TColors.primary.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Flight Details',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: TColors.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            AnimatedRotation(
+                              duration: const Duration(milliseconds: 300),
+                              turns: isExpanded ? 0.5 : 0,
+                              child: Icon(
+                                Icons.keyboard_arrow_down,
+                                size: 16,
+                                color: TColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    // Outbound Flight
-                    if (widget.flight.isRoundTrip && widget.flight.outboundFlight != null)
-                      _buildFlightLegSection(
-                        title: 'Outbound: ${widget.flight.flightSegments.first['departure']?['airport']} → '
-                            '${widget.flight.flightSegments.first['arrival']?['airport']}',
-                        segments: widget.flight.outboundFlight!['flightSegments'], isReturn: widget.flight.isRoundTrip,
-                      ),
 
-                    // Inbound Flight
-                    if (widget.flight.isRoundTrip && widget.flight.inboundFlight != null)
-                      _buildFlightLegSection(
-                        title: 'Inbound: ${widget.flight.flightSegments.last['departure']?['airport']} → '
-                            '${widget.flight.flightSegments.last['arrival']?['airport']}',
-                        segments: widget.flight.inboundFlight!['flightSegments'], isReturn: widget.flight.isRoundTrip,
-                      ),
-
-                    // For one-way flights
-                    if (!widget.flight.isRoundTrip)
-                      _buildFlightLegSection(
-                        title: 'Flight',
-                        segments: widget.flight.flightSegments, isReturn: widget.flight.isRoundTrip,
-                      ),
+                    // Book Now Button
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Container(
+                          width: 60,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDF0104),
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Air Arabia',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          'PKR ${widget.flight.price.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: TColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
-                )
+                ),
               ],
             ),
           ),
 
-          // Expand/Collapse Button
-          InkWell(
-            onTap: () {
-              setState(() {
-                isExpanded = !isExpanded;
-                if (isExpanded) {
-                  _controller.forward();
-                } else {
-                  _controller.reverse();
-                }
-              });
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Row(
-                    children: [
-                      const Text(
-                        'Flight Details',
-                        style: TextStyle(
-                          color: TColors.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      AnimatedRotation(
-                        duration: const Duration(milliseconds: 300),
-                        turns: isExpanded ? 0.5 : 0,
-                        child: const Icon(
-                          Icons.keyboard_arrow_down,
-                          color: TColors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    width: 60,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDF0104),
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'Air Arabia',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      // Add booking functionality
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: TColors.secondary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(32),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 8,
-                      ),
-                    ),
-                    child: const Text(
-                      "Book Now",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Expanded Details
+          // Expanded Details (keep existing functionality)
           SizeTransition(
             sizeFactor: _expandAnimation,
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.grey[50],
                 borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(16),
+                  bottom: Radius.circular(12),
                 ),
               ),
               child: Column(
@@ -378,405 +352,164 @@ class _AirArabiaFlightCardState extends State<AirArabiaFlightCard>
       ),
     );
   }
-  Widget _buildFlightLegSection({
-    required String title,
+
+  Widget _buildCompactFlightRoute({
     required List<dynamic> segments,
     required bool isReturn,
   }) {
-    // Get origin from first segment and destination from last segment
-    final origin = segments.first['origin']?['airportCode'] ?? 'N/A';
-    final destination = segments.last['destination']?['airportCode'] ?? 'N/A';
-
-    // Calculate stop count and layover cities
+    final firstSegment = segments.first;
+    final lastSegment = segments.last;
     final stopCount = segments.length - 1;
-    final stopCities = stopCount > 0
-        ? segments.sublist(0, segments.length - 1)
-        .map((s) => s['destination']?['airportCode'] ?? '')
-        .where((city) => city.isNotEmpty)
-        .join(', ')
-        : '';
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        // Padding(
-        //   padding: const EdgeInsets.symmetric(vertical: 8.0),
-        //   child: Text(
-        //     // '$title: $origin → $destination',
-        //     '',
-        //     style: TextStyle(
-        //       fontWeight: FontWeight.bold,
-        //       color: TColors.primary,
-        //     ),
-        //   ),
-        // ),
-        // Show only the first and last segments combined
-        _buildCombinedFlightSegment(
-          firstSegment: segments.first,
-          lastSegment: segments.last,
-          stopCount: stopCount,
-          stopCities: stopCities, 
-            isReturn: isReturn
+        // Origin
+        Expanded(
+          flex: 2,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isReturn
+                    ? firstSegment['origin']['airportCode']
+                    : firstSegment['departure']?['airport'] ?? 'N/A',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              Text(
+                isReturn
+                    ? formatTimeFromDateTime(
+                      firstSegment['departureDateTimeLocal'],
+                    )
+                    : formatTimeFromDateTime(
+                      firstSegment['departure']?['dateTime'],
+                    ),
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+            ],
+          ),
         ),
-        // if (stopCount > 0)
-        //   Padding(
-        //     padding: const EdgeInsets.symmetric(vertical: 4.0),
-        //     child: Text(
-        //       '${stopCount} Stop${stopCount > 1 ? 's' : ''}${stopCities.isNotEmpty ? ' via $stopCities' : ''} • Layover: ${_calculateLayoverTime(segments)}',
-        //       style: TextStyle(
-        //         fontSize: 12,
-        //         color: TColors.grey,
-        //       ),
-        //     ),
-        //   ),
+
+        // Flight path with stops info
+        Expanded(
+          flex: 3,
+          child: Column(
+            children: [
+              // Duration
+              Text(
+                _calculateCombinedDuration(firstSegment, lastSegment, isReturn),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              // Flight line with stops
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: TColors.primary,
+                    ),
+                  ),
+                  Expanded(
+                    child: Container(
+                      height: 2,
+                      decoration: BoxDecoration(
+                        color: TColors.primary.withOpacity(0.3),
+                      ),
+                    ),
+                  ),
+                  const Icon(Icons.flight, size: 20, color: TColors.primary),
+                  Expanded(
+                    child: Container(
+                      height: 2,
+                      decoration: BoxDecoration(
+                        color: TColors.primary.withOpacity(0.3),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: TColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              // Stops info
+              Text(
+                stopCount == 0
+                    ? 'Direct'
+                    : '${stopCount} stop${stopCount > 1 ? 's' : ''}',
+                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        ),
+
+        // Destination
+        Expanded(
+          flex: 2,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                isReturn
+                    ? lastSegment['destination']['airportCode'] ?? 'N/A'
+                    : lastSegment['arrival']['airport'] ?? 'N/A',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              Text(
+                isReturn
+                    ? formatTimeFromDateTime(
+                      lastSegment['arrivalDateTimeLocal'],
+                    )
+                    : formatTimeFromDateTime(
+                      lastSegment['arrival']?['dateTime'],
+                    ),
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildCombinedFlightSegment({
-    required Map<String, dynamic> firstSegment,
-    required Map<String, dynamic> lastSegment,
-    required int stopCount,
-    required String stopCities,
-    required isReturn,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12.0),
-      child: Row(
-        // mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Airline Logo
-          CachedNetworkImage(
-            imageUrl: widget.flight.airlineImg,
-            height: 32,
-            width: 32,
-            placeholder: (context, url) => const SizedBox(
-              height: 24,
-              width: 24,
-              child: Center(
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-            errorWidget: (context, url, error) => const Icon(Icons.flight, size: 24),
-          ),
-
-          SizedBox(
-            width: 6,
-          ),
-
-          // Departure Info (from first segment)
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      isReturn
-                          ? formatTimeFromDateTime(firstSegment['departureDateTimeLocal'])
-                          : formatTimeFromDateTime(firstSegment['departure']?['dateTime']),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      isReturn
-                          ? firstSegment['origin']['airportCode']
-                          : firstSegment['departure']?['airport'],
-                      style: const TextStyle(
-                        color: TColors.grey,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-
-                // Flight Duration
-                Column(
-                  children: [
-                    Text(
-                      _calculateCombinedDuration(firstSegment, lastSegment, isReturn),
-                      style: const TextStyle(
-                        color: TColors.grey,
-                        fontSize: 12,
-                      ),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.grey.shade300,
-                              width: 2,
-                            ),
-                            color: Colors.white,
-                          ),
-                        ),
-                        Container(
-                          height: 2,
-                          width: MediaQuery.of(context).size.width * 0.4,
-                          color: Colors.grey[300],
-                        ),
-                        Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.grey.shade300,
-                              width: 2,
-                            ),
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      stopCount == 0 ? 'Nonstop' : '${stopCount} Stop${stopCount > 1 ? 's' : ''}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: TColors.grey,
-                      ),
-                    ),
-                    if(stopCount > 0)...[
-                      Text(
-                        stopCities.isNotEmpty ? ' via $stopCities' : '',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: TColors.grey,
-                        ),
-                      ),
-                    ]
-                  ],
-                ),
-
-                // Arrival Info (from last segment)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      isReturn
-                          ? formatTimeFromDateTime(lastSegment['arrivalDateTimeLocal'])
-                          : formatTimeFromDateTime(lastSegment['arrival']?['dateTime']),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      isReturn
-                          ? lastSegment['destination']['airportCode'] ?? 'N/A'
-                          : lastSegment['arrival']['airport'] ?? 'N/A',
-                      style: const TextStyle(
-                        color: TColors.grey,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
   String _calculateCombinedDuration(
-      Map<String, dynamic> firstSegment,
-      Map<String, dynamic> lastSegment,
-      bool isReturn
-      ) {
+    Map<String, dynamic> firstSegment,
+    Map<String, dynamic> lastSegment,
+    bool isReturn,
+  ) {
     try {
       DateTime departure;
       DateTime arrival;
 
       if (isReturn) {
-        // For return flights: use direct fields
         departure = DateTime.parse(firstSegment['departureDateTimeLocal']);
         arrival = DateTime.parse(lastSegment['arrivalDateTimeLocal']);
       } else {
-        // For regular flights: use nested objects
         departure = DateTime.parse(firstSegment['departure']['dateTime']);
         arrival = DateTime.parse(lastSegment['arrival']['dateTime']);
       }
 
       final duration = arrival.difference(departure);
       return '${duration.inHours}h ${duration.inMinutes.remainder(60)}m';
-    } catch (e) {
-      return 'N/A';
-    }
-  }
-
-  // String _calculateLayoverTime(List<dynamic> segments) {
-  //   if (segments.length < 2) return 'No layover';
-  //
-  //   try {
-  //     Duration totalLayover = Duration.zero;
-  //
-  //     for (int i = 0; i < segments.length - 1; i++) {
-  //       final currentArrival = DateTime.parse(segments[i]['arrivalDateTimeLocal']);
-  //       final nextDeparture = DateTime.parse(segments[i+1]['departureDateTimeLocal']);
-  //       totalLayover += nextDeparture.difference(currentArrival);
-  //     }
-  //
-  //     return '${totalLayover.inHours}h ${totalLayover.inMinutes.remainder(60)}m';
-  //   } catch (e) {
-  //     return 'N/A';
-  //   }
-  // }
-  Widget _buildFlightSegment(Map<String, dynamic> segment) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Airline Logo
-          CachedNetworkImage(
-            imageUrl: widget.flight.airlineImg,
-            height: 32,
-            width: 32,
-            placeholder: (context, url) => const SizedBox(
-              height: 24,
-              width: 24,
-              child: Center(
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-            errorWidget: (context, url, error) => const Icon(Icons.flight, size: 24),
-          ),
-
-          // Departure Info
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                formatTimeFromDateTime(segment['departureDateTimeLocal']),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                segment['origin']?['airportCode'] ?? 'N/A',
-                style: const TextStyle(
-                  color: TColors.grey,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-
-          // Flight Duration
-          Column(
-            children: [
-              Text(
-                _calculateSegmentDuration(segment),
-                style: const TextStyle(
-                  color: TColors.grey,
-                  fontSize: 12,
-                ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.grey.shade300,
-                        width: 2,
-                      ),
-                      color: Colors.white,
-                    ),
-                  ),
-                  Container(
-                    height: 2,
-                    width: MediaQuery.of(context).size.width * 0.2,
-                    color: Colors.grey[300],
-                  ),
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.grey.shade300,
-                        width: 2,
-                      ),
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-              Text(
-                segment == widget.flight.flightSegments.first &&
-                    segment == widget.flight.flightSegments.last
-                    ? 'Nonstop'
-                    : '${widget.flight.flightSegments.length - 1} Stop',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: TColors.grey,
-                ),
-              ),
-            ],
-          ),
-
-          // Arrival Info
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                formatTimeFromDateTime(segment['arrivalDateTimeLocal']),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                segment['destination']?['airportCode'] ?? 'N/A',
-                style: const TextStyle(
-                  color: TColors.grey,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-  String _calculateSegmentDuration(Map<String, dynamic> segment) {
-    try {
-      final departure = DateTime.parse(segment['departureDateTimeLocal']);
-      final arrival = DateTime.parse(segment['arrivalDateTimeLocal']);
-      final duration = arrival.difference(departure);
-      return '${duration.inHours}h ${duration.inMinutes.remainder(60)}m';
-    } catch (e) {
-      return 'N/A';
-    }
-  }
-
-  String _calculateLayoverTime(List<dynamic> segments) {
-    if (segments.length < 2) return 'No layover';
-
-    try {
-      Duration totalLayover = Duration.zero;
-
-      for (int i = 0; i < segments.length - 1; i++) {
-        final currentArrival = DateTime.parse(segments[i]['arrivalDateTimeLocal']);
-        final nextDeparture = DateTime.parse(segments[i+1]['departureDateTimeLocal']);
-        totalLayover += nextDeparture.difference(currentArrival);
-      }
-
-      return '${totalLayover.inHours}h ${totalLayover.inMinutes.remainder(60)}m';
     } catch (e) {
       return 'N/A';
     }

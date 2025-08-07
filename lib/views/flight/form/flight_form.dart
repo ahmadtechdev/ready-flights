@@ -1,6 +1,7 @@
 // flight_booking_screen.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:ready_flights/widgets/flight_date_range_slecter.dart';
 import '../../../utility/colors.dart';
 import '../../../widgets/city_selection_bottom_sheet.dart';
 import 'flight_booking_controller.dart';
@@ -36,7 +37,9 @@ class FlightBookingScreen extends StatelessWidget {
                   _buildMultiCitySelector(context),
 
                 const SizedBox(height: 16),
-                _buildTravellerAndClassSelectors(context),
+                _buildTravellerSelectors(context),
+                const SizedBox(height: 16),
+                _buildClassSelectors(context),
                 const SizedBox(height: 24),
                 _buildSearchButton(),
               ],
@@ -49,7 +52,7 @@ class FlightBookingScreen extends StatelessWidget {
 
   Widget _buildTripTypeSelector() {
     return Obx(
-          () => Row(
+      () => Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
@@ -64,17 +67,17 @@ class FlightBookingScreen extends StatelessWidget {
                     bottomLeft: Radius.circular(8),
                   ),
                   color:
-                  controller.tripType.value == TripType.oneWay
-                      ? TColors.primary
-                      : Colors.white,
+                      controller.tripType.value == TripType.oneWay
+                          ? TColors.primary
+                          : Colors.white,
                 ),
                 child: Text(
                   'One Way',
                   style: TextStyle(
                     color:
-                    controller.tripType.value == TripType.oneWay
-                        ? Colors.white
-                        : TColors.primary,
+                        controller.tripType.value == TripType.oneWay
+                            ? Colors.white
+                            : TColors.primary,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -91,17 +94,17 @@ class FlightBookingScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   border: Border.all(color: TColors.primary, width: 1),
                   color:
-                  controller.tripType.value == TripType.roundTrip
-                      ? TColors.primary
-                      : Colors.white,
+                      controller.tripType.value == TripType.roundTrip
+                          ? TColors.primary
+                          : Colors.white,
                 ),
                 child: Text(
                   'Round Trip',
                   style: TextStyle(
                     color:
-                    controller.tripType.value == TripType.roundTrip
-                        ? Colors.white
-                        : TColors.primary,
+                        controller.tripType.value == TripType.roundTrip
+                            ? Colors.white
+                            : TColors.primary,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -122,17 +125,17 @@ class FlightBookingScreen extends StatelessWidget {
                     bottomRight: Radius.circular(8),
                   ),
                   color:
-                  controller.tripType.value == TripType.multiCity
-                      ? TColors.primary
-                      : Colors.white,
+                      controller.tripType.value == TripType.multiCity
+                          ? TColors.primary
+                          : Colors.white,
                 ),
                 child: Text(
                   'Multi City',
                   style: TextStyle(
                     color:
-                    controller.tripType.value == TripType.multiCity
-                        ? Colors.white
-                        : TColors.primary,
+                        controller.tripType.value == TripType.multiCity
+                            ? Colors.white
+                            : TColors.primary,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -157,9 +160,9 @@ class FlightBookingScreen extends StatelessWidget {
                 // Move GestureDetector to wrap entire Container
                 onTap:
                     () => controller.showCitySelectionBottomSheet(
-                  context,
-                  FieldType.departure,
-                ),
+                      context,
+                      FieldType.departure,
+                    ),
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -198,7 +201,7 @@ class FlightBookingScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Obx(
-                              () => Text(
+                          () => Text(
                             controller.fromCity.value,
                             style: const TextStyle(
                               color: Colors.black,
@@ -249,9 +252,9 @@ class FlightBookingScreen extends StatelessWidget {
         GestureDetector(
           onTap:
               () => controller.showCitySelectionBottomSheet(
-            context,
-            FieldType.destination,
-          ),
+                context,
+                FieldType.destination,
+              ),
           child: Container(
             decoration: BoxDecoration(
               color: Colors.grey.shade50,
@@ -290,7 +293,7 @@ class FlightBookingScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Obx(
-                        () => Text(
+                    () => Text(
                       controller.toCity.value,
                       style: const TextStyle(
                         color: Colors.black,
@@ -361,10 +364,10 @@ class FlightBookingScreen extends StatelessWidget {
                   // Move GestureDetector to wrap the entire clickable area
                   onTap:
                       () => controller.showCitySelectionBottomSheet(
-                    context,
-                    FieldType.departure,
-                    multiCityIndex: index,
-                  ),
+                        context,
+                        FieldType.departure,
+                        multiCityIndex: index,
+                      ),
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -390,7 +393,7 @@ class FlightBookingScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Obx(
-                              () => Text(
+                          () => Text(
                             controller.cityPairs[index].fromCity.value,
                             style: const TextStyle(
                               color: Colors.black,
@@ -445,10 +448,10 @@ class FlightBookingScreen extends StatelessWidget {
           GestureDetector(
             onTap:
                 () => controller.showCitySelectionBottomSheet(
-              context,
-              FieldType.destination,
-              multiCityIndex: index,
-            ),
+                  context,
+                  FieldType.destination,
+                  multiCityIndex: index,
+                ),
             child: Container(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -477,7 +480,7 @@ class FlightBookingScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Obx(
-                              () => Text(
+                          () => Text(
                             controller.cityPairs[index].toCity.value,
                             style: const TextStyle(
                               color: Colors.black,
@@ -501,48 +504,15 @@ class FlightBookingScreen extends StatelessWidget {
             color: Colors.grey.shade200,
           ),
 
-          // Date field - GestureDetector already wraps the entire Container properly
-          GestureDetector(
-            onTap: () => controller.openDatePickerForPair(context, index),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today,
-                    color: Colors.grey.shade600,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Departure Date',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Obx(
-                              () => Text(
-                            controller.cityPairs[index].departureDate.value,
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          // Date field using CustomDateRangeSelector
+          CustomDateRangeSelector(
+            mode: DateSelectorMode.multiCity,
+            selectedDate: controller.cityPairs[index].departureDateTime.value,
+            onDateChanged: (DateTime newDate) {
+              controller.updateMultiCityFlightDate(index, newDate);
+            },
+            label: 'Departure Date',
+            placeholder: 'Select departure date',
           ),
         ],
       ),
@@ -551,7 +521,7 @@ class FlightBookingScreen extends StatelessWidget {
 
   Widget _buildAddRemoveButtons() {
     return Obx(
-          () => Row(
+      () => Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           if (controller.cityPairs.length < 4)
@@ -608,122 +578,54 @@ class FlightBookingScreen extends StatelessWidget {
     );
   }
 
+  // Updated Date Selectors using CustomDateRangeSelector
+  // Updated Date Selectors using CustomDateRangeSelector - FIXED VERSION
   Widget _buildDateSelectors(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+    return Obx(() {
+      if (controller.tripType.value == TripType.roundTrip) {
+        // Round Trip - Use Range Selector
+        return CustomDateRangeSelector(
+          mode: DateSelectorMode.roundTrip,
+          dateRange: DateTimeRange(
+            start:
+                controller
+                    .departureDateTimeValue
+                    .value, // Use DateTime property directly
+            end:
+                controller
+                    .returnDateTimeValue
+                    .value, // Use DateTime property directly
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Departure Date
-          GestureDetector(
-            onTap: () => controller.openDepartureDatePicker(context),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today,
-                    color: Colors.grey.shade600,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Departure Date',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Obx(
-                              () => Text(
-                            controller.departureDate.value,
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Show return date section only for round trip
-          if (controller.tripType.value == TripType.roundTrip) ...[
-            Container(
-              height: 1,
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              color: Colors.grey.shade200,
-            ),
-            GestureDetector(
-              onTap: () => controller.openReturnDatePicker(context),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.calendar_today,
-                      color: Colors.grey.shade600,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Return Date',
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Obx(
-                                () => Text(
-                              controller.returnDate.value,
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
+          onDateRangeChanged: (DateTimeRange newRange) {
+            controller.updateDepartureDate(newRange.start);
+            controller.updateReturnDate(newRange.end);
+          },
+          nights:
+              controller.returnDateTimeValue.value
+                  .difference(controller.departureDateTimeValue.value)
+                  .inDays,
+          label: 'Departure & Return Date',
+          placeholder: 'Select departure and return dates',
+        );
+      } else {
+        // One Way - Use Single Date Selector
+        return CustomDateRangeSelector(
+          mode: DateSelectorMode.oneWay,
+          selectedDate:
+              controller
+                  .departureDateTimeValue
+                  .value, // Use DateTime property directly
+          onDateChanged: (DateTime newDate) {
+            controller.updateDepartureDate(newDate);
+          },
+          label: 'Departure Date',
+          placeholder: 'Select departure date',
+        );
+      }
+    });
   }
 
-  Widget _buildTravellerAndClassSelectors(BuildContext context) {
+  Widget _buildTravellerSelectors(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -750,7 +652,7 @@ class FlightBookingScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Passenger and Class',
+                      'Passenger',
                       style: TextStyle(
                         color: Colors.grey.shade600,
                         fontSize: 12,
@@ -759,8 +661,63 @@ class FlightBookingScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Obx(
-                          () => Text(
-                        '${controller.travellersCount.value} Passenger, ${controller.travelClass.value}',
+                      () => Text(
+                        '${controller.travellersCount.value} Passenger',
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClassSelectors(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: GestureDetector(
+        onTap: () => controller.showClassSelectionBottomSheet(context),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          child: Row(
+            children: [
+              Icon(Icons.person, color: Colors.grey.shade600, size: 16),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Class',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Obx(
+                      () => Text(
+                        '${controller.travelClass.value}',
                         style: const TextStyle(
                           color: Colors.black,
                           fontSize: 16,
@@ -780,7 +737,7 @@ class FlightBookingScreen extends StatelessWidget {
 
   Widget _buildSearchButton() {
     return Obx(
-          () => Container(
+      () => Container(
         width: double.infinity,
         height: 50,
         child: ElevatedButton(
@@ -793,23 +750,23 @@ class FlightBookingScreen extends StatelessWidget {
             elevation: 0,
           ),
           child:
-          controller.isSearching.value
-              ? const SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(
-              strokeWidth: 3,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-          )
-              : const Text(
-            'SEARCH FLIGHTS',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+              controller.isSearching.value
+                  ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                  : const Text(
+                    'SEARCH FLIGHTS',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
         ),
       ),
     );

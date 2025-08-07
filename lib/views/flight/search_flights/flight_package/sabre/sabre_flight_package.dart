@@ -413,7 +413,7 @@ class SabrePackageSelectionDialog extends StatelessWidget {
               color: TColors.secondary,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: TColors.primary, size: 18),
+            child: Icon(icon, color: TColors.background, size: 18),
           ),
           const SizedBox(width: 16),
           Expanded(

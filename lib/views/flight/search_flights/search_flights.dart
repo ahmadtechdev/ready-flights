@@ -269,14 +269,14 @@ class FlightBookingPage extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final flight = airArabiaController.filteredFlights[index]; // ✅ Using filteredFlights
                   return GestureDetector(
-                    onTap: () {
-                      // Handle Air Arabia flight selection
-                    },
+                    onTap: () => airArabiaController.handleAirArabiaFlightSelection(flight),
                     child: AirArabiaFlightCard(flight: flight),
                   );
                 },
               );
             }),
+
+            SizedBox(height: 36,)
           ],
         ),
       ),

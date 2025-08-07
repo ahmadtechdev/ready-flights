@@ -513,7 +513,7 @@ class BookingHotelScreen extends StatelessWidget {
           message: "Booking Confirmed Successfully!",
           backgroundColor: Colors.green,
         ).show();
-        bookingController.resetForm();
+        // bookingController.resetForm();
       } else {
         CustomSnackBar(
           message: "Booking failed. Please try again.",

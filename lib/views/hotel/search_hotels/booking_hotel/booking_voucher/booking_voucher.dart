@@ -234,7 +234,7 @@ class HotelVoucherScreen extends StatelessWidget {
 
   Future<pw.MemoryImage?> _loadLogoImage() async {
     try {
-      final ByteData data = await rootBundle.load('assets/img/newLogo.png');
+      final ByteData data = await rootBundle.load('assets/images/logo.png');
       final Uint8List bytes = data.buffer.asUint8List();
       return pw.MemoryImage(bytes);
     } catch (e) {
@@ -881,7 +881,7 @@ class HotelVoucherScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Image.asset(
-                'assets/img/newLogo.png',
+                'assets/images/logo.png',
                 height: 30,
                 // If you don't have this asset, use a placeholder:
                 errorBuilder:

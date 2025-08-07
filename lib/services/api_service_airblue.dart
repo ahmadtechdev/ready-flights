@@ -18,8 +18,8 @@ import '../views/flight/search_flights/sabre/sabre_flight_models.dart';
 class AirBlueFlightApiService {
   // final String link = 'https://otatest2.zapways.com/v2.0/OTAAPI.asmx';
   final String link = 'https://ota2.zapways.com/v2.0/OTAAPI.asmx';
-  final String sslCert = 'https://onerooftravel.net/flights/classes/airBlue/oneroof/cert.pem';
-  final String sslKey = 'https://onerooftravel.net/flights/classes/airBlue/oneroof/key.pem';
+  final String sslCert = 'https://onerooftravel.net/flights/classes/airBlue/newoneroof/cert.pem';
+  final String sslKey = 'https://onerooftravel.net/flights/classes/airBlue/newoneroof/key.pem';
 
   // final String ERSP_UserID = '2012/86B5EFDFF02E2966CBB6EECFF6FC339222';
   // final String ID = 'travelocityota';

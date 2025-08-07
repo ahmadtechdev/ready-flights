@@ -16,6 +16,7 @@ class TravelersSelectionBottomSheet extends StatelessWidget {
     final TravelersController controller = Get.put(TravelersController());
 
     return Container(
+      height: MediaQuery.of(context).size.height*0.9,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.only(

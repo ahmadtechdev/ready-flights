@@ -16,7 +16,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool _showBookingCard = false;
+  bool _showBookingCard = true;
 
   void _toggleBookingCard() {
     setState(() {
@@ -100,10 +100,23 @@ class HomeBanner extends StatelessWidget {
           decoration: const BoxDecoration(
             color: TColors.primary,
             image: DecorationImage(
-              image: NetworkImage(
-                'https://lp-cms-production.imgix.net/2024-05/GettyImages-1303030943.jpg?auto=format,compress&q=72&w=1440&h=810&fit=crop',
-              ),
+              image: AssetImage('assets/img/banner_bg.png'),
               fit: BoxFit.cover,
+            ),
+          ),
+          // Add gradient overlay
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withOpacity(0.3),
+                  Colors.black.withOpacity(0.5),
+                  TColors.primary.withOpacity(0.8),
+                ],
+                stops: const [0.0, 0.5, 1.0],
+              ),
             ),
           ),
         ),
@@ -187,7 +200,6 @@ class HomeBanner extends StatelessWidget {
     );
   }
 }
-
 class CustomerServiceSection extends StatelessWidget {
   const CustomerServiceSection({super.key});
 
@@ -354,6 +366,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0,
+      automaticallyImplyLeading: false,
       title: Image.asset("assets/images/logo.png", height: logoHeight),
       actions: [
         Container(

@@ -220,7 +220,7 @@ class _AirBlueFlightCardState extends State<AirBlueFlightCard>
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Text(
-                          'Best Value',
+                          'Book Now',
                           style: TextStyle(
                             fontSize: 10,
                             color: Colors.white,

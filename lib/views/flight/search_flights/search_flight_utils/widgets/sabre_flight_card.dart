@@ -160,227 +160,248 @@ class _FlightCardState extends State<FlightCard>
     Get.put(FlightBookingController());
 
     // Get first leg schedule for main display
-    final firstLeg = widget.flight.legSchedules.first;
+    final firstLeg = widget.flight.legSchedules.isNotEmpty ? widget.flight.legSchedules.first : null;
+    final ApiServiceSabre apiService = Get.find<ApiServiceSabre>();
+    final airlineMap = apiService.getAirlineMap();
+    final airlineInfo = firstLeg != null ? getAirlineInfo(firstLeg['airlineCode'] ?? 'XX', airlineMap) : null;
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
+    return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
             offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Column(
         children: [
-          // Main Flight Card Content - New Design
-          Container(
+          // Main Card Content
+          Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                // Top Row - Airline info and price
+                // Top Row - Airline and Price
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Left - Airline logo and info
+                    // Airline Logo and Name
                     Row(
                       children: [
-                        CachedNetworkImage(
-                          imageUrl: firstLeg['airlineImg'],
-                          height: 32,
-                          width: 32,
-                          placeholder: (context, url) => const SizedBox(
+                        if (firstLeg != null && airlineInfo != null)
+                          CachedNetworkImage(
+                            imageUrl: firstLeg['airlineImg'],
                             height: 32,
                             width: 32,
-                            child: Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          ),
-                          errorWidget: (context, url, error) => CachedNetworkImage(
-                            imageUrl: 'https://cdn-icons-png.flaticon.com/128/15700/15700374.png',
-                            height: 32,
-                            width: 32,
+                            placeholder: (context, url) => const CircularProgressIndicator(strokeWidth: 2),
                             errorWidget: (context, url, error) => const Icon(Icons.flight, size: 32),
+                            fit: BoxFit.contain,
                           ),
-                          fit: BoxFit.contain,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          firstLeg['airlineCode'] ?? 'Unknown',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey,
-                          ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              firstLeg?['airlineName'] ?? 'Airline',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            Text(
+                              firstLeg?['airlineCode'] ?? 'Code',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-
-                    // Right - Class type
+                    // Price
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: Colors.green,
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text(
-                        getCabinClassName(widget.flight.segmentInfo.isNotEmpty
-                            ? widget.flight.segmentInfo.first.cabinCode
-                            : 'Y'),
-                        style: const TextStyle(
+                      child: const Text(
+                        'Book Now',
+                        style: TextStyle(
                           fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.green,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
+                    )
                   ],
                 ),
 
                 const SizedBox(height: 16),
 
-                // Main flight info row
-                Row(
-                  children: [
-                    // Departure info
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            firstLeg['departure']['code'] ?? 'UNK',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            formatTime(firstLeg['departure']['time'].toString()),
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Flight duration and path
-                    Expanded(
-                      flex: 3,
-                      child: Column(
-                        children: [
-                          Row(
+                // Flight Route Information
+                ...widget.flight.legSchedules.map((legSchedule) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      children: [
+                        // Departure
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: const BoxDecoration(
-                                  color: Colors.grey,
-                                  shape: BoxShape.circle,
+                              Text(
+                                formatTime(legSchedule['departure']['time'].toString()),
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
                                 ),
                               ),
-                              Expanded(
-                                child: Container(
-                                  height: 1,
-                                  color: Colors.grey,
+                              const SizedBox(height: 2),
+                              Text(
+                                legSchedule['departure']['city'] ?? 'DEP',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey[700],
                                 ),
                               ),
-                              const Icon(
-                                Icons.flight,
-                                size: 16,
-                                color: Colors.grey,
-                              ),
-                              Expanded(
-                                child: Container(
-                                  height: 1,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: const BoxDecoration(
-                                  color: Colors.grey,
-                                  shape: BoxShape.circle,
+                              Text(
+                                legSchedule['departure']['code'] ?? '',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[500],
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${firstLeg['elapsedTime'] ~/ 60}h ${firstLeg['elapsedTime'] % 60}m',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          if (firstLeg['stops'].isEmpty)
-                            const Text(
-                              'Direct',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.green,
-                                fontWeight: FontWeight.w500,
+                        ),
+
+                        // Flight Duration and Line
+                        Expanded(
+                          flex: 3,
+                          child: Column(
+                            children: [
+                              Text(
+                                '${legSchedule['elapsedTime'] ~/ 60}h ${legSchedule['elapsedTime'] % 60}m',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
-                            )
-                          else
-                            Text(
-                              '${firstLeg['stops'].length} Stop',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.orange,
-                                fontWeight: FontWeight.w500,
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: TColors.primary,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Container(
+                                      height: 2,
+                                      decoration: BoxDecoration(
+                                        color: TColors.primary.withOpacity(0.3),
+                                      ),
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.flight,
+                                    size: 20,
+                                    color: TColors.primary,
+                                  ),
+                                  Expanded(
+                                    child: Container(
+                                      height: 2,
+                                      decoration: BoxDecoration(
+                                        color: TColors.primary.withOpacity(0.3),
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: TColors.primary,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                        ],
-                      ),
-                    ),
-
-                    // Arrival info
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            firstLeg['arrival']['code'] ?? 'UNK',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
+                              const SizedBox(height: 4),
+                              Text(
+                                legSchedule['stops'].isEmpty
+                                    ? 'Direct'
+                                    : '${legSchedule['stops'].length} stop${legSchedule['stops'].length > 1 ? 's' : ''}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: legSchedule['stops'].isEmpty ? Colors.green : Colors.orange,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            formatTime(firstLeg['arrival']['time'].toString()),
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
+                        ),
+
+                        // Arrival
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                formatTime(legSchedule['arrival']['time'].toString()),
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                legSchedule['arrival']['city'] ?? 'ARR',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                              Text(
+                                legSchedule['arrival']['code'] ?? '',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  );
+                }).toList(),
 
-                const SizedBox(height: 16),
+                // const SizedBox(height: 12),
 
-                // Bottom row - Details button and price
+                // Bottom Row - Flight Details Button and Book Button
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Flight Details button (replaces discount)
-                    GestureDetector(
+                    // Flight Details Button (instead of discount)
+                    InkWell(
                       onTap: () {
                         setState(() {
                           isExpanded = !isExpanded;
@@ -394,29 +415,28 @@ class _FlightCardState extends State<FlightCard>
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.1),
+                          color: TColors.primary.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.blue.withOpacity(0.3)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text(
+                            Text(
                               'Flight Details',
                               style: TextStyle(
-                                color: Colors.blue,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
+                                color: TColors.primary,
                               ),
                             ),
                             const SizedBox(width: 4),
                             AnimatedRotation(
                               duration: const Duration(milliseconds: 300),
                               turns: isExpanded ? 0.5 : 0,
-                              child: const Icon(
+                              child: Icon(
                                 Icons.keyboard_arrow_down,
-                                color: Colors.blue,
                                 size: 16,
+                                color: TColors.primary,
                               ),
                             ),
                           ],
@@ -424,24 +444,44 @@ class _FlightCardState extends State<FlightCard>
                       ),
                     ),
 
-                    // Price section
+                    // Provider Badge and Book Button
+                    // const SizedBox(width: 12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
-                          'Starting',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey[600],
+                        Container(
+                          width: 60,
+                          // height: 60,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFBB0103),
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Sabre',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
                         ),
                         GetX<FlightController>(
                           builder: (controller) => Text(
                             '${controller.selectedCurrency.value} ${finalPrice.value.toStringAsFixed(0)}',
                             style: const TextStyle(
-                              fontSize: 18,
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                              color: TColors.primary,
                             ),
                           ),
                         ),
@@ -453,7 +493,7 @@ class _FlightCardState extends State<FlightCard>
             ),
           ),
 
-          // Expandable Details Section (keeping the existing detailed view)
+          // Expandable Details Section (keeping your existing detailed view)
           SizeTransition(
             sizeFactor: _expandAnimation,
             child: Container(
@@ -493,34 +533,6 @@ class _FlightCardState extends State<FlightCard>
                     title: 'Policy',
                     content: _buildFareRules(),
                     icon: Icons.rule,
-                  ),
-
-                  // Book Now button at bottom
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          // Add booking functionality here
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: TColors.secondary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        child: const Text(
-                          "Book Now",
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
                   ),
                 ],
               ),

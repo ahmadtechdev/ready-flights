@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../../services/api_service_airarabia.dart';
 import '../filters/filter_flight_model.dart';
+import '../flight_package/airarabia/airarabia_flight_package.dart';
 import '../search_flight_utils/filter_flight_model.dart';
 import 'airarabia_flight_model.dart';
 
@@ -48,6 +49,7 @@ class AirArabiaFlightController extends GetxController {
         // Handle one-way flights (original logic)
         _processOneWayFlights(ondWiseFlights);
       }
+
 
       // // Sort flights by price initially
       // flights.sort((a, b) => a.price.compareTo(b.price));
@@ -135,6 +137,15 @@ class AirArabiaFlightController extends GetxController {
         }
       }
     }
+  }
+
+  void handleAirArabiaFlightSelection(AirArabiaFlight flight) {
+    Get.to(
+          () => AirArabiaPackageSelectionDialog(
+        flight: flight,
+        isReturnFlight: false,
+      ),
+    );
   }
 
   AirArabiaFlight _createRoundTripPackage(

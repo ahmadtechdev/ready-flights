@@ -23,6 +23,7 @@ class CityPair {
   final RxString toCity;
   final RxString toCityName;
   final RxString departureDate;
+  final Rx<DateTime> departureDateTime; // Add DateTime property
 
   CityPair({
     String? fromCity,
@@ -30,11 +31,13 @@ class CityPair {
     String? toCity,
     String? toCityName,
     String? departureDate,
+    DateTime? departureDateTime,
   }) : fromCity = (fromCity ?? 'DEL').obs,
-       fromCityName = (fromCityName ?? 'NEW DELHI').obs,
-       toCity = (toCity ?? 'BOM').obs,
-       toCityName = (toCityName ?? 'MUMBAI').obs,
-       departureDate = (departureDate ?? '03/11/2025').obs;
+        fromCityName = (fromCityName ?? 'NEW DELHI').obs,
+        toCity = (toCity ?? 'BOM').obs,
+        toCityName = (toCityName ?? 'MUMBAI').obs,
+        departureDate = (departureDate ?? '03/11/2025').obs,
+        departureDateTime = (departureDateTime ?? DateTime.now()).obs;
 
   void swap() {
     final tempCity = fromCity.value;
@@ -45,6 +48,12 @@ class CityPair {
 
     toCity.value = tempCity;
     toCityName.value = tempCityName;
+  }
+
+  // Method to update both string and DateTime when date changes
+  void updateDepartureDate(DateTime newDate) {
+    departureDateTime.value = newDate;
+    departureDate.value = DateFormat('dd/MM/yyyy').format(newDate);
   }
 }
 
@@ -66,13 +75,18 @@ class FlightBookingController extends GetxController {
   var origins = RxList<String>([]);
   var destinations = RxList<String>([]);
 
-  // Date selection
+  // Date selection - Add DateTime properties
   final RxString departureDate =
       DateFormat('dd/MM/yyyy').format(DateTime.now()).obs;
   final RxString returnDate =
       DateFormat(
         'dd/MM/yyyy',
       ).format(DateTime.now().add(const Duration(days: 1))).obs;
+
+  // Add DateTime observables for the CustomDateRangeSelector
+  final Rx<DateTime> departureDateTimeValue = DateTime.now().obs;
+  final Rx<DateTime> returnDateTimeValue =
+      DateTime.now().add(const Duration(days: 1)).obs;
 
   // Traveller and class selection
   final RxInt travellersCount = 1.obs;
@@ -86,9 +100,16 @@ class FlightBookingController extends GetxController {
   // API Service and Flight Controller
   final ApiServiceSabre apiServiceFlight = Get.put(ApiServiceSabre());
   final FlightController flightController = Get.put(FlightController());
-  final AirArabiaFlightController airArabiaController = Get.put(AirArabiaFlightController());
-  final PIAFlightApiService piaFlightApiService = Get.put(PIAFlightApiService());
-  final ApiServiceAirArabia apiServiceAirArabia = Get.put(ApiServiceAirArabia());
+  final AirArabiaFlightController airArabiaController = Get.put(
+    AirArabiaFlightController(),
+  );
+  final PIAFlightApiService piaFlightApiService = Get.put(
+    PIAFlightApiService(),
+  );
+  final ApiServiceAirArabia apiServiceAirArabia = Get.put(
+    ApiServiceAirArabia(),
+  );
+
   // Getter for formatted origins string
   String get formattedOrigins =>
       origins.isNotEmpty ? ',${origins.join(',')}' : '';
@@ -102,6 +123,16 @@ class FlightBookingController extends GetxController {
     super.onInit();
     initializeTripType();
     initializeCityPairs();
+    _syncDateValues(); // Sync initial date values
+  }
+
+  void _syncDateValues() {
+    departureDateTimeValue.value = DateFormat(
+      'dd/MM/yyyy',
+    ).parse(departureDate.value);
+    returnDateTimeValue.value = DateFormat(
+      'dd/MM/yyyy',
+    ).parse(returnDate.value);
   }
 
   void initializeTripType() {
@@ -122,6 +153,7 @@ class FlightBookingController extends GetxController {
         toCity: 'DBX',
         toCityName: 'DUBAI',
         departureDate: _formatDateForUI(baseDate),
+        departureDateTime: baseDate,
       ),
       CityPair(
         fromCity: 'DBX',
@@ -129,6 +161,7 @@ class FlightBookingController extends GetxController {
         toCity: 'JED',
         toCityName: 'JEDDAH',
         departureDate: _formatDateForUI(baseDate.add(const Duration(days: 1))),
+        departureDateTime: baseDate.add(const Duration(days: 1)),
       ),
     ]);
   }
@@ -154,12 +187,58 @@ class FlightBookingController extends GetxController {
             toCity: 'LHE',
             toCityName: 'LAHORE',
             departureDate: _formatDateForUI(nextDay),
+            departureDateTime: nextDay,
           ),
         );
       }
     }
   }
 
+  // NEW METHODS FOR CustomDateRangeSelector COMPATIBILITY
+
+  // Method for updating departure date (used by CustomDateRangeSelector)
+  void updateDepartureDate(DateTime newDate) {
+    departureDateTimeValue.value = newDate;
+    departureDate.value = _formatDateForUI(newDate);
+
+    // If return date is before the new departure date, update return date
+    if (returnDateTimeValue.value.isBefore(
+      newDate.add(const Duration(days: 1)),
+    )) {
+      updateReturnDate(newDate.add(const Duration(days: 1)));
+    }
+  }
+
+  // Method for updating return date (used by CustomDateRangeSelector)
+  void updateReturnDate(DateTime newDate) {
+    // Ensure return date is not before departure date
+    if (newDate.isBefore(
+      departureDateTimeValue.value.add(const Duration(days: 1)),
+    )) {
+      returnDateTimeValue.value = departureDateTimeValue.value.add(
+        const Duration(days: 1),
+      );
+      returnDate.value = _formatDateForUI(returnDateTimeValue.value);
+    } else {
+      returnDateTimeValue.value = newDate;
+      returnDate.value = _formatDateForUI(newDate);
+    }
+  }
+
+  // Method for updating multi-city flight date (used by CustomDateRangeSelector)
+  void updateMultiCityFlightDate(int index, DateTime newDate) {
+    if (index < cityPairs.length) {
+      cityPairs[index].updateDepartureDate(newDate);
+
+      // Update subsequent flights to maintain chronological order
+      if (index < cityPairs.length - 1) {
+        DateTime nextDay = newDate.add(const Duration(days: 1));
+        cityPairs[index + 1].updateDepartureDate(nextDay);
+      }
+    }
+  }
+
+  // EXISTING METHODS (Updated to maintain compatibility)
 
   void swapCities() {
     if (tripType.value != TripType.multiCity) {
@@ -191,12 +270,8 @@ class FlightBookingController extends GetxController {
     if (cityPairs.length < 5) {
       final lastPair = cityPairs.last;
 
-      // Parse the departure date of the last pair
-      DateTime lastDepartureDate = DateFormat(
-        'dd/MM/yyyy',
-      ).parse(lastPair.departureDate.value);
-      // Add one day for the new flight's departure date
-      DateTime nextDepartureDate = lastDepartureDate.add(
+      // Use DateTime from last pair and add one day
+      DateTime nextDepartureDate = lastPair.departureDateTime.value.add(
         const Duration(days: 1),
       );
 
@@ -207,6 +282,7 @@ class FlightBookingController extends GetxController {
           toCity: 'BLR',
           toCityName: 'BENGALURU',
           departureDate: _formatDateForUI(nextDepartureDate),
+          departureDateTime: nextDepartureDate,
         ),
       );
     }
@@ -220,6 +296,7 @@ class FlightBookingController extends GetxController {
 
   void setDepartureDate(String date) {
     departureDate.value = date;
+    departureDateTimeValue.value = DateFormat('dd/MM/yyyy').parse(date);
 
     // If return date is before the new departure date, update return date
     final DateTime departure = DateFormat(
@@ -228,12 +305,13 @@ class FlightBookingController extends GetxController {
     final DateTime returnDt = DateFormat('dd/MM/yyyy').parse(returnDate.value);
 
     if (returnDt.isBefore(departure)) {
-      returnDate.value = date;
+      setReturnDate(date);
     }
   }
 
   void setReturnDate(String date) {
     returnDate.value = date;
+    returnDateTimeValue.value = DateFormat('dd/MM/yyyy').parse(date);
 
     // If departure date is after the new return date, update departure date
     final DateTime departure = DateFormat(
@@ -242,33 +320,31 @@ class FlightBookingController extends GetxController {
     final DateTime returnDt = DateFormat('dd/MM/yyyy').parse(returnDate.value);
 
     if (departure.isAfter(returnDt)) {
-      departureDate.value = date;
+      setDepartureDate(date);
     }
   }
 
   void setDepartureDateForPair(int index, String date) {
     if (index < cityPairs.length) {
-      // Update this pair's departure date
-      cityPairs[index].departureDate.value = date;
+      DateTime selectedDate = DateFormat('dd/MM/yyyy').parse(date);
+      cityPairs[index].updateDepartureDate(selectedDate);
 
       // If this is not the last pair, update the next pair's departure date to be one day after
       if (index < cityPairs.length - 1) {
-        DateTime selectedDate = DateFormat('dd/MM/yyyy').parse(date);
         DateTime nextDay = selectedDate.add(const Duration(days: 1));
-        cityPairs[index + 1].departureDate.value = _formatDateForUI(nextDay);
+        cityPairs[index + 1].updateDepartureDate(nextDay);
       }
     }
   }
 
   // Add to FlightBookingController class
-  final AirBlueFlightController airBlueFlightController = Get.find<AirBlueFlightController>();
+  final AirBlueFlightController airBlueFlightController =
+  Get.find<AirBlueFlightController>();
   final PIAFlightController piaFlightController = Get.put(
     PIAFlightController(),
   );
 
-
-
-// Update the searchFlights method to include proper PIA API calls
+  // Update the searchFlights method to include proper PIA API calls
   Future<void> searchFlights() async {
     try {
       isSearching.value = true;
@@ -297,7 +373,7 @@ class FlightBookingController extends GetxController {
         for (int i = 0; i < cityPairs.length; i++) {
           if (i > 0) formattedDates += ',';
           formattedDates += _formatDateForAPI(
-            DateFormat('dd/MM/yyyy').parse(cityPairs[i].departureDate.value),
+            cityPairs[i].departureDateTime.value,
           );
         }
 
@@ -306,18 +382,17 @@ class FlightBookingController extends GetxController {
       } else {
         origin = ',${fromCity.value}';
         destination = ',${toCity.value}';
-        formattedDates =
-        ',${_formatDateForAPI(DateFormat('dd/MM/yyyy').parse(departureDate.value))}';
+        formattedDates = ',${_formatDateForAPI(departureDateTimeValue.value)}';
         if (tripType.value == TripType.roundTrip) {
-          formattedDates +=
-          ',${_formatDateForAPI(DateFormat('dd/MM/yyyy').parse(returnDate.value))}';
+          formattedDates += ',${_formatDateForAPI(returnDateTimeValue.value)}';
         }
       }
 
       // Call APIs in parallel but skip AirBlue for multi-city
       final futures = [
         _callSabreApi(
-          type: tripType.value == TripType.multiCity
+          type:
+          tripType.value == TripType.multiCity
               ? 2
               : (tripType.value == TripType.roundTrip ? 1 : 0),
           origin: origin,
@@ -344,53 +419,65 @@ class FlightBookingController extends GetxController {
 
       // Only call AirBlue if not multi-city
       if (tripType.value != TripType.multiCity) {
-        futures.add(_callAirBlueApi(
-          type: tripType.value == TripType.roundTrip ? 1 : 0,
-          origin: origin,
-          destination: destination,
-          depDate: formattedDates,
-          adult: adultCount.value,
-          child: childrenCount.value,
-          infant: infantCount.value,
-          cabin: travelClass.value,
-        ));
+        futures.add(
+          _callAirBlueApi(
+            type: tripType.value == TripType.roundTrip ? 1 : 0,
+            origin: origin,
+            destination: destination,
+            depDate: formattedDates,
+            adult: adultCount.value,
+            child: childrenCount.value,
+            infant: infantCount.value,
+            cabin: travelClass.value,
+          ),
+        );
       }
 
       // Add PIA API call based on trip type
       if (tripType.value == TripType.multiCity && cityPairs.isNotEmpty) {
         // Prepare multi-city segments
-        final segments = cityPairs.map((pair) => {
-          'from': pair.fromCity.value,
-          'to': pair.toCity.value,
-          'date': _formatDateForAPI(
-              DateFormat('dd/MM/yyyy').parse(pair.departureDate.value))
-        }).toList();
+        final segments =
+        cityPairs
+            .map(
+              (pair) => {
+            'from': pair.fromCity.value,
+            'to': pair.toCity.value,
+            'date': _formatDateForAPI(pair.departureDateTime.value),
+          },
+        )
+            .toList();
 
-        futures.add(_callPiaApi(
-          fromCity: cityPairs.first.fromCity.value,
-          toCity: cityPairs.first.toCity.value,
-          departureDate: _formatDateForAPI(
-              DateFormat('dd/MM/yyyy').parse(cityPairs.first.departureDate.value)),
-          adultCount: adultCount.value,
-          childCount: childrenCount.value,
-          infantCount: infantCount.value,
-          tripType: 'MULTI_DIRECTIONAL',
-          multiCitySegments: segments,
-        ));
+        futures.add(
+          _callPiaApi(
+            fromCity: cityPairs.first.fromCity.value,
+            toCity: cityPairs.first.toCity.value,
+            departureDate: _formatDateForAPI(
+              cityPairs.first.departureDateTime.value,
+            ),
+            adultCount: adultCount.value,
+            childCount: childrenCount.value,
+            infantCount: infantCount.value,
+            tripType: 'MULTI_DIRECTIONAL',
+            multiCitySegments: segments,
+          ),
+        );
       } else {
-        futures.add(_callPiaApi(
-          fromCity: fromCity.value,
-          toCity: toCity.value,
-          departureDate: _formatDateForAPI(
-              DateFormat('dd/MM/yyyy').parse(departureDate.value)),
-          adultCount: adultCount.value,
-          childCount: childrenCount.value,
-          infantCount: infantCount.value,
-          tripType: tripType.value == TripType.roundTrip ? 'ROUND_TRIP' : 'ONE_WAY',
-          returnDate: tripType.value == TripType.roundTrip
-              ? _formatDateForAPI(DateFormat('dd/MM/yyyy').parse(returnDate.value))
-              : null,
-        ));
+        futures.add(
+          _callPiaApi(
+            fromCity: fromCity.value,
+            toCity: toCity.value,
+            departureDate: _formatDateForAPI(departureDateTimeValue.value),
+            adultCount: adultCount.value,
+            childCount: childrenCount.value,
+            infantCount: infantCount.value,
+            tripType:
+            tripType.value == TripType.roundTrip ? 'ROUND_TRIP' : 'ONE_WAY',
+            returnDate:
+            tripType.value == TripType.roundTrip
+                ? _formatDateForAPI(returnDateTimeValue.value)
+                : null,
+          ),
+        );
       }
 
       // Don't wait for all APIs to complete - they'll update UI as they finish
@@ -399,13 +486,16 @@ class FlightBookingController extends GetxController {
       });
 
       // Navigate immediately to results page
-      Get.to(() => FlightBookingPage(
-        scenario: tripType.value == TripType.roundTrip
-            ? FlightScenario.returnFlight
-            : (tripType.value == TripType.multiCity
-            ? FlightScenario.multiCity
-            : FlightScenario.oneWay),
-      ));
+      Get.to(
+            () => FlightBookingPage(
+          scenario:
+          tripType.value == TripType.roundTrip
+              ? FlightScenario.returnFlight
+              : (tripType.value == TripType.multiCity
+              ? FlightScenario.multiCity
+              : FlightScenario.oneWay),
+        ),
+      );
     } catch (e, stackTrace) {
       debugPrint('Error in searchFlights: $e');
       debugPrint('Stack trace: $stackTrace');
@@ -500,7 +590,7 @@ class FlightBookingController extends GetxController {
     required int child,
     required int infant,
     required String cabin,
-  }) async   {
+  }) async {
     try {
       final result = await apiServiceFlight.searchFlights(
         type: type,
@@ -559,28 +649,28 @@ class FlightBookingController extends GetxController {
 
   void openDepartureDatePicker(BuildContext context) {
     _showDatePicker(context, (date) {
-      setDepartureDate(_formatDateForUI(date));
+      updateDepartureDate(date); // Use new method
     });
   }
 
   void openReturnDatePicker(BuildContext context) {
     if (tripType.value != TripType.oneWay) {
       _showDatePicker(context, (date) {
-        setReturnDate(_formatDateForUI(date));
+        updateReturnDate(date); // Use new method
       });
     }
   }
 
   void openDatePickerForPair(BuildContext context, int index) {
     _showDatePicker(context, (date) {
-      setDepartureDateForPair(index, _formatDateForUI(date));
+      updateMultiCityFlightDate(index, date); // Use new method
     });
   }
 
   void _showDatePicker(
-    BuildContext context,
-    Function(DateTime) onDateSelected,
-  ) {
+      BuildContext context,
+      Function(DateTime) onDateSelected,
+      ) {
     showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -594,46 +684,46 @@ class FlightBookingController extends GetxController {
   }
 
   void showCitySelectionBottomSheet(
-    BuildContext context,
-    FieldType fieldType, {
-    int? multiCityIndex,
-  }) {
+      BuildContext context,
+      FieldType fieldType, {
+        int? multiCityIndex,
+      }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder:
           (context) => CitySelectionBottomSheet(
-            fieldType: fieldType,
-            onCitySelected: (AirportData airport) {
-              if (tripType.value == TripType.multiCity &&
-                  multiCityIndex != null) {
-                if (fieldType == FieldType.departure) {
-                  cityPairs[multiCityIndex].fromCity.value = airport.code;
-                  cityPairs[multiCityIndex].fromCityName.value =
-                      airport.cityName;
-                } else {
-                  cityPairs[multiCityIndex].toCity.value = airport.code;
-                  cityPairs[multiCityIndex].toCityName.value = airport.cityName;
+        fieldType: fieldType,
+        onCitySelected: (AirportData airport) {
+          if (tripType.value == TripType.multiCity &&
+              multiCityIndex != null) {
+            if (fieldType == FieldType.departure) {
+              cityPairs[multiCityIndex].fromCity.value = airport.code;
+              cityPairs[multiCityIndex].fromCityName.value =
+                  airport.cityName;
+            } else {
+              cityPairs[multiCityIndex].toCity.value = airport.code;
+              cityPairs[multiCityIndex].toCityName.value = airport.cityName;
 
-                  // If this is not the last pair, update the next pair's departure city
-                  if (multiCityIndex < cityPairs.length - 1) {
-                    cityPairs[multiCityIndex + 1].fromCity.value = airport.code;
-                    cityPairs[multiCityIndex + 1].fromCityName.value =
-                        airport.cityName;
-                  }
-                }
-              } else {
-                if (fieldType == FieldType.departure) {
-                  fromCity.value = airport.code;
-                  fromCityName.value = airport.cityName;
-                } else {
-                  toCity.value = airport.code;
-                  toCityName.value = airport.cityName;
-                }
+              // If this is not the last pair, update the next pair's departure city
+              if (multiCityIndex < cityPairs.length - 1) {
+                cityPairs[multiCityIndex + 1].fromCity.value = airport.code;
+                cityPairs[multiCityIndex + 1].fromCityName.value =
+                    airport.cityName;
               }
-            },
-          ),
+            }
+          } else {
+            if (fieldType == FieldType.departure) {
+              fromCity.value = airport.code;
+              fromCityName.value = airport.cityName;
+            } else {
+              toCity.value = airport.code;
+              toCityName.value = airport.cityName;
+            }
+          }
+        },
+      ),
     );
   }
 
@@ -644,20 +734,20 @@ class FlightBookingController extends GetxController {
       backgroundColor: Colors.transparent,
       builder:
           (context) => TravelersSelectionBottomSheet(
-            onTravelersSelected: (adults, children, infants) {
-              if (infants > adults) {
-                Get.snackbar(
-                  'Error',
-                  'Number of infants cannot exceed the number of adults.',
-                  snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: Colors.red,
-                  colorText: Colors.white,
-                );
-              } else {
-                updateTravellerCounts(adults, children, infants);
-              }
-            },
-          ),
+        onTravelersSelected: (adults, children, infants) {
+          if (infants > adults) {
+            Get.snackbar(
+              'Error',
+              'Number of infants cannot exceed the number of adults.',
+              snackPosition: SnackPosition.BOTTOM,
+              backgroundColor: Colors.red,
+              colorText: Colors.white,
+            );
+          } else {
+            updateTravellerCounts(adults, children, infants);
+          }
+        },
+      ),
     );
   }
 
@@ -668,11 +758,11 @@ class FlightBookingController extends GetxController {
       backgroundColor: Colors.transparent,
       builder:
           (context) => ClassSelectionBottomSheet(
-            initialClass: travelClass.value,
-            onClassSelected: (selectedClass) {
-              travelClass.value = selectedClass;
-            },
-          ),
+        initialClass: travelClass.value,
+        onClassSelected: (selectedClass) {
+          travelClass.value = selectedClass;
+        },
+      ),
     );
   }
 
