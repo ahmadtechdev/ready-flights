@@ -18,6 +18,7 @@ class AirArabiaFlight {
   final bool isRoundTrip;
   final Map<String, dynamic>? outboundFlight;
   final Map<String, dynamic>? inboundFlight;
+  final Map<String, dynamic>? json;
 
   AirArabiaFlight({
     required this.id,
@@ -33,6 +34,7 @@ class AirArabiaFlight {
     this.isRoundTrip = false,
     this.outboundFlight,
     this.inboundFlight,
+    this.json,
   });
 
   factory AirArabiaFlight.fromJson(Map<String, dynamic> json) {
@@ -126,6 +128,7 @@ class AirArabiaFlight {
         inboundFlight: json['inboundFlight'] != null
             ? Map<String, dynamic>.from(json['inboundFlight'] as Map)
             : _findInboundFlight(flightSegmentsList),
+        json: json,
       );
     } catch (e, stackTrace) {
       if (kDebugMode) {

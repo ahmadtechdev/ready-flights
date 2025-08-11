@@ -139,7 +139,30 @@ class AirArabiaFlightController extends GetxController {
     }
   }
 
-  void handleAirArabiaFlightSelection(AirArabiaFlight flight) {
+  Future<void> handleAirArabiaFlightSelection(AirArabiaFlight flight) async {
+
+    try {
+      // You might need to adjust these values based on your flight data structure
+      // and where you store passenger counts. For now, using sample values:
+      const int adultCount = 1; // Replace with actual passenger count
+      const int childCount = 0; // Replace with actual passenger count
+      const int infantCount = 0; // Replace with actual passenger count
+
+      // Extract flight array from the selected flight
+      // You may need to adjust this based on your flight data structure
+      final apiServiceAirArabia = new ApiServiceAirArabia();
+      // Call the fare API
+      await apiServiceAirArabia.getAirArabiaFare(
+        sectorType: flight,
+        adult: adultCount,
+        child: childCount,
+        infant: infantCount,
+      );
+
+    } catch (e) {
+      print('Error calling Air Arabia fare API: $e');
+    }
+
     Get.to(
           () => AirArabiaPackageSelectionDialog(
         flight: flight,

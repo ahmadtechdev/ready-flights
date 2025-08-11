@@ -22,6 +22,7 @@ class AirBlueFlight {
   final String airlineName;
   final String airlineImg;
   final String rph; // Added RPH field
+  final String rphFareSegment; // Added RPH field
   final List<AirBlueFareOption>? fareOptions;
   final Map<String, dynamic> rawData;// Added for storing different fare options
   final List<AirBluePNRPricing>? pnrPricing;
@@ -44,6 +45,7 @@ class AirBlueFlight {
     required this.airlineName,
     required this.airlineImg,
     required this.rph, // Required RPH parameter
+    required this.rphFareSegment, // Required RPH parameter
     required this.changeFeeDetails,
     required this.refundFeeDetails,
     this.fareOptions,
@@ -58,7 +60,8 @@ class AirBlueFlight {
 
       // Extract RPH value from the OriginDestinationOption
       final originDestOption = json['AirItinerary']['OriginDestinationOptions']['OriginDestinationOption'] ?? {};
-      final rph = originDestOption['RPH']?.toString() ?? '0-0'; // Default value if RPH is not found
+      final rph = originDestOption['RPH']?.toString() ?? 'n/a'; // Default value if RPH is not found
+      final rphFareSegment = flightSegment['RPH']?.toString() ?? 'n/a'; // Default value if RPH is not found
 
       // Extract airline info
       final marketingAirline = flightSegment['MarketingAirline'] ?? {};
@@ -107,6 +110,7 @@ class AirBlueFlight {
         airlineName: airlineInfo.name,
         airlineImg: airlineInfo.logoPath,
         rph: rph,
+        rphFareSegment: rphFareSegment,
         rawData: json,// Set the RPH value
         changeFeeDetails: feeDetails['changeFeeDetails']!,
         refundFeeDetails: feeDetails['refundFeeDetails']!,
@@ -138,6 +142,7 @@ class AirBlueFlight {
       airlineName: airlineName,
       airlineImg: airlineImg,
       rph: rph,
+      rphFareSegment: rphFareSegment,
       fareOptions: options,
       rawData: rawData,
       pnrPricing: pnrPricing, changeFeeDetails: changeFeeDetails, refundFeeDetails: refundFeeDetails, // Keep existing pnrPricing if any
@@ -163,6 +168,7 @@ class AirBlueFlight {
       airlineName: airlineName,
       airlineImg: airlineImg,
       rph: rph,
+      rphFareSegment: rphFareSegment,
       fareOptions: fareOptions,
       rawData: rawData,
       pnrPricing: pricing, changeFeeDetails: changeFeeDetails, refundFeeDetails: refundFeeDetails,

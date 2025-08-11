@@ -150,6 +150,8 @@ class BookingFlightController extends GetxController {
     updateInfants();
   }
 
+
+
   void updateAdults() {
     final currentCount = adults.length;
     final newCount = travelersController.adultCount.value;

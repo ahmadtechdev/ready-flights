@@ -801,7 +801,9 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                 lastDate: DateTime(2100),
               );
               if (pickedDate != null) {
-                controller.text = "${pickedDate.day.toString().padLeft(2, '0')}/${pickedDate.month.toString().padLeft(2, '0')}/${pickedDate.year}";
+                controller.text =
+                "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
+
               }
             },
             validator: (value) {

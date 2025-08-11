@@ -129,7 +129,8 @@ class AirBlueFlightApiService {
       }
 
       // Generate random string for EchoToken (similar to PHP function)
-      final randomString = _generateRandomString(32);
+      // final randomString = _generateRandomString(32);
+      final randomString = "-8586704355136787339";
 
       // Build the complete XML request exactly like PHP version
       final request =
@@ -440,23 +441,23 @@ class AirBlueFlightApiService {
   Map<String, dynamic> _prepareFlightData(AirBlueFlight flight, String type) {
     // Get first segment info (assuming there's at least one)
     final segment =
-        flight.segmentInfo.isNotEmpty
-            ? flight.segmentInfo.first
-            : FlightSegmentInfo(
-              bookingCode: 'Y',
-              cabinCode: 'Y',
-              mealCode: 'M',
-              seatsAvailable: '',
-            );
+    flight.segmentInfo.isNotEmpty
+        ? flight.segmentInfo.first
+        : FlightSegmentInfo(
+      bookingCode: 'Y',
+      cabinCode: 'Y',
+      mealCode: 'M',
+      seatsAvailable: '',
+    );
 
     // Get first leg schedule (assuming there's at least one)
     final leg =
-        flight.legSchedules.isNotEmpty
-            ? flight.legSchedules.first
-            : {
-              'departure': {'airport': '', 'time': '', 'dateTime': ''},
-              'arrival': {'airport': '', 'time': '', 'dateTime': ''},
-            };
+    flight.legSchedules.isNotEmpty
+        ? flight.legSchedules.first
+        : {
+      'departure': {'airport': '', 'time': '', 'dateTime': ''},
+      'arrival': {'airport': '', 'time': '', 'dateTime': ''},
+    };
 
     // Parse departure date and time
     final departureDateTime = DateTime.parse(leg['departure']['dateTime']);
@@ -468,14 +469,14 @@ class AirBlueFlightApiService {
         "airport": leg['departure']['airport'],
         "date": departureDateTime.toIso8601String().split('T')[0],
         "time":
-            "${departureDateTime.hour.toString().padLeft(2, '0')}:${departureDateTime.minute.toString().padLeft(2, '0')}",
+        "${departureDateTime.hour.toString().padLeft(2, '0')}:${departureDateTime.minute.toString().padLeft(2, '0')}",
         "terminal": leg['departure']['terminal'] ?? 'Main',
       },
       "arrival": {
         "airport": leg['arrival']['airport'],
         "date": arrivalDateTime.toIso8601String().split('T')[0],
         "time":
-            "${arrivalDateTime.hour.toString().padLeft(2, '0')}:${arrivalDateTime.minute.toString().padLeft(2, '0')}",
+        "${arrivalDateTime.hour.toString().padLeft(2, '0')}:${arrivalDateTime.minute.toString().padLeft(2, '0')}",
         "terminal": leg['arrival']['terminal'] ?? 'Main',
       },
       "flight_number": flight.id.split('-').first,
@@ -486,7 +487,7 @@ class AirBlueFlightApiService {
       "sub_class": segment.cabinCode,
       "hand_baggage": "7kg", // Default value as per web
       "check_baggage":
-          "${flight.baggageAllowance.weight} ${flight.baggageAllowance.unit}",
+      "${flight.baggageAllowance.weight} ${flight.baggageAllowance.unit}",
       "meal": segment.mealCode == 'M' ? 'Meal' : 'None',
       "layover": "None", // Assuming non-stop flights
       "duration": "${duration.inHours}h ${duration.inMinutes.remainder(60)}m",
@@ -764,7 +765,7 @@ class AirBlueFlightApiService {
   <Telephone PhoneLocationType="10" CountryAccessCode="92" PhoneNumber="$clientPhone" />
   <Email>$clientEmail</Email>
   <CustLoyalty />
-  <Document DocID="${adult['passport']}" DocType="2" 
+  <Document DocID="${adult['passport']}" DocType="3" 
             BirthDate="${adult['birthDate']}" 
             ExpireDate="${adult['passportExpiry']}" 
             DocIssueCountry="PK" 
@@ -787,7 +788,7 @@ class AirBlueFlightApiService {
   <Telephone PhoneLocationType="10" CountryAccessCode="92" PhoneNumber="$clientPhone" />
   <Email>$clientEmail</Email>
   <CustLoyalty />
-  <Document DocID="${child['passport']}" DocType="2" 
+  <Document DocID="${child['passport']}" DocType="3" 
             BirthDate="${child['birthDate']}" 
             ExpireDate="${child['passportExpiry']}" 
             DocIssueCountry="PK" 
@@ -810,7 +811,7 @@ class AirBlueFlightApiService {
   <Telephone PhoneLocationType="10" CountryAccessCode="92" PhoneNumber="$clientPhone" />
   <Email>$clientEmail</Email>
   <CustLoyalty />
-  <Document DocID="${infant['passport']}" DocType="2" 
+  <Document DocID="${infant['passport']}" DocType="3" 
             BirthDate="${infant['birthDate']}" 
             ExpireDate="${infant['passportExpiry']}" 
             DocIssueCountry="PK" 
@@ -900,7 +901,7 @@ class AirBlueFlightApiService {
 
       // Convert XML to JSON
       final jsonResponse = _convertXmlToJson(response.data.toString());
-      printDebugData('PNR RESPONSE (JSON)', jsonResponse);
+      // printDebugData('PNR RESPONSE (JSON)', jsonResponse);
 
       // Parse the pricing information
       List<AirBluePNRPricing> pnrPricing = [];
@@ -940,11 +941,11 @@ class AirBlueFlightApiService {
 
 
   Map<String, dynamic> _prepareTravelerData(
-    TravelerInfo traveler,
-    String type,
-    String clientEmail,
-    String clientPhone,
-  ) {
+      TravelerInfo traveler,
+      String type,
+      String clientEmail,
+      String clientPhone,
+      ) {
     return {
       'title': traveler.titleController.text,
       'firstName': traveler.firstNameController.text,
@@ -979,7 +980,7 @@ class AirBlueFlightApiService {
 
     if (data is String && data.trim().startsWith('<')) {
       // Handle XML string
-      print('Raw XML:\n$data');
+      printLongText('Raw XML:\n$data');
 
       try {
         // Convert XML to JSON
@@ -992,13 +993,21 @@ class AirBlueFlightApiService {
       }
     } else if (data is String) {
       // Plain string
-      print('Plain String:\n$data');
+      printLongText('Plain String:\n$data');
     } else {
       // JSON/Map or other object
-      printJsonPretty(data);
+      // printJsonPretty(data);
     }
 
     print('--- END DEBUG: $label ---\n');
+  }
+
+  void printLongText(String text) {
+    const chunkSize = 800; // keep below console limit
+    for (var i = 0; i < text.length; i += chunkSize) {
+      final endIndex = (i + chunkSize < text.length) ? i + chunkSize : text.length;
+      debugPrint(text.substring(i, endIndex));
+    }
   }
 
   /// Converts XML string to JSON (Map)
