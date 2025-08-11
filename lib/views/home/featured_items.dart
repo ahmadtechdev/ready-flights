@@ -150,17 +150,15 @@ class _FeaturedPartnersState extends State<FeaturedPartners> {
   int _currentPage = 0;
 
   final List<String> partnerLogos = [
-    'assets/img/logos/Air-Sial.png',
+    'assets/img/logos/qatar.png',
     'assets/img/logos/pia.png',
-    'assets/img/logos/serena.png',
-    'assets/img/logos/flyjinnah.png',
-    'assets/img/logos/Air-Sial.png',
+    'assets/img/logos/etihad.png',
+    'assets/img/logos/airblue.png',
+    'assets/img/logos/turkish.png',
     'assets/img/logos/fly-dubai.png',
     'assets/img/logos/air-arabia.png',
     'assets/img/logos/emirates.png',
-    'assets/img/logos/Air-Sial.png',
     'assets/img/logos/pia.png',
-    'assets/img/logos/serena.png',
     'assets/img/logos/flyjinnah.png',
   ];
 
@@ -249,7 +247,6 @@ class _FeaturedPartnersState extends State<FeaturedPartners> {
             itemBuilder: (context, index) => _buildLogoGrid(pagedLogos[index]),
           ),
         ),
-        const SizedBox(height: 16),
         DotsIndicator(itemCount: pagedLogos.length, currentPage: _currentPage),
       ],
     );

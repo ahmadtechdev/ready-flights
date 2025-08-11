@@ -6,7 +6,7 @@ import '../../../../widgets/travelers_selection_bottom_sheet.dart';
 
 import '../sabre/sabre_flight_models.dart';
 import '../search_flight_utils/widgets/sabre_flight_card.dart';
-import 'booking_flight_controller.dart';
+import 'booking_flight_controller2.dart';
 
 class BookingForm extends StatefulWidget {
   final SabreFlight flight;

@@ -68,8 +68,8 @@ class FlightBookingController extends GetxController {
   // City selection for one-way and round trip
   final RxString fromCity = 'LHE'.obs;
   final RxString fromCityName = 'Lahore'.obs;
-  final RxString toCity = 'JED'.obs;
-  final RxString toCityName = 'JEDDAH'.obs;
+  final RxString toCity = 'DXB'.obs;
+  final RxString toCityName = 'Dubai'.obs;
 
   // Observable variables for origin, destination
   var origins = RxList<String>([]);
@@ -150,13 +150,13 @@ class FlightBookingController extends GetxController {
       CityPair(
         fromCity: 'LHE',
         fromCityName: 'LAHORE',
-        toCity: 'DBX',
+        toCity: 'DXB',
         toCityName: 'DUBAI',
         departureDate: _formatDateForUI(baseDate),
         departureDateTime: baseDate,
       ),
       CityPair(
-        fromCity: 'DBX',
+        fromCity: 'DXB',
         fromCityName: 'DUBAI',
         toCity: 'JED',
         toCityName: 'JEDDAH',
@@ -279,8 +279,8 @@ class FlightBookingController extends GetxController {
         CityPair(
           fromCity: lastPair.toCity.value,
           fromCityName: lastPair.toCityName.value,
-          toCity: 'BLR',
-          toCityName: 'BENGALURU',
+          toCity: 'DXB',
+          toCityName: 'Dubai',
           departureDate: _formatDateForUI(nextDepartureDate),
           departureDateTime: nextDepartureDate,
         ),
@@ -535,12 +535,8 @@ class FlightBookingController extends GetxController {
       );
 
       // Make sure the result is a Map
-      if (result is Map<String, dynamic>) {
-        airArabiaController.loadFlights(result);
-      } else {
-        throw Exception('Invalid API response format');
-      }
-    } catch (e) {
+      airArabiaController.loadFlights(result);
+        } catch (e) {
       debugPrint('Air Arabia API error: $e');
       airArabiaController.setErrorMessage('Failed to load Air Arabia flights');
     }

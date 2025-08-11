@@ -54,12 +54,13 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: TColors.background),
       ),
-      home: IntroScreen(
-        saveIntroStatus: () {
-          Get.to(() => HomeScreen());
-          // Get.to(() => BottomNavbar());
-        },
-      ),
+      // home: IntroScreen(
+      //   saveIntroStatus: () {
+      //     Get.to(() => HomeScreen());
+      //     // Get.to(() => BottomNavbar());
+      //   },
+      // ),
+      home: HomeScreen(),
     );
   }
 }

@@ -467,6 +467,9 @@ class _AirBlueFlightCardState extends State<AirBlueFlightCard>
                     itemCount: widget.flight.stopSchedules.length,
                     itemBuilder: (context, index) {
                       final schedule = widget.flight.stopSchedules[index];
+
+                      print("flight details schedule");
+                      print(schedule);
                       return _buildFlightSegment(
                         schedule,
                         index,
@@ -549,7 +552,7 @@ class _AirBlueFlightCardState extends State<AirBlueFlightCard>
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
-              getCabinClassName(segmentInfo?.cabinCode ?? 'Y'),
+              getCabinClassName(segmentInfo?.cabinCode ?? ''),
               style: const TextStyle(
                 color: TColors.primary,
                 fontWeight: FontWeight.w500,
@@ -603,7 +606,7 @@ class _AirBlueFlightCardState extends State<AirBlueFlightCard>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      schedule['departure']['city'] ?? "UNK",
+                      schedule['departure']['airport'] ?? "UNK",
                       style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                     Text(
@@ -647,7 +650,7 @@ class _AirBlueFlightCardState extends State<AirBlueFlightCard>
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          getMealInfo(segmentInfo?.mealCode ?? 'M'),
+                          getMealInfo(segmentInfo?.mealCode ?? ''),
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.green,
@@ -664,7 +667,7 @@ class _AirBlueFlightCardState extends State<AirBlueFlightCard>
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      schedule['arrival']['city'] ?? "UNK",
+                      schedule['arrival']['airport'] ?? "UNK",
                       style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                     Text(

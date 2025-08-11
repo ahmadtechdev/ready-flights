@@ -83,7 +83,7 @@ class ApiServiceSabre extends GetxService {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             'Authorization':
-                'Basic VmpFNk5EY3pNVGcxT2paTlJEZzZRVUU9OlUxTlhVa1ZUT1RrPQ==',
+                'Basic VmpFNk5EY3pNVGcxT2paTlJEZzZRVUU9OlUxTlhVa1ZUT1RBPQ==',
             'grant_type': 'client_credentials'
           },
         ),

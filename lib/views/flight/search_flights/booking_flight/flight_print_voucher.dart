@@ -12,7 +12,7 @@ import '../../../../services/api_service_sabre.dart';
 import '../../../../utility/colors.dart';
 import '../airblue/airblue_flight_controller.dart';
 import '../airblue/airblue_flight_model.dart';
-import 'booking_flight_controller.dart';
+import 'booking_flight_controller2.dart';
 
 class FlightBookingDetailsScreen extends StatefulWidget {
   final AirBlueFlight outboundFlight;

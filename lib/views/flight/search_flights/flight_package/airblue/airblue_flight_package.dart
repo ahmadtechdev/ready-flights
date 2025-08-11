@@ -166,7 +166,7 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
         const Padding(
           padding: EdgeInsets.only(left: 16, top: 8, bottom: 8),
           child: Text(
-            'Available Packages',
+            'Available Brands',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -190,7 +190,7 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
                   }
                   return Transform.scale(
                     scale: Curves.easeOutQuint.transform(value),
-                    child: _buildPackageCard(fareOptions[index], index),
+                    child: _buildPackageCard(fareOptions[index],flight, index),
                   );
                 },
               );
@@ -232,7 +232,7 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildPackageCard(AirBlueFareOption package, int index) {
+  Widget _buildPackageCard(AirBlueFareOption package,AirBlueFlight flight, int index) {
     final headerColor = TColors.primary;
     final isSoldOut = false;
     final price = finalPrices['${package.cabinCode}-${package.fareName}']?.value ?? package.price;
@@ -309,16 +309,21 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
                       '${package.cabinCode} (${package.cabinCode})',
                     ),
                     const SizedBox(height: 8),
+                    // In _buildPackageCard method
                     _buildPackageDetail(
                       Icons.change_circle,
                       'Change Fee',
                       package.changeFee,
+                      details: flight.changeFeeDetails,
+                      showInfoIcon: true,
                     ),
                     const SizedBox(height: 8),
                     _buildPackageDetail(
                       Icons.currency_exchange,
                       'Refund Fee',
                       package.refundFee,
+                      details: flight.refundFeeDetails,
+                      showInfoIcon: true,
                     ),
                   ],
                 ),
@@ -359,8 +364,8 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
                   )
                       : Text(
                     isReturnFlight
-                        ? 'Select Return Package'
-                        : 'Select Package',
+                        ? 'Select Return Flight'
+                        : 'Select',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -376,7 +381,8 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildPackageDetail(IconData icon, String title, String value) {
+  Widget _buildPackageDetail(IconData icon, String title, String value,
+      {List<Map<String, dynamic>>? details, bool showInfoIcon = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -394,13 +400,29 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
                     color: TColors.grey,
                   ),
                 ),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: TColors.text,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        value,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: TColors.text,
+                        ),
+                      ),
+                    ),
+                    if (showInfoIcon && details != null && details.isNotEmpty)
+                      GestureDetector(
+                        onTap: () => _showFeeDetailsDialog(title, details),
+                        // onTap: () => _showCompactFeeDetailsDialog(title, details),
+                        child: const Icon(
+                          Icons.help_outline,
+                          size: 18,
+                          color: TColors.primary,
+                        ),
+                      ),
+                  ],
                 ),
               ],
             ),
@@ -474,6 +496,266 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  void _showFeeDetailsDialog(String title, List<Map<String, dynamic>> details) {
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: TColors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: TColors.primary.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      title.toLowerCase().contains('change')
+                          ? Icons.swap_horiz_rounded
+                          : Icons.money_off_rounded,
+                      color: TColors.primary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: TColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Fee details list
+              Container(
+                constraints: const BoxConstraints(maxHeight: 250),
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: details.map((detail) {
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: TColors.background3.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: TColors.primary.withOpacity(0.1),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            // Time icon and condition
+                            Expanded(
+                              flex: 3,
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: TColors.primary.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      Icons.access_time_rounded,
+                                      color: TColors.primary,
+                                      size: 16,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      _formatConditionText(detail['condition'] ?? ''),
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        color: TColors.text,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Amount
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: TColors.primary,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                detail['amount'] ?? '',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: TColors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Close button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Get.back(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: TColors.primary,
+                    foregroundColor: TColors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Close',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      barrierDismissible: true,
+    );
+  }
+
+// Helper function to format condition text in a user-friendly way
+  String _formatConditionText(String condition) {
+    switch (condition.toLowerCase()) {
+      case '<0':
+        return 'Time is <0 hour(s)';
+      case '<48':
+        return 'Time is <48 hour(s)';
+      case '>48':
+        return 'Time is >48 hour(s)';
+      default:
+        if (condition.contains('<')) {
+          final hours = condition.replaceAll('<', '').trim();
+          return 'Time is <$hours hour(s)';
+        } else if (condition.contains('>')) {
+          final hours = condition.replaceAll('>', '').trim();
+          return 'Time is >$hours hour(s)';
+        }
+        return condition;
+    }
+  }
+
+  // Alternative version with a more compact design
+  void _showCompactFeeDetailsDialog(String title, List<Map<String, dynamic>> details) {
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Title
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: TColors.text,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Fee items
+              ...details.map((detail) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _formatConditionText(detail['condition'] ?? ''),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: TColors.text,
+                        ),
+                      ),
+                      Text(
+                        detail['amount'] ?? '',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: TColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+
+              const SizedBox(height: 20),
+
+              // Close button
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Get.back(),
+                  child: Text(
+                    'Close',
+                    style: TextStyle(
+                      color: TColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showReturnFlights() {

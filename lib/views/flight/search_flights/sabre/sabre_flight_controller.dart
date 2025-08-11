@@ -550,6 +550,11 @@ extension FlightDateTimeExtension on FlightController {
 
           if (allStopSchedules.isEmpty) continue;
 
+
+          print("meal check from controller");
+          print(mainFareInfo['passengerInfoList'][0]['passengerInfo']
+          ['fareComponents'][0]['segments'][0]['segment']
+          ['mealCode'] );
           try {
             final firstSchedule = allStopSchedules.first;
             final lastSchedule = allStopSchedules.last;
@@ -611,7 +616,7 @@ extension FlightDateTimeExtension on FlightController {
               mealCode: mainFareInfo['passengerInfoList'][0]['passengerInfo']
               ['fareComponents'][0]['segments'][0]['segment']
               ['mealCode'] ??
-                  'N',
+                  '',
               groupId: itinerary['id'].toString(),
               segmentInfo: segmentInfoList,
               pricingInforArray: typedPricingInfo, // Use the properly typed list

@@ -594,6 +594,9 @@ class SabrePackageSelectionDialog extends StatelessWidget {
         requestBody: requestBody,
       );
 
+      print("availibility check:");
+      print(response);
+
       // Parse the response to get the pricing information
       flightController.parseApiResponse(response, isAvailabilityCheck: true);
 

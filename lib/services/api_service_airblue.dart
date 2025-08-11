@@ -21,14 +21,23 @@ class AirBlueFlightApiService {
   final String sslCert = 'https://onerooftravel.net/flights/classes/airBlue/newoneroof/cert.pem';
   final String sslKey = 'https://onerooftravel.net/flights/classes/airBlue/newoneroof/key.pem';
 
+
+  // ****************travelocitytest***************
   // final String ERSP_UserID = '2012/86B5EFDFF02E2966CBB6EECFF6FC339222';
   // final String ID = 'travelocityota';
   // final String MessagePassword = 'nRve2!EzPrc4cdvt';
   // final String Target = 'Test';
-  final String ERSP_UserID = '1995/5EE590B47346FDCCDBC589A53398F9AF25';
-  final String ID = 'OneRoofTravelsOTA';
-  final String MessagePassword = 'Jpn3nZnkd9@fR';
+// *****************travelocity production************************
+  final String ERSP_UserID = '2032/A419665871F6EF748748BD6BEA6429FD07';
+  final String ID = 'travelocityota';
+  final String MessagePassword = 'CT9ip@Z@7c#iXQX';
   final String Target = 'Production';
+
+  // *************************onerooof production**************
+  // final String ERSP_UserID = '1995/5EE590B47346FDCCDBC589A53398F9AF25';
+  // final String ID = 'OneRoofTravelsOTA';
+  // final String MessagePassword = 'Jpn3nZnkd9@fR';
+  // final String Target = 'Production';
   final String Version = '1.04';
   final String Type = '29';
 
@@ -266,8 +275,8 @@ class AirBlueFlightApiService {
         "blname": bookingController.lastNameController.text,
         "bemail": bookingController.emailController.text,
         "bphno": bookingController.phoneController.text,
-        "badd": bookingController.addressController.text,
-        "bcity": bookingController.cityController.text,
+        "badd": "",
+        "bcity": "",
         "final_price": flight.price.toString(),
         "client_email": bookingController.emailController.text,
         "client_phone": bookingController.phoneController.text,
@@ -282,10 +291,9 @@ class AirBlueFlightApiService {
               "last_name": adult.lastNameController.text,
               "dob": adult.dateOfBirthController.text,
               "nationality": adult.nationalityController.text,
-              "passport": adult.passportController.text,
+              "passport": adult.passportCnicController.text,
               "passport_expiry": adult.passportExpiryController.text,
-              "cnic":
-                  "3310285868703", // CNIC is not collected in current form, leaving empty
+              "cnic": adult.passportCnicController.text, // CNIC is not collected in current form, leaving empty
             };
           }).toList();
 
@@ -298,10 +306,9 @@ class AirBlueFlightApiService {
               "last_name": child.lastNameController.text,
               "dob": child.dateOfBirthController.text,
               "nationality": child.nationalityController.text,
-              "passport": child.passportController.text,
+              "passport": child.passportCnicController.text,
               "passport_expiry": child.passportExpiryController.text,
-              "cnic":
-                  "3310285868703", // CNIC is not collected in current form, leaving empty
+              "cnic":child.passportCnicController.text,
             };
           }).toList();
 
@@ -314,10 +321,9 @@ class AirBlueFlightApiService {
               "last_name": infant.lastNameController.text,
               "dob": infant.dateOfBirthController.text,
               "nationality": infant.nationalityController.text,
-              "passport": infant.passportController.text,
+              "passport": infant.passportCnicController.text,
               "passport_expiry": infant.passportExpiryController.text,
-              "cnic":
-                  "3310285868703", // CNIC is not collected in current form, leaving empty
+              "cnic":infant.passportCnicController.text,
             };
           }).toList();
 
@@ -944,7 +950,7 @@ class AirBlueFlightApiService {
       'firstName': traveler.firstNameController.text,
       'lastName': traveler.lastNameController.text,
       'birthDate': traveler.dateOfBirthController.text,
-      'passport': traveler.passportController.text,
+      'passport': traveler.passportCnicController.text,
       'passportExpiry': traveler.passportExpiryController.text,
       'type': type,
     };
@@ -969,11 +975,11 @@ class AirBlueFlightApiService {
   }
 
   void printDebugData(String label, dynamic data) {
-    // print('--- DEBUG: $label ---');
+    print('--- DEBUG: $label ---');
 
     if (data is String && data.trim().startsWith('<')) {
       // Handle XML string
-      // print('Raw XML:\n$data');
+      print('Raw XML:\n$data');
 
       try {
         // Convert XML to JSON
@@ -986,13 +992,13 @@ class AirBlueFlightApiService {
       }
     } else if (data is String) {
       // Plain string
-      // print('Plain String:\n$data');
+      print('Plain String:\n$data');
     } else {
       // JSON/Map or other object
       printJsonPretty(data);
     }
 
-    // print('--- END DEBUG: $label ---\n');
+    print('--- END DEBUG: $label ---\n');
   }
 
   /// Converts XML string to JSON (Map)

@@ -33,6 +33,8 @@ class _FlightCardState extends State<FlightCard>
   final Rx<Map<String, dynamic>> marginData = Rx<Map<String, dynamic>>({});
   final RxDouble finalPrice = 0.0.obs;
 
+
+
   @override
   void initState() {
     super.initState();
@@ -752,7 +754,7 @@ class _FlightCardState extends State<FlightCard>
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          getMealInfo(segmentInfo?.mealCode ?? 'N'),
+                          getMealInfo(widget.flight.mealCode),
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.green,

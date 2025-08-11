@@ -50,6 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const StatsSection(),
                 const SizedBox(height: 24),
                 const FeaturedPartners(),
+                const SizedBox(height: 24),
               ],
             ),
           ),

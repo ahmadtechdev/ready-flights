@@ -8,7 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:xml/xml.dart' as xml;
 import 'package:xml2json/xml2json.dart';
 
-import '../views/flight/search_flights/booking_flight/booking_flight_controller.dart';
+import '../views/flight/search_flights/booking_flight/booking_flight_controller2.dart';
 import '../views/flight/search_flights/pia/pia_flight_controller.dart';
 import '../views/flight/search_flights/pia/pia_flight_model.dart';
 
