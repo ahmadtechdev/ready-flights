@@ -818,9 +818,9 @@ class AirBlueFlightApiService {
   <Telephone PhoneLocationType="10" CountryAccessCode="92" PhoneNumber="$clientPhone" />
   <Email>$clientEmail</Email>
   <CustLoyalty />
-  <Document DocID="1235568" DocType="$doctype" 
+  <Document DocID="${infant['passport']}" DocType="$doctype" 
             BirthDate="${infant['birthDate']}" 
-            ExpireDate="${children[0]['passportExpiry']}" 
+            ExpireDate="${infant['passportExpiry']}" 
             DocIssueCountry="PK" 
             DocHolderNationality="PK" />
   <PassengerTypeQuantity Code="INF" Quantity="1" />
@@ -933,9 +933,11 @@ class AirBlueFlightApiService {
 
       final pnr = jsonResponse['soap\$Envelope']['soap\$Body']['AirBookResponse']
       ['AirBookResult']['AirReservation']['BookingReferenceID'][0]['ID'];
+      print("check pnr");
       print(pnr);
       final timeLimit = jsonResponse['soap\$Envelope']['soap\$Body']['AirBookResponse']
-      ['AirBookResult']['AirReservation']['Ticketing']['TicketTimeLimit'];
+      ['AirBookResult']['AirReservation']['Ticketing'][0]['TicketTimeLimit'];
+      print("check time limit");
       print(timeLimit);
 
 // Add the pricing info to the return map

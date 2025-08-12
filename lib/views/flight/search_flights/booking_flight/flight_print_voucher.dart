@@ -1,5 +1,6 @@
 // ignore_for_file: empty_catches
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -44,6 +45,12 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
   String bookingReference = 'ORD-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
   String pnrNumber = 'PNR-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
 
+  // Timer related variables
+  Timer? _countdownTimer;
+  Duration? _timeRemaining;
+  DateTime? _expiryDateTime;
+  String _expiryMessage = '';
+
   // Agent data
   final Agent agent = Agent(
     name: 'Ahmad Raza Ali',
@@ -52,19 +59,115 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
     designation: 'Goolaar',
   );
 
+  @override
+  void initState() {
+    super.initState();
+    _initializeTimer();
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
+
+  void _initializeTimer() {
+    // Get the time limit from PNR response
+    final timeLimitString = widget.pnrResponse?['TicketTimeLimit'] ?? widget.pnrResponse?['timeLimit'];
+
+    if (timeLimitString != null) {
+      try {
+        _expiryDateTime = DateTime.parse(timeLimitString);
+        _updateExpiryMessage();
+        _startCountdown();
+      } catch (e) {
+        print('Error parsing time limit: $e');
+      }
+    }
+  }
+
+  void _updateExpiryMessage() {
+    if (_expiryDateTime == null) return;
+
+    final now = DateTime.now();
+    final isToday = _expiryDateTime!.day == now.day &&
+        _expiryDateTime!.month == now.month &&
+        _expiryDateTime!.year == now.year;
+
+    final timeFormat = DateFormat('h:mm a');
+    final dateFormat = DateFormat('MMM dd, yyyy');
+
+    if (isToday) {
+      _expiryMessage = 'This booking will expire today at ${timeFormat.format(_expiryDateTime!)}';
+    } else {
+      _expiryMessage = 'This booking will expire on ${dateFormat.format(_expiryDateTime!)} at ${timeFormat.format(_expiryDateTime!)}';
+    }
+  }
+
+  void _startCountdown() {
+    if (_expiryDateTime == null) return;
+
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      final now = DateTime.now();
+      final difference = _expiryDateTime!.difference(now);
+
+      if (difference.isNegative) {
+        setState(() {
+          _timeRemaining = Duration.zero;
+          _expiryMessage = 'This booking has expired';
+        });
+        timer.cancel();
+      } else {
+        setState(() {
+          _timeRemaining = difference;
+        });
+      }
+    });
+  }
+
+  String _formatTimeRemaining() {
+    if (_timeRemaining == null || _timeRemaining!.isNegative) {
+      return 'Expired';
+    }
+
+    final days = _timeRemaining!.inDays;
+    final hours = _timeRemaining!.inHours.remainder(24);
+    final minutes = _timeRemaining!.inMinutes.remainder(60);
+    final seconds = _timeRemaining!.inSeconds.remainder(60);
+
+    if (days > 0) {
+      return '${days}d ${hours}h ${minutes}m ${seconds}s';
+    } else if (hours > 0) {
+      return '${hours}h ${minutes}m ${seconds}s';
+    } else {
+      return '${minutes}m ${seconds}s';
+    }
+  }
+
+  Color _getTimerColor() {
+    if (_timeRemaining == null || _timeRemaining!.isNegative) {
+      return Colors.red;
+    }
+
+    final totalMinutes = _timeRemaining!.inMinutes;
+    if (totalMinutes <= 30) {
+      return Colors.red;
+    } else if (totalMinutes <= 120) {
+      return Colors.orange;
+    } else {
+      return TColors.primary;
+    }
+  }
+
   Future<void> _prefetchMarginData() async {
     try {
-
       if (marginData.isEmpty) {
-
         final apiService = Get.find<ApiServiceSabre>();
         marginData = await apiService.getMargin();
-
       }
     } catch (e) {
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -87,11 +190,78 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
         child: Column(
           children: [
             _buildHeader(),
+            // Add expiry notice widget
+            if (_expiryDateTime != null) _buildExpiryNotice(),
             Expanded(
               child: _buildBody(),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildExpiryNotice() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _getTimerColor().withOpacity(0.1),
+        border: Border.all(color: _getTimerColor(), width: 1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.schedule,
+                color: _getTimerColor(),
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _expiryMessage,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: _getTimerColor(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (_timeRemaining != null && !_timeRemaining!.isNegative) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+              decoration: BoxDecoration(
+                color: _getTimerColor(),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.timer,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Time Left: ${_formatTimeRemaining()}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -129,14 +299,6 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                       color: TColors.black,
                     ),
                   ),
-                  // const Text(
-                  //   'Travel',
-                  //   style: TextStyle(
-                  //     fontSize: 16,
-                  //     fontWeight: FontWeight.bold,
-                  //     color: TColors.black,
-                  //   ),
-                  // ),
                   const Text(
                     'Booking Voucher',
                     style: TextStyle(
@@ -157,7 +319,6 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                       const SizedBox(width: 4),
                       Text(
                         'Agent Name: ${bookingController.firstNameController.text.toString()} ${bookingController.lastNameController.text.toString()}',
-                        // 'Agent Name: ${bookingController.firstNameController.value.toString()} ${bookingController.lastNameController.value.toString()}',
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
@@ -166,14 +327,6 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                     ],
                   ),
                   const SizedBox(height: 2),
-                  // Text(
-                  //   agent.designation,
-                  //   style: const TextStyle(
-                  //     fontSize: 12,
-                  //     color: TColors.grey,
-                  //   ),
-                  // ),
-                  // const SizedBox(height: 2),
                   Row(
                     children: [
                       const Icon(Icons.email, size: 14, color: TColors.grey),
@@ -278,7 +431,7 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                     ),
                   ),
                   Text(
-                    widget.pnrResponse?['pnr'],
+                    widget.pnrResponse?['pnr'] ?? 'N/A',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
@@ -304,6 +457,7 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
       ),
     );
   }
+
   Widget _buildFlightSegments(AirBlueFlight flight) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -358,7 +512,6 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         Text(departure['airport']),
-                        // Text(departure['city'] ?? "N/A"),
                       ],
                     ),
                     const Icon(Icons.flight, color: TColors.primary),
@@ -370,7 +523,6 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         Text(arrival['airport']),
-                        // Text(arrival['city'] ?? "N/A"),
                       ],
                     ),
                   ],
@@ -391,10 +543,11 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
       return dateTime;
     }
   }
+
   Widget _buildBody() {
     final outboundFlight = widget.outboundFlight;
     final returnFlight = widget.returnFlight;
-    final outboundFareOption =widget.outboundFareOption;
+    final outboundFareOption = widget.outboundFareOption;
     final returnFareOption = widget.returnFareOption;
 
     return SingleChildScrollView(
@@ -414,13 +567,13 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
 
           // Outbound Flight
           ...[
-          _buildFlightCard(
-            flight: outboundFlight,
-            fareOption: outboundFareOption,
-            isReturn: false,
-          ),
-          const SizedBox(height: 16),
-        ],
+            _buildFlightCard(
+              flight: outboundFlight,
+              fareOption: outboundFareOption,
+              isReturn: false,
+            ),
+            const SizedBox(height: 16),
+          ],
 
           // Return Flight
           if (returnFlight != null) ...[
@@ -518,7 +671,6 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
             ),
             const Divider(),
             const SizedBox(height: 8),
-
 
             // Fare details
             if (fareOption != null) ...[
@@ -721,13 +873,11 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
     );
   }
 
-  Widget _buildPriceBreakdownCard()  {
+  Widget _buildPriceBreakdownCard() {
     final outboundFlight = widget.outboundFlight;
     final returnFlight = widget.returnFlight;
     final outboundFareOption = widget.outboundFareOption;
     final returnFareOption = widget.returnFareOption;
-
-
 
     // Calculate prices with margin for each passenger type
     final adultPrice = _calculatePassengerPrice(
@@ -758,7 +908,6 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
     );
 
     final currency = outboundFlight.currency;
-
 
     return Card(
       elevation: 2,
@@ -810,7 +959,6 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
     );
   }
 
-  // Update this method in flight_print_voucher.dart
   Map<String, double> _calculatePassengerPrice(
       String passengerType,
       AirBlueFlight outboundFlight,
@@ -823,10 +971,8 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
     double tax = 0;
     double fee = 0;
 
-
     // Check if we have PNR pricing data
     if (outboundFlight.pnrPricing != null && outboundFlight.pnrPricing!.isNotEmpty) {
-
       // Find pricing for this passenger type
       for (var pricing in outboundFlight.pnrPricing!) {
         if (pricing.passengerType == passengerType) {
@@ -839,7 +985,6 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
     } else {
       Get.snackbar("Ahmad", "hello");
     }
-
 
     // Apply margin if needed (assuming apiService has calculatePriceWithMargin method)
     base = apiService.calculatePriceWithMargin(base, marginData);
@@ -870,7 +1015,6 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
         _buildPriceRow(
           'Subtotal',
           '$currency ${price['total']!.toStringAsFixed(2)}',
-          // isSubtotal: true,
         ),
       ],
     );
@@ -920,7 +1064,7 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
   Future<void> _generatePDF() async {
     final outboundFlight = widget.outboundFlight;
     final returnFlight = widget.returnFlight;
-    final outboundFareOption =widget.outboundFareOption;
+    final outboundFareOption = widget.outboundFareOption;
     final returnFareOption = widget.returnFareOption;
 
     final pdf = pw.Document();
@@ -958,7 +1102,7 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
                     pw.Text(
-                      'Agent: ${bookingController.firstNameController.text} ${bookingController.firstNameController.text}',
+                      'Agent: ${bookingController.firstNameController.text} ${bookingController.lastNameController.text}',
                       style: pw.TextStyle(
                         fontWeight: pw.FontWeight.bold,
                         fontSize: 10,
@@ -990,7 +1134,39 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                 ),
               ],
             ),
-            pw.SizedBox(height: 20),
+            pw.SizedBox(height: 10),
+
+            // Add expiry notice to PDF
+            if (_expiryDateTime != null) ...[
+              pw.Container(
+                padding: const pw.EdgeInsets.all(10),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.red, width: 1),
+                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                ),
+                child: pw.Row(
+                  children: [
+                    pw.Icon(
+                      const pw.IconData(0xe8b5), // schedule icon
+                      color: PdfColors.red,
+                      size: 16,
+                    ),
+                    pw.SizedBox(width: 8),
+                    pw.Expanded(
+                      child: pw.Text(
+                        _expiryMessage,
+                        style: pw.TextStyle(
+                          fontSize: 12,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.red,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 15),
+            ],
 
             // Flight Details
             pw.Text(
@@ -1029,7 +1205,7 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
               ),
             ),
             pw.Divider(),
-            pw.TableHelper. fromTextArray(
+            pw.TableHelper.fromTextArray(
               context: context,
               border: pw.TableBorder.all(color: PdfColors.grey300),
               headerDecoration: pw.BoxDecoration(color: PdfColors.grey200),
