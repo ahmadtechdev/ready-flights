@@ -765,4 +765,55 @@ class FlightBookingController extends GetxController {
     infantCount.value = infants;
     travellersCount.value = adults + children + infants;
   }
+
+  // Add this to your FlightBookingController class
+
+// Helper method to check if a city/country is in Pakistan
+  bool _isPakistan(String cityCode, String cityName, String countryName) {
+    // Check if country is Pakistan (case insensitive)
+    final isCountryPakistan = countryName.toLowerCase().contains('pakistan');
+
+    // // Additional check for city codes (optional, for extra certainty)
+    // final pakistanCityCodes = ['LHE', 'KHI', 'ISB', 'PEW', 'MUX', 'LYP', 'SKT'];
+    // final isCityCodePakistani = pakistanCityCodes.contains(cityCode.toUpperCase());
+
+    return isCountryPakistan;
+  }
+
+// Computed property to check if current selection is domestic
+  bool get isDomesticFlight {
+    if (tripType.value == TripType.multiCity) {
+      // For multi-city, check if all segments are within Pakistan
+      return cityPairs.every((pair) {
+        // We need to get the full airport data to check country
+        // This assumes you have access to the airport data in the controller
+        // You might need to modify this based on how you store airport data
+        final departureAirport = _getAirportByCode(pair.fromCity.value);
+        final arrivalAirport = _getAirportByCode(pair.toCity.value);
+
+        return departureAirport != null &&
+            arrivalAirport != null &&
+            _isPakistan(departureAirport.code, departureAirport.cityName, departureAirport.countryName) &&
+            _isPakistan(arrivalAirport.code, arrivalAirport.cityName, arrivalAirport.countryName);
+      });
+    } else {
+      // For one-way/round-trip, check departure and arrival
+      final departureAirport = _getAirportByCode(fromCity.value);
+      final arrivalAirport = _getAirportByCode(toCity.value);
+
+      return departureAirport != null &&
+          arrivalAirport != null &&
+          _isPakistan(departureAirport.code, departureAirport.cityName, departureAirport.countryName) &&
+          _isPakistan(arrivalAirport.code, arrivalAirport.cityName, arrivalAirport.countryName);
+    }
+  }
+
+// Helper method to get airport data by code (you'll need to implement this)
+  AirportData? _getAirportByCode(String code) {
+    // You'll need access to the list of airports here
+    // If you're using the AirportController, you might do:
+    final airportController = Get.find<AirportController>();
+    return airportController.airports.firstWhereOrNull((airport) => airport.code == code);
+  }
+
 }

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:country_picker/country_picker.dart';
 
 import '../../../../widgets/travelers_selection_bottom_sheet.dart';
+import '../../form/flight_booking_controller.dart';
 
 class TravelerInfo {
   final TextEditingController titleController;
@@ -203,6 +204,14 @@ class BookingFlightController extends GetxController {
         infants[i].dispose();
         infants.removeAt(i);
       }
+    }
+  }
+
+  bool get isDomesticFlight {
+    try {
+      return Get.find<FlightBookingController>().isDomesticFlight;
+    } catch (e) {
+      return false; // Default to international if controller not found
     }
   }
 

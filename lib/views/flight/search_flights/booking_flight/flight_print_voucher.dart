@@ -12,13 +12,14 @@ import '../../../../services/api_service_sabre.dart';
 import '../../../../utility/colors.dart';
 import '../airblue/airblue_flight_controller.dart';
 import '../airblue/airblue_flight_model.dart';
-import 'booking_flight_controller2.dart';
+import 'booking_flight_controller.dart';
 
 class FlightBookingDetailsScreen extends StatefulWidget {
   final AirBlueFlight outboundFlight;
   final AirBlueFlight? returnFlight;
   final AirBlueFareOption? outboundFareOption;
   final AirBlueFareOption? returnFareOption;
+  final Map<String, dynamic>? pnrResponse;
 
   const FlightBookingDetailsScreen({
     super.key,
@@ -26,6 +27,7 @@ class FlightBookingDetailsScreen extends StatefulWidget {
     this.returnFlight,
     this.outboundFareOption,
     this.returnFareOption,
+    this.pnrResponse,
   });
 
   @override
@@ -44,8 +46,8 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
 
   // Agent data
   final Agent agent = Agent(
-    name: 'Ali Usman',
-    email: 'aliusmangulhar8@gmail.com',
+    name: 'Ahmad Raza Ali',
+    email: 'ahmadtechdev@gmail.com',
     phone: '03418216319',
     designation: 'Goolaar',
   );
@@ -73,7 +75,7 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
         backgroundColor: TColors.secondary,
         elevation: 0,
         title: const Text(
-          'OneRoof Travel',
+          'Airblue',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -120,21 +122,21 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'OneRoof',
+                    'Airblue',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: TColors.black,
                     ),
                   ),
-                  const Text(
-                    'Travel',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: TColors.black,
-                    ),
-                  ),
+                  // const Text(
+                  //   'Travel',
+                  //   style: TextStyle(
+                  //     fontSize: 16,
+                  //     fontWeight: FontWeight.bold,
+                  //     color: TColors.black,
+                  //   ),
+                  // ),
                   const Text(
                     'Booking Voucher',
                     style: TextStyle(
@@ -154,7 +156,8 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                       const Icon(Icons.person, size: 14, color: TColors.grey),
                       const SizedBox(width: 4),
                       Text(
-                        'Agent Name: ${agent.name}',
+                        'Agent Name: ${bookingController.firstNameController.text.toString()} ${bookingController.lastNameController.text.toString()}',
+                        // 'Agent Name: ${bookingController.firstNameController.value.toString()} ${bookingController.lastNameController.value.toString()}',
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
@@ -163,20 +166,20 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                     ],
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    agent.designation,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: TColors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
+                  // Text(
+                  //   agent.designation,
+                  //   style: const TextStyle(
+                  //     fontSize: 12,
+                  //     color: TColors.grey,
+                  //   ),
+                  // ),
+                  // const SizedBox(height: 2),
                   Row(
                     children: [
                       const Icon(Icons.email, size: 14, color: TColors.grey),
                       const SizedBox(width: 4),
                       Text(
-                        agent.email,
+                        bookingController.emailController.text.toString(),
                         style: const TextStyle(
                           fontSize: 12,
                           color: TColors.grey,
@@ -190,7 +193,7 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                       const Icon(Icons.phone, size: 14, color: TColors.grey),
                       const SizedBox(width: 4),
                       Text(
-                        'Phone: ${agent.phone}',
+                        'Phone: ${bookingController.phoneController.text.toString()}',
                         style: const TextStyle(
                           fontSize: 12,
                           color: TColors.grey,
@@ -275,7 +278,7 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                     ),
                   ),
                   Text(
-                    pnrNumber,
+                    widget.pnrResponse?['pnr'],
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
@@ -355,7 +358,7 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         Text(departure['airport']),
-                        Text(departure['city'] ?? "N/A"),
+                        // Text(departure['city'] ?? "N/A"),
                       ],
                     ),
                     const Icon(Icons.flight, color: TColors.primary),
@@ -367,7 +370,7 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         Text(arrival['airport']),
-                        Text(arrival['city'] ?? "N/A"),
+                        // Text(arrival['city'] ?? "N/A"),
                       ],
                     ),
                   ],
@@ -467,7 +470,7 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
               children: [
                 Flexible(
                   child: Text(
-                    '${isReturn ? 'Return' : 'Outbound'} Flight: ${flight.airlineName} (${flight.id.split('-').first})',
+                    'Flight: ${flight.airlineName} (${flight.id.split('-').first})',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: TColors.primary,
@@ -679,7 +682,7 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                           _buildTableCell('${index + 1}'),
                           _buildTableCell('${adult.firstNameController.text} ${adult.lastNameController.text}'),
                           _buildTableCell('Adult'),
-                          _buildTableCell(adult.passportController.text),
+                          _buildTableCell(adult.passportCnicController.text),
                           _buildTableCell('N/A'),
                         ],
                       );
@@ -691,7 +694,7 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                           _buildTableCell('${bookingController.adults.length + index + 1}'),
                           _buildTableCell('${child.firstNameController.text} ${child.lastNameController.text}'),
                           _buildTableCell('Child'),
-                          _buildTableCell(child.passportController.text),
+                          _buildTableCell(child.passportCnicController.text),
                           _buildTableCell('N/A'),
                         ],
                       );
@@ -703,7 +706,7 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                           _buildTableCell('${bookingController.adults.length + bookingController.children.length + index + 1}'),
                           _buildTableCell('${infant.firstNameController.text} ${infant.lastNameController.text}'),
                           _buildTableCell('Infant'),
-                          _buildTableCell(infant.passportController.text),
+                          _buildTableCell(infant.passportCnicController.text),
                           _buildTableCell('N/A'),
                         ],
                       );
@@ -955,21 +958,21 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
                     pw.Text(
-                      'Agent: ${agent.name}',
+                      'Agent: ${bookingController.firstNameController.text} ${bookingController.firstNameController.text}',
                       style: pw.TextStyle(
                         fontWeight: pw.FontWeight.bold,
                         fontSize: 10,
                       ),
                     ),
                     pw.Text(
-                      agent.email,
+                      '${bookingController.emailController.text}',
                       style: pw.TextStyle(
                         fontSize: 10,
                         color: PdfColors.grey700,
                       ),
                     ),
                     pw.Text(
-                      'Phone: ${agent.phone}',
+                      'Phone: ${bookingController.bookerPhoneCountry} ${bookingController.phoneController.text}',
                       style: pw.TextStyle(
                         fontSize: 10,
                         color: PdfColors.grey700,
@@ -977,7 +980,7 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                     ),
                     pw.SizedBox(height: 4),
                     pw.Text(
-                      'Reference # $bookingReference | PNR: $pnrNumber',
+                      'Reference # $bookingReference | PNR: ${widget.pnrResponse?['pnr']}',
                       style: pw.TextStyle(
                         fontWeight: pw.FontWeight.bold,
                         fontSize: 10,
@@ -1037,21 +1040,21 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                   '${bookingController.adults.indexOf(adult) + 1}',
                   '${adult.firstNameController.text} ${adult.lastNameController.text}',
                   'Adult',
-                  adult.passportController.text,
+                  adult.passportCnicController.text,
                   'N/A',
                 ]),
                 ...bookingController.children.map((child) => [
                   '${bookingController.adults.length + bookingController.children.indexOf(child) + 1}',
                   '${child.firstNameController.text} ${child.lastNameController.text}',
                   'Child',
-                  child.passportController.text,
+                  child.passportCnicController.text,
                   'N/A',
                 ]),
                 ...bookingController.infants.map((infant) => [
                   '${bookingController.adults.length + bookingController.children.length + bookingController.infants.indexOf(infant) + 1}',
                   '${infant.firstNameController.text} ${infant.lastNameController.text}',
                   'Infant',
-                  infant.passportController.text,
+                  infant.passportCnicController.text,
                   'N/A',
                 ]),
               ],

@@ -37,9 +37,14 @@ class AirBlueBookingFlight extends StatefulWidget {
 
 class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
   final _formKey = GlobalKey<FormState>();
-  final BookingFlightController bookingController = Get.put(BookingFlightController());
-  final TravelersController travelersController = Get.put(TravelersController());
-  final AirBlueFlightController flightController = Get.find<AirBlueFlightController>();
+  final BookingFlightController bookingController = Get.put(
+    BookingFlightController(),
+  );
+  final TravelersController travelersController = Get.put(
+    TravelersController(),
+  );
+  final AirBlueFlightController flightController =
+      Get.find<AirBlueFlightController>();
 
   bool termsAccepted = false;
 
@@ -144,7 +149,10 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                 ],
               ),
             ),
-            AirBlueFlightCard(flight: widget.returnFlight!, showReturnFlight: false),
+            AirBlueFlightCard(
+              flight: widget.returnFlight!,
+              showReturnFlight: false,
+            ),
           ] else ...[
             AirBlueFlightCard(flight: widget.flight, showReturnFlight: false),
           ],
@@ -157,7 +165,7 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
     return Obx(() {
       final adults = List.generate(
         travelersController.adultCount.value,
-            (index) => _buildTravelerSection(
+        (index) => _buildTravelerSection(
           title: 'Adult ${index + 1}',
           isInfant: false,
           type: 'adult',
@@ -167,7 +175,7 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
 
       final children = List.generate(
         travelersController.childrenCount.value,
-            (index) => _buildTravelerSection(
+        (index) => _buildTravelerSection(
           title: 'Child ${index + 1}',
           isInfant: false,
           type: 'child',
@@ -177,7 +185,7 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
 
       final infants = List.generate(
         travelersController.infantCount.value,
-            (index) => _buildTravelerSection(
+        (index) => _buildTravelerSection(
           title: 'Infant ${index + 1}',
           isInfant: true,
           type: 'infant',
@@ -257,7 +265,12 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                     Expanded(
                       child: _buildCheckboxGroup(
                         label: 'Title',
-                        options: isInfant ? ['Inf'] : (type == 'child' ? ['Mstr', 'Miss'] : ['Mr', 'Mrs', 'Ms']),
+                        options:
+                            isInfant
+                                ? ['Inf']
+                                : (type == 'child'
+                                    ? ['Mstr', 'Miss']
+                                    : ['Mr', 'Mrs', 'Ms']),
                         controller: travelerInfo.titleController,
                       ),
                     ),
@@ -297,7 +310,7 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                   controller: travelerInfo.dateOfBirthController,
                 ),
 
-                if (!isInfant) ...[
+                if (type == 'adult') ...[
                   const SizedBox(height: 16),
                   // Phone and Email Row
                   Column(
@@ -316,38 +329,38 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                     ],
                   ),
                   const SizedBox(height: 16),
-
-                  // Nationality and Passport Row
-                  Column(
-                    children: [
-                      _buildNationalityPickerField(
-                        label: 'Nationality*',
-                        travelerInfo: travelerInfo,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        label: 'Passport Number/ CNIC Number*',
-                        controller: travelerInfo.passportCnicController,
-                        isRequired: true,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Passport Expiry
-                  _buildDateField(
-                    label: 'Passport Expire',
-                    controller: travelerInfo.passportExpiryController,
-                  ),
                 ],
+                // Nationality and Passport Row
+                Column(
+                  children: [
+                    _buildNationalityPickerField(
+                      label: 'Nationality*',
+                      travelerInfo: travelerInfo,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      label:
+                          bookingController.isDomesticFlight
+                              ? 'CNIC Number*'
+                              : 'Passport Number*',
+                      controller: travelerInfo.passportCnicController,
+                      isRequired: true,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
 
-                if (isInfant) ...[
-                  const SizedBox(height: 16),
-                  _buildNationalityPickerField(
-                    label: 'Nationality*',
-                    travelerInfo: travelerInfo,
-                  ),
-                ],
+                // Passport Expiry
+                _buildDateField(
+                  label:
+                      bookingController.isDomesticFlight
+                          ? 'CNIC Expire'
+                          : 'Passport Expire',
+                  controller: travelerInfo.passportExpiryController,
+                ),
+
+
+                
               ],
             ),
           ),
@@ -474,12 +487,20 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                 final country = travelerInfo.phoneCountry.value;
                 return InkWell(
                   onTap: () {
-                    bookingController.showPhoneCountryPicker(context, travelerInfo);
+                    bookingController.showPhoneCountryPicker(
+                      context,
+                      travelerInfo,
+                    );
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
-                      border: Border(right: BorderSide(color: Colors.grey[300]!)),
+                      border: Border(
+                        right: BorderSide(color: Colors.grey[300]!),
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -491,7 +512,10 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                         const SizedBox(width: 4),
                         Text(
                           '+${country?.phoneCode ?? '92'}',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         const Icon(Icons.arrow_drop_down, size: 20),
                       ],
@@ -506,7 +530,10 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                     hintText: 'Phone Number',
                   ),
                   validator: (value) {
@@ -555,9 +582,14 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                     bookingController.showBookerPhoneCountryPicker(context);
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
-                      border: Border(right: BorderSide(color: Colors.grey[300]!)),
+                      border: Border(
+                        right: BorderSide(color: Colors.grey[300]!),
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -569,7 +601,10 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                         const SizedBox(width: 4),
                         Text(
                           '+${country?.phoneCode ?? '92'}',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         const Icon(Icons.arrow_drop_down, size: 20),
                       ],
@@ -584,7 +619,10 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                     hintText: 'Phone Number',
                   ),
                   validator: (value) {
@@ -642,7 +680,8 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                       country?.displayNameNoCountryCode ?? 'Select Nationality',
                       style: TextStyle(
                         fontSize: 14,
-                        color: country != null ? Colors.black87 : Colors.grey[600],
+                        color:
+                            country != null ? Colors.black87 : Colors.grey[600],
                       ),
                     ),
                   ),
@@ -748,16 +787,20 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
             maxLines: maxLines,
             decoration: const InputDecoration(
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
             ),
-            validator: isRequired
-                ? (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please fill in this field.';
-              }
-              return null;
-            }
-                : null,
+            validator:
+                isRequired
+                    ? (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please fill in this field.';
+                      }
+                      return null;
+                    }
+                    : null,
           ),
         ),
       ],
@@ -790,7 +833,10 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
             readOnly: true,
             decoration: const InputDecoration(
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
               suffixIcon: Icon(Icons.calendar_month, color: Colors.grey),
             ),
             onTap: () async {
@@ -802,8 +848,7 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
               );
               if (pickedDate != null) {
                 controller.text =
-                "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
-
+                    "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
               }
             },
             validator: (value) {
@@ -837,32 +882,45 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
-          children: options.map((option) {
-            return InkWell(
-              onTap: () {
-                controller.text = option;
-                setState(() {});
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: controller.text == option ? TColors.primary : Colors.white,
-                  border: Border.all(
-                    color: controller.text == option ? TColors.primary : Colors.grey[300]!,
+          children:
+              options.map((option) {
+                return InkWell(
+                  onTap: () {
+                    controller.text = option;
+                    setState(() {});
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color:
+                          controller.text == option
+                              ? TColors.primary
+                              : Colors.white,
+                      border: Border.all(
+                        color:
+                            controller.text == option
+                                ? TColors.primary
+                                : Colors.grey[300]!,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      option,
+                      style: TextStyle(
+                        color:
+                            controller.text == option
+                                ? Colors.white
+                                : Colors.black87,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  option,
-                  style: TextStyle(
-                    color: controller.text == option ? Colors.white : Colors.black87,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
+                );
+              }).toList(),
         ),
       ],
     );
@@ -930,19 +988,22 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                     Get.dialog(
                       const Center(
                         child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(TColors.primary),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            TColors.primary,
+                          ),
                         ),
                       ),
                       barrierDismissible: false,
                     );
 
                     // Call the API to save booking
-                    final response = await AirBlueFlightApiService().saveAirBlueBooking(
-                      bookingController: bookingController,
-                      flight: widget.flight,
-                      returnFlight: widget.returnFlight,
-                      token: 'your_auth_token_here',
-                    );
+                    final response = await AirBlueFlightApiService()
+                        .saveAirBlueBooking(
+                          bookingController: bookingController,
+                          flight: widget.flight,
+                          returnFlight: widget.returnFlight,
+                          token: 'your_auth_token_here',
+                        );
 
                     // Hide loading
                     Get.back();
@@ -957,32 +1018,40 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                       );
 
                       try {
-                        final pnrResponse = await AirBlueFlightApiService().createAirBluePNR(
-                          flight: widget.flight,
-                          returnFlight: widget.returnFlight,
-                          bookingController: bookingController,
-                          clientEmail: bookingController.emailController.text,
-                          clientPhone: bookingController.phoneController.text,
-                        );
+                        final pnrResponse = await AirBlueFlightApiService()
+                            .createAirBluePNR(
+                              flight: widget.flight,
+                              returnFlight: widget.returnFlight,
+                              bookingController: bookingController,
+                              clientEmail:
+                                  bookingController.emailController.text,
+                              clientPhone:
+                                  bookingController.phoneController.text,
+                              isDomestic: bookingController.isDomesticFlight,
+                            );
 
                         // Access the pricing information
                         if (pnrResponse['pnrPricing'] != null) {
-                          for (var price in pnrResponse['rawPricingObjects'] as List<AirBluePNRPricing>) {
+                          for (var price
+                              in pnrResponse['rawPricingObjects']
+                                  as List<AirBluePNRPricing>) {
                             // Handle pricing objects
                           }
                         }
 
                         // Update the flight with PNR pricing
-                        final updatedOutboundFlight = widget.flight.copyWithPNRPricing(
-                          pnrResponse['rawPricingObjects'] ?? [],
-                        );
+                        final updatedOutboundFlight = widget.flight
+                            .copyWithPNRPricing(
+                              pnrResponse['rawPricingObjects'] ?? [],
+                            );
 
                         // If you have a return flight
                         AirBlueFlight? updatedReturnFlight;
                         if (widget.returnFlight != null) {
-                          updatedReturnFlight = widget.returnFlight?.copyWithPNRPricing(
-                            pnrResponse['rawPricingObjects'] ?? [],
-                          );
+                          updatedReturnFlight = widget.returnFlight
+                              ?.copyWithPNRPricing(
+                                pnrResponse['rawPricingObjects'] ?? [],
+                              );
                         }
 
                         Get.snackbar(
@@ -993,13 +1062,15 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                           snackPosition: SnackPosition.TOP,
                         );
 
-                        Get.to(() => FlightBookingDetailsScreen(
-                          outboundFlight: updatedOutboundFlight,
-                          returnFlight: updatedReturnFlight,
-                          outboundFareOption: widget.outboundFareOption,
-                          returnFareOption: widget.returnFareOption,
-                        ));
-
+                        Get.to(
+                          () => FlightBookingDetailsScreen(
+                            outboundFlight: updatedOutboundFlight,
+                            returnFlight: updatedReturnFlight,
+                            outboundFareOption: widget.outboundFareOption,
+                            returnFareOption: widget.returnFareOption,
+                            pnrResponse: pnrResponse,
+                          ),
+                        );
                       } catch (e) {
                         Get.snackbar(
                           'Error',
@@ -1009,14 +1080,15 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                           snackPosition: SnackPosition.TOP,
                         );
                       }
-
                     } else {
                       // Handle API success response with error status
-                      String errorMessage = response['message'] ?? 'Failed to create booking';
+                      String errorMessage =
+                          response['message'] ?? 'Failed to create booking';
                       if (response['errors'] != null) {
-                        errorMessage += '\n${(response['errors'] as Map).entries.map((e) {
-                          return '${e.key}: ${e.value}';
-                        }).join('\n')}';
+                        errorMessage +=
+                            '\n${(response['errors'] as Map).entries.map((e) {
+                              return '${e.key}: ${e.value}';
+                            }).join('\n')}';
                       }
                       Get.snackbar(
                         'Error',
@@ -1031,9 +1103,10 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                     Get.back();
                     String errorMessage = e.message;
                     if (e.errors.isNotEmpty) {
-                      errorMessage += '\n${e.errors.entries.map((e) {
-                        return '${e.key}: ${e.value}';
-                      }).join('\n')}';
+                      errorMessage +=
+                          '\n${e.errors.entries.map((e) {
+                            return '${e.key}: ${e.value}';
+                          }).join('\n')}';
                     }
                     Get.snackbar(
                       'Error (${e.statusCode ?? 'Unknown'})',
@@ -1075,7 +1148,10 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: TColors.primary,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 16,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -1083,10 +1159,7 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
               ),
               child: const Text(
                 'Book Now',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ],

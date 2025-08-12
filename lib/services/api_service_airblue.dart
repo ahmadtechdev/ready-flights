@@ -276,8 +276,8 @@ class AirBlueFlightApiService {
         "blname": bookingController.lastNameController.text,
         "bemail": bookingController.emailController.text,
         "bphno": bookingController.phoneController.text,
-        "badd": "",
-        "bcity": "",
+        "badd": "b",
+        "bcity": "a",
         "final_price": flight.price.toString(),
         "client_email": bookingController.emailController.text,
         "client_phone": bookingController.phoneController.text,
@@ -322,11 +322,15 @@ class AirBlueFlightApiService {
               "last_name": infant.lastNameController.text,
               "dob": infant.dateOfBirthController.text,
               "nationality": infant.nationalityController.text,
-              "passport": infant.passportCnicController.text,
-              "passport_expiry": infant.passportExpiryController.text,
-              "cnic":infant.passportCnicController.text,
+              "passport": "a",
+              "passport_expiry": "a",
+              "cnic":"a",
             };
           }).toList();
+
+      print("check");
+      print(infants);
+
 
       // Prepare flights data
       final flights = <Map<String, dynamic>>[];
@@ -522,6 +526,7 @@ class AirBlueFlightApiService {
     required BookingFlightController bookingController,
     required String clientEmail,
     required String clientPhone,
+    required bool isDomestic,
   }) async {
     try {
       // Prepare booking class array (selected flights)
@@ -752,6 +757,8 @@ class AirBlueFlightApiService {
       String paxXml = '';
       int paxItr = 0;
 
+      String doctype = isDomestic ? "5" : "2";
+
       // Add adults
       for (var adult in adults) {
         paxItr++;
@@ -765,7 +772,7 @@ class AirBlueFlightApiService {
   <Telephone PhoneLocationType="10" CountryAccessCode="92" PhoneNumber="$clientPhone" />
   <Email>$clientEmail</Email>
   <CustLoyalty />
-  <Document DocID="${adult['passport']}" DocType="3" 
+  <Document DocID="${adult['passport']}" DocType="$doctype" 
             BirthDate="${adult['birthDate']}" 
             ExpireDate="${adult['passportExpiry']}" 
             DocIssueCountry="PK" 
@@ -788,7 +795,7 @@ class AirBlueFlightApiService {
   <Telephone PhoneLocationType="10" CountryAccessCode="92" PhoneNumber="$clientPhone" />
   <Email>$clientEmail</Email>
   <CustLoyalty />
-  <Document DocID="${child['passport']}" DocType="3" 
+  <Document DocID="${child['passport']}" DocType="$doctype" 
             BirthDate="${child['birthDate']}" 
             ExpireDate="${child['passportExpiry']}" 
             DocIssueCountry="PK" 
@@ -811,9 +818,9 @@ class AirBlueFlightApiService {
   <Telephone PhoneLocationType="10" CountryAccessCode="92" PhoneNumber="$clientPhone" />
   <Email>$clientEmail</Email>
   <CustLoyalty />
-  <Document DocID="${infant['passport']}" DocType="3" 
+  <Document DocID="1235568" DocType="$doctype" 
             BirthDate="${infant['birthDate']}" 
-            ExpireDate="${infant['passportExpiry']}" 
+            ExpireDate="${children[0]['passportExpiry']}" 
             DocIssueCountry="PK" 
             DocHolderNationality="PK" />
   <PassengerTypeQuantity Code="INF" Quantity="1" />
@@ -909,6 +916,8 @@ class AirBlueFlightApiService {
         final ptcBreakdowns = jsonResponse['soap\$Envelope']['soap\$Body']['AirBookResponse']
         ['AirBookResult']['AirReservation']['PriceInfo']['PTC_FareBreakdowns']['PTC_FareBreakdown'];
 
+
+
         if (ptcBreakdowns is List) {
           for (var breakdown in ptcBreakdowns) {
             pnrPricing.add(AirBluePNRPricing.fromJson(breakdown));
@@ -922,11 +931,20 @@ class AirBlueFlightApiService {
         }
       }
 
+      final pnr = jsonResponse['soap\$Envelope']['soap\$Body']['AirBookResponse']
+      ['AirBookResult']['AirReservation']['BookingReferenceID'][0]['ID'];
+      print(pnr);
+      final timeLimit = jsonResponse['soap\$Envelope']['soap\$Body']['AirBookResponse']
+      ['AirBookResult']['AirReservation']['Ticketing']['TicketTimeLimit'];
+      print(timeLimit);
+
 // Add the pricing info to the return map
       final result = {
         ...jsonResponse,
         'pnrPricing': pnrPricing.map((p) => p.toJson()).toList(),
         'rawPricingObjects': pnrPricing, // Add the actual objects if needed
+        'pnr':pnr,
+        'timeLimit':timeLimit
       };
 
       return result;

@@ -64,7 +64,7 @@ class ApiServiceAirArabia {
   }
 
   // New method for Air Arabia fare prices
-  Future<Map<String, dynamic>> getAirArabiaFare({
+  Future getAirArabiaFare({
     required AirArabiaFlight sectorType, // flight array
     required int adult,
     required int child,
@@ -112,6 +112,7 @@ class ApiServiceAirArabia {
       print('====================================');
 
       if (response.statusCode == 200) {
+        print(response.data);
         // Ensure the response is parsed as Map
         if (response.data is String) {
           return response.data ;
