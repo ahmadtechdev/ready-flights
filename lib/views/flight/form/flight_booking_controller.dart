@@ -388,13 +388,10 @@ class FlightBookingController extends GetxController {
         }
       }
 
-      // Call APIs in parallel but skip AirBlue for multi-city
+      // Call APIs in parallel
       final futures = [
         _callSabreApi(
-          type:
-          tripType.value == TripType.multiCity
-              ? 2
-              : (tripType.value == TripType.roundTrip ? 1 : 0),
+          type: tripType.value == TripType.multiCity ? 2 : (tripType.value == TripType.roundTrip ? 1 : 0),
           origin: origin,
           destination: destination,
           depDate: formattedDates,
@@ -403,6 +400,19 @@ class FlightBookingController extends GetxController {
           infant: infantCount.value,
           cabin: travelClass.value.toUpperCase(),
         ),
+
+        // Call AirBlue API for all trip types including multi-city
+        _callAirBlueApi(
+          type: tripType.value == TripType.multiCity ? 2 : (tripType.value == TripType.roundTrip ? 1 : 0),
+          origin: origin,
+          destination: destination,
+          depDate: formattedDates,
+          adult: adultCount.value,
+          child: childrenCount.value,
+          infant: infantCount.value,
+          cabin: travelClass.value,
+        ),
+
         // Call Air Arabia API for all trip types except multi-city
         if (tripType.value != TripType.multiCity)
           _callAirArabiaApi(
@@ -417,27 +427,10 @@ class FlightBookingController extends GetxController {
           ),
       ];
 
-      // Only call AirBlue if not multi-city
-      if (tripType.value != TripType.multiCity) {
-        futures.add(
-          _callAirBlueApi(
-            type: tripType.value == TripType.roundTrip ? 1 : 0,
-            origin: origin,
-            destination: destination,
-            depDate: formattedDates,
-            adult: adultCount.value,
-            child: childrenCount.value,
-            infant: infantCount.value,
-            cabin: travelClass.value,
-          ),
-        );
-      }
-
       // Add PIA API call based on trip type
       if (tripType.value == TripType.multiCity && cityPairs.isNotEmpty) {
         // Prepare multi-city segments
-        final segments =
-        cityPairs
+        final segments = cityPairs
             .map(
               (pair) => {
             'from': pair.fromCity.value,
@@ -470,10 +463,8 @@ class FlightBookingController extends GetxController {
             adultCount: adultCount.value,
             childCount: childrenCount.value,
             infantCount: infantCount.value,
-            tripType:
-            tripType.value == TripType.roundTrip ? 'ROUND_TRIP' : 'ONE_WAY',
-            returnDate:
-            tripType.value == TripType.roundTrip
+            tripType: tripType.value == TripType.roundTrip ? 'ROUND_TRIP' : 'ONE_WAY',
+            returnDate: tripType.value == TripType.roundTrip
                 ? _formatDateForAPI(returnDateTimeValue.value)
                 : null,
           ),
@@ -488,8 +479,7 @@ class FlightBookingController extends GetxController {
       // Navigate immediately to results page
       Get.to(
             () => FlightBookingPage(
-          scenario:
-          tripType.value == TripType.roundTrip
+          scenario: tripType.value == TripType.roundTrip
               ? FlightScenario.returnFlight
               : (tripType.value == TripType.multiCity
               ? FlightScenario.multiCity
@@ -510,7 +500,6 @@ class FlightBookingController extends GetxController {
       isSearching.value = false;
     }
   }
-
   // Update the _callAirArabiaApi method in flight_booking_controller.dart
   Future<void> _callAirArabiaApi({
     required int type,

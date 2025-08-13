@@ -1,3 +1,5 @@
+// Updated airblue_flight_package.dart with proper multi-city support
+
 // ignore_for_file: dead_code, empty_catches
 
 import 'package:flutter/material.dart';
@@ -15,6 +17,8 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
   final AirBlueFlight flight;
   final bool isReturnFlight;
   final RxBool isLoading = false.obs;
+  final int segmentIndex; // Which segment of the trip this is
+  final bool isMultiCity;
 
   // Cache for margin data and calculated prices
   final Rx<Map<String, dynamic>> marginData = Rx<Map<String, dynamic>>({});
@@ -24,19 +28,22 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
     super.key,
     required this.flight,
     required this.isReturnFlight,
+    required this.segmentIndex,
+    required this.isMultiCity,
   });
 
   final PageController _pageController = PageController(viewportFraction: 0.9);
   final airBlueController = Get.find<AirBlueFlightController>();
-  // Instead, make it a late final variable initialized in build
   late final FlightBookingController flightBookingController;
-
 
   @override
   Widget build(BuildContext context) {
     // Pre-fetch margin data when dialog opens
     _prefetchMarginData();
     flightBookingController = Get.find<FlightBookingController>();
+
+    print("mulicity confition:");
+    print(isMultiCity);
 
     return Scaffold(
       backgroundColor: TColors.background,
@@ -48,9 +55,7 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
           onPressed: () => Get.back(),
         ),
         title: Text(
-          isReturnFlight
-              ? 'Select Return Flight Package'
-              : 'Select Flight Package',
+          _getAppBarTitle(),
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
@@ -65,41 +70,55 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
     );
   }
 
+  String _getAppBarTitle() {
+    if (isMultiCity) {
+      final bookingController = Get.find<FlightBookingController>();
+      if (segmentIndex < bookingController.cityPairs.length) {
+        final cityPair = bookingController.cityPairs[segmentIndex];
+        return 'Select Package: ${cityPair.fromCity.value} → ${cityPair.toCity.value}';
+      }
+      return 'Select Package for Segment ${segmentIndex + 1}';
+    } else if (isReturnFlight) {
+      return 'Select Return Flight Package';
+    } else {
+      return 'Select Flight Package';
+    }
+  }
+
   Widget _buildFlightInfo() {
     return AirBlueFlightCard(flight: flight, showReturnFlight: false);
   }
 
   Future<void> _prefetchMarginData() async {
     try {
-
       if (marginData.value.isEmpty) {
-
         final apiService = Get.find<ApiServiceSabre>();
         marginData.value = await apiService.getMargin();
-
       }
 
-      // Pre-calculate prices for all fare options
-      final fareOptions = airBlueController.getFareOptionsForFlight(flight);
+      // Get fare options using the controller method
+      final fareOptions = airBlueController.getFareOptionsForFlight(
+          flight,
+          segmentIndex: segmentIndex
+      );
+
+      print('DEBUG: Found ${fareOptions.length} fare options for flight ${flight.rph}');
+
       for (var option in fareOptions) {
         final String packageKey = '${option.cabinCode}-${option.brandName}';
 
         if (!finalPrices.containsKey(packageKey)) {
-
           final apiService = Get.find<ApiServiceSabre>();
-
           final marginedBasePrice = apiService.calculatePriceWithMargin(
             option.basePrice,
             marginData.value,
           );
-
           final totalPrice = marginedBasePrice + option.taxAmount + option.feeAmount;
-
-          finalPrices[packageKey] =totalPrice.obs;
-
+          finalPrices[packageKey] = totalPrice.obs;
         }
       }
     } catch (e) {
+      print('DEBUG: Error in _prefetchMarginData: $e');
     }
   }
 
@@ -136,7 +155,13 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
 
   Widget _buildPackagesList() {
     // Get fare options for the selected flight based on RPH
-    final List<AirBlueFareOption> fareOptions = airBlueController.getFareOptionsForFlight(flight);
+    // In _buildPackagesList method
+    final List<AirBlueFareOption> fareOptions = airBlueController.getFareOptionsForFlight(
+        flight,
+        segmentIndex: segmentIndex  // Always pass the segment index
+    ); print('DEBUG: Getting packages for segment $segmentIndex');
+    print('DEBUG: Flight RPH: ${flight.rph}');
+    print('DEBUG: Expected fare key: segment_${segmentIndex}_${flight.rph}');
 
     // Handle empty state
     if (fareOptions.isEmpty) {
@@ -190,7 +215,7 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
                   }
                   return Transform.scale(
                     scale: Curves.easeOutQuint.transform(value),
-                    child: _buildPackageCard(fareOptions[index],flight, index),
+                    child: _buildPackageCard(fareOptions[index], flight, index),
                   );
                 },
               );
@@ -232,7 +257,7 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildPackageCard(AirBlueFareOption package,AirBlueFlight flight, int index) {
+  Widget _buildPackageCard(AirBlueFareOption package, AirBlueFlight flight, int index) {
     final headerColor = TColors.primary;
     final isSoldOut = false;
     final price = finalPrices['${package.cabinCode}-${package.fareName}']?.value ?? package.price;
@@ -309,7 +334,6 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
                       '${package.cabinCode} (${package.cabinCode})',
                     ),
                     const SizedBox(height: 8),
-                    // In _buildPackageCard method
                     _buildPackageDetail(
                       Icons.change_circle,
                       'Change Fee',
@@ -350,7 +374,7 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
                       ? null
                       : () => onSelectPackage(index),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isSoldOut ?  Colors.grey : TColors.primary,
+                    backgroundColor: isSoldOut ? Colors.grey : TColors.primary,
                     minimumSize: const Size(double.infinity, 48),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
@@ -363,9 +387,7 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
                     valueColor: AlwaysStoppedAnimation<Color>(TColors.background),
                   )
                       : Text(
-                    isReturnFlight
-                        ? 'Select Return Flight'
-                        : 'Select',
+                    _getButtonText(),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -379,6 +401,18 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _getButtonText() {
+    if (isMultiCity) {
+      final bookingController = Get.find<FlightBookingController>();
+      final isLastSegment = segmentIndex == bookingController.cityPairs.length - 1;
+      return isLastSegment ? 'Complete Selection' : 'Next Segment';
+    } else if (isReturnFlight) {
+      return 'Select Return Flight';
+    } else {
+      return 'Select';
+    }
   }
 
   Widget _buildPackageDetail(IconData icon, String title, String value,
@@ -415,7 +449,6 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
                     if (showInfoIcon && details != null && details.isNotEmpty)
                       GestureDetector(
                         onTap: () => _showFeeDetailsDialog(title, details),
-                        // onTap: () => _showCompactFeeDetailsDialog(title, details),
                         child: const Icon(
                           Icons.help_outline,
                           size: 18,
@@ -431,60 +464,36 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
       ),
     );
   }
-// Update in airblue_flight_package.dart
+
+  // ALSO FIX: In onSelectPackage method
   void onSelectPackage(int selectedPackageIndex) async {
     try {
       isLoading.value = true;
 
-      // Get all fare options for this flight
-      final List<AirBlueFareOption> fareOptions =
-      airBlueController.getFareOptionsForFlight(flight);
+      // FIXED: Get fare options with correct segment index
+      final List<AirBlueFareOption> fareOptions = airBlueController.getFareOptionsForFlight(
+        flight,
+        segmentIndex: segmentIndex,  // Pass the segment index here too
+      );
 
       // Get the selected fare option
       final selectedFareOption = fareOptions[selectedPackageIndex];
 
-      // Check if this is a one-way flight or we need to select a return flight
+      // Check trip type
       final tripType = flightBookingController.tripType.value;
 
-      if (tripType == TripType.oneWay || isReturnFlight) {
+      if (isMultiCity) {
+        // Handle multi-city selection
+        _handleMultiCitySelection(selectedFareOption);
+      } else if (tripType == TripType.oneWay || isReturnFlight) {
         // For one-way trip or if this is already the return flight selection
-        Get.back(); // Close the package selection dialog
-
-        // Store the selected flight and package
-        if (isReturnFlight) {
-          airBlueController.selectedReturnFareOption = selectedFareOption;
-        } else {
-          airBlueController.selectedOutboundFareOption = selectedFareOption;
-        }
-
-
-        // TODO: Navigate to booking details page
-        Get.snackbar(
-          'Success',
-          isReturnFlight
-              ? 'Return flight package selected. Proceeding to booking details.'
-              : 'Flight package selected. Proceeding to booking details.',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-        );
-        Get.to(() => AirBlueReviewTripPage(
-         flight: flight,
-          // The full API response for this flight
-          isReturn: isReturnFlight,
-        ));
+        _handleOneWayOrReturnSelection(selectedFareOption);
       } else {
-        // For round trip, show return flights
-        Get.back(); // Close the package selection dialog
-
-        // Store the selected outbound flight and package
-        airBlueController.selectedOutboundFlight = flight;
-        airBlueController.selectedOutboundFareOption = selectedFareOption;
-
-        // Show return flights
-        _showReturnFlights();
+        // For round trip (only 2 segments: outbound and return)
+        _handleRoundTripSelection(selectedFareOption);
       }
     } catch (e) {
+      print('DEBUG: Error in onSelectPackage: $e');
       Get.snackbar(
         'Error',
         'This flight package is no longer available. Please select another option.',
@@ -496,6 +505,86 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
     } finally {
       isLoading.value = false;
     }
+  }
+  // FIXED: Method in airblue_flight_package.dart
+
+// NEW: Dedicated method to handle multi-city selections
+  void _handleMultiCitySelection(AirBlueFareOption selectedFareOption) {
+    final bookingController = Get.find<FlightBookingController>();
+
+    print('DEBUG: _handleMultiCitySelection for segment $segmentIndex');
+    print('DEBUG: Total segments: ${bookingController.cityPairs.length}');
+
+    // FIXED: Store the selection for this segment using the controller method
+    airBlueController.handleMultiCityPackageSelection(
+        selectedFareOption,
+        segmentIndex
+    );
+
+    // Get.back(); // Close the package selection dialog
+
+    // The rest of the logic is now handled in the controller
+    // No need to duplicate the logic here
+  }
+  // NEW: Dedicated method to handle one-way or return flight selections
+  void _handleOneWayOrReturnSelection(AirBlueFareOption selectedFareOption) {
+    Get.back(); // Close the package selection dialog
+
+    // Store the selected flight and package
+    if (isReturnFlight) {
+      airBlueController.selectedReturnFareOption = selectedFareOption;
+    } else {
+      airBlueController.selectedOutboundFareOption = selectedFareOption;
+    }
+
+    // Navigate to review page
+    Get.snackbar(
+      'Success',
+      isReturnFlight
+          ? 'Return flight package selected. Proceeding to booking details.'
+          : 'Flight package selected. Proceeding to booking details.',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
+
+    Get.to(() => AirBlueReviewTripPage(
+      flight: flight,
+      isReturn: isReturnFlight,
+    ));
+  }
+
+  // NEW: Dedicated method to handle round trip selections
+  void _handleRoundTripSelection(AirBlueFareOption selectedFareOption) {
+    Get.back(); // Close the package selection dialog
+
+    // Store the selected outbound flight and package
+    airBlueController.selectedOutboundFlight = flight;
+    airBlueController.selectedOutboundFareOption = selectedFareOption;
+
+    // Show return flights
+    _showReturnFlights();
+  }
+
+  // NEW: Method to proceed to multi-city review
+  void _proceedToMultiCityReview() {
+    // You can create a dedicated multi-city review page or
+    // modify the existing review page to handle multi-city
+    Get.snackbar(
+      'Multi-City Review',
+      'This will navigate to multi-city review page',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.orange,
+      colorText: Colors.white,
+    );
+
+    // TODO: Navigate to multi-city review page
+    Get.to(() => AirBlueReviewTripPage(
+      flight: airBlueController.selectedMultiCityFlights.where((f) => f != null).cast<AirBlueFlight>().toList().first,
+      multicityFlights: airBlueController.selectedMultiCityFlights.where((f) => f != null).cast<AirBlueFlight>().toList(),
+      isMulticity: true,
+    ));
   }
 
   void _showFeeDetailsDialog(String title, List<Map<String, dynamic>> details) {
@@ -662,7 +751,7 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
     );
   }
 
-// Helper function to format condition text in a user-friendly way
+  // Helper function to format condition text in a user-friendly way
   String _formatConditionText(String condition) {
     switch (condition.toLowerCase()) {
       case '<0':
@@ -681,81 +770,6 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
         }
         return condition;
     }
-  }
-
-  // Alternative version with a more compact design
-  void _showCompactFeeDetailsDialog(String title, List<Map<String, dynamic>> details) {
-    Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Title
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: TColors.text,
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Fee items
-              ...details.map((detail) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        _formatConditionText(detail['condition'] ?? ''),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: TColors.text,
-                        ),
-                      ),
-                      Text(
-                        detail['amount'] ?? '',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: TColors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-
-              const SizedBox(height: 20),
-
-              // Close button
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => Get.back(),
-                  child: Text(
-                    'Close',
-                    style: TextStyle(
-                      color: TColors.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   void _showReturnFlights() {

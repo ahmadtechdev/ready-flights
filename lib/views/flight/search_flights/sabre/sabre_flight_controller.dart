@@ -551,10 +551,10 @@ extension FlightDateTimeExtension on FlightController {
           if (allStopSchedules.isEmpty) continue;
 
 
-          print("meal check from controller");
-          print(mainFareInfo['passengerInfoList'][0]['passengerInfo']
-          ['fareComponents'][0]['segments'][0]['segment']
-          ['mealCode'] );
+          // print("meal check from controller");
+          // print(mainFareInfo['passengerInfoList'][0]['passengerInfo']
+          // ['fareComponents'][0]['segments'][0]['segment']
+          // ['mealCode'] );
           try {
             final firstSchedule = allStopSchedules.first;
             final lastSchedule = allStopSchedules.last;

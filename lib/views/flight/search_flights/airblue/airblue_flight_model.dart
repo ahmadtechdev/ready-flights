@@ -91,8 +91,6 @@ class AirBlueFlight {
       // Extract detailed fee information
       final feeDetails = _extractFeeDetails(json);
 
-      print("ahmad chaneg refund check");
-      print(feeDetails);
 
       return AirBlueFlight(
         id: flightId,

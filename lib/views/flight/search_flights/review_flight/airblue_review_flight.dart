@@ -12,11 +12,15 @@ import '../search_flight_utils/widgets/airblue_flight_card.dart';
 class AirBlueReviewTripPage extends StatefulWidget {
   final AirBlueFlight flight;
   final bool isReturn;
+  final bool isMulticity;
+  final List<AirBlueFlight>? multicityFlights;
 
   const AirBlueReviewTripPage({
     super.key,
     required this.flight,
     this.isReturn = false,
+    this.isMulticity = false,
+    this.multicityFlights,
   });
 
   @override
@@ -37,17 +41,11 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
   final travelersController = Get.find<TravelersController>();
   final airBlueController = Get.find<AirBlueFlightController>();
 
-  late double adultPrice;
-  late double childPrice;
-  late double infantPrice;
-  late double totalPrice;
-  late String currency;
-
-  late double returnAdultPrice;
-  late double returnChildPrice;
-  late double returnInfantPrice;
-  late double returnTotalPrice;
-  late String returnCurrency;
+  late List<double> adultPrices = [];
+  late List<double> childPrices = [];
+  late List<double> infantPrices = [];
+  late List<double> flightPrices = [];
+  late List<String> currencies = [];
 
   @override
   void initState() {
@@ -57,14 +55,39 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
   }
 
   void _calculatePrices() {
-    // Calculate outbound flight prices
-    adultPrice = 0.0;
-    childPrice = 0.0;
-    infantPrice = 0.0;
-    totalPrice = 0.0;
-    currency = 'PKR';
+    adultPrices.clear();
+    childPrices.clear();
+    infantPrices.clear();
+    flightPrices.clear();
+    currencies.clear();
 
-    final ptcFareBreakdowns = airBlueController.selectedOutboundFareOption!.pricingInfo['PTC_FareBreakdowns']['PTC_FareBreakdown'];
+    // Calculate prices for outbound flight
+    if(!widget.isMulticity){
+
+    _calculateFlightPrices(airBlueController.selectedOutboundFareOption!, 0);
+    }
+
+    // Calculate prices for return flight if it's a round trip
+    if (widget.isReturn && airBlueController.selectedReturnFareOption != null) {
+      _calculateFlightPrices(airBlueController.selectedReturnFareOption!, 1);
+    }
+
+    // Calculate prices for multicity flights if it's a multicity trip
+    if (widget.isMulticity && airBlueController.selectedMultiCityFareOptions != null) {
+      for (int i = 0; i < airBlueController.selectedMultiCityFareOptions!.length; i++) {
+        _calculateFlightPrices(airBlueController.selectedMultiCityFareOptions![i], i + 1);
+      }
+    }
+  }
+
+  void _calculateFlightPrices(dynamic fareOption, int index) {
+    double adultPrice = 0.0;
+    double childPrice = 0.0;
+    double infantPrice = 0.0;
+    double totalPrice = 0.0;
+    String currency = 'PKR';
+
+    final ptcFareBreakdowns = fareOption.pricingInfo['PTC_FareBreakdowns']['PTC_FareBreakdown'];
 
     if (ptcFareBreakdowns is List) {
       for (var breakdown in ptcFareBreakdowns) {
@@ -100,50 +123,18 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
       totalPrice = price;
     }
 
-    // Calculate return flight prices if available
-    if (widget.isReturn && airBlueController.selectedReturnFareOption != null) {
-      returnAdultPrice = 0.0;
-      returnChildPrice = 0.0;
-      returnInfantPrice = 0.0;
-      returnTotalPrice = 0.0;
-      returnCurrency = 'PKR';
+    // Ensure we have enough elements in the lists
+    while (adultPrices.length <= index) adultPrices.add(0.0);
+    while (childPrices.length <= index) childPrices.add(0.0);
+    while (infantPrices.length <= index) infantPrices.add(0.0);
+    while (flightPrices.length <= index) flightPrices.add(0.0);
+    while (currencies.length <= index) currencies.add('PKR');
 
-      final returnPtcFareBreakdowns = airBlueController.selectedReturnFareOption!.pricingInfo['PTC_FareBreakdowns']['PTC_FareBreakdown'];
-
-      if (returnPtcFareBreakdowns is List) {
-        for (var breakdown in returnPtcFareBreakdowns) {
-          final passengerType = breakdown['PassengerTypeQuantity']['Code'];
-          final passengerFare = breakdown['PassengerFare'];
-          final price = double.tryParse(passengerFare['TotalFare']['Amount'].toString()) ?? 0.0;
-          returnCurrency = passengerFare['TotalFare']['CurrencyCode'] ?? 'PKR';
-
-          if (passengerType == 'ADT') {
-            returnAdultPrice = price;
-          } else if (passengerType == 'CHD') {
-            returnChildPrice = price;
-          } else if (passengerType == 'INF') {
-            returnInfantPrice = price;
-          }
-
-          returnTotalPrice += price;
-        }
-      } else if (returnPtcFareBreakdowns is Map) {
-        final passengerType = returnPtcFareBreakdowns['PassengerTypeQuantity']['Code'];
-        final passengerFare = returnPtcFareBreakdowns['PassengerFare'];
-        final price = double.tryParse(passengerFare['TotalFare']['Amount'].toString()) ?? 0.0;
-        returnCurrency = passengerFare['TotalFare']['CurrencyCode'] ?? 'PKR';
-
-        if (passengerType == 'ADT') {
-          returnAdultPrice = price;
-        } else if (passengerType == 'CHD') {
-          returnChildPrice = price;
-        } else if (passengerType == 'INF') {
-          returnInfantPrice = price;
-        }
-
-        returnTotalPrice = price;
-      }
-    }
+    adultPrices[index] = adultPrice;
+    childPrices[index] = childPrice;
+    infantPrices[index] = infantPrice;
+    flightPrices[index] = totalPrice;
+    currencies[index] = currency;
   }
 
   void _startShadowAnimation() {
@@ -189,12 +180,19 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
     return '$formattedInteger.$decimalPart';
   }
 
+  String _getFlightTitle(int index) {
+    if (index == 0) return 'Outbound Flight';
+    if (widget.isReturn && index == 1) return 'Return Flight';
+    if (widget.isMulticity) return 'Flight ${index + 1}';
+    return 'Flight';
+  }
+
+  double get combinedTotalPrice {
+    return flightPrices.fold(0.0, (sum, price) => sum + price);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final double combinedTotalPrice = widget.isReturn
-        ? totalPrice + returnTotalPrice
-        : totalPrice;
-
     return Scaffold(
       backgroundColor: TColors.background,
       appBar: AppBar(
@@ -204,7 +202,11 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
           onPressed: () => Get.back(),
         ),
         title: Text(
-          widget.isReturn ? 'Review Round Trip' : 'Review One Way Trip',
+          widget.isMulticity
+              ? 'Review Multicity Trip'
+              : widget.isReturn
+              ? 'Review Round Trip'
+              : 'Review One Way Trip',
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
@@ -228,11 +230,9 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
                     ),
                   ),
                 ),
-                // if (airBlueController.selectedOutboundFlight != null)
-                  AirBlueFlightCard(
-                    flight: airBlueController.selectedOutboundFlight ?? widget.flight,
-                  ),
-
+                AirBlueFlightCard(
+                  flight: airBlueController.selectedOutboundFlight ?? widget.flight,
+                ),
               ],
             ),
 
@@ -257,6 +257,31 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
                 ],
               ),
 
+            // Multicity Flight Cards if it's a multicity trip
+            if (widget.isMulticity && airBlueController.selectedMultiCityFlights != null)
+              ...airBlueController.selectedMultiCityFlights!.asMap().entries.map((entry) {
+                final index = entry.key;
+                final flight = entry.value;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8.0, top: 8.0),
+                      child: Text(
+                        'Flight ${index + 2}', // +2 because index starts at 0 and we already have outbound as flight 1
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    AirBlueFlightCard(
+                      flight: flight!,
+                    ),
+                  ],
+                );
+              }).toList(),
+
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
               child: Text(
@@ -268,72 +293,10 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
               ),
             ),
 
-            // Outbound Flight Pricing
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 8),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 1500),
-                curve: Curves.easeInOut,
-                decoration: BoxDecoration(
-                  color: TColors.background,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: _animatedShadow,
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Outbound Flight',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: TColors.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (travelersController.adultCount.value > 0)
-                      _buildPriceRow(
-                        'Adult Price x ${travelersController.adultCount.value}',
-                        '$currency ${_formatPrice(adultPrice * travelersController.adultCount.value)}',
-                      ),
-
-                    if (travelersController.childrenCount.value > 0)
-                      Column(
-                        children: [
-                          const SizedBox(height: 8),
-                          _buildPriceRow(
-                            'Child Price x ${travelersController.childrenCount.value}',
-                            '$currency ${_formatPrice(childPrice * travelersController.childrenCount.value)}',
-                          ),
-                        ],
-                      ),
-
-                    if (travelersController.infantCount.value > 0)
-                      Column(
-                        children: [
-                          const SizedBox(height: 8),
-                          _buildPriceRow(
-                            'Infant Price x ${travelersController.infantCount.value}',
-                            '$currency ${_formatPrice(infantPrice * travelersController.infantCount.value)}',
-                          ),
-                        ],
-                      ),
-
-                    const SizedBox(height: 8),
-                    _buildPriceRow(
-                      'Subtotal',
-                      '$currency ${_formatPrice(totalPrice)}',
-                      isSubtotal: true,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Return Flight Pricing if it's a round trip
-            if (widget.isReturn && airBlueController.selectedReturnFareOption != null)
-              Padding(
+            // Flight Pricing Sections
+            ...flightPrices.asMap().entries.map((entry) {
+              final index = entry.key;
+              return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 8),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 1500),
@@ -347,9 +310,9 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Return Flight',
-                        style: TextStyle(
+                      Text(
+                        _getFlightTitle(index),
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                           color: TColors.primary,
@@ -359,7 +322,7 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
                       if (travelersController.adultCount.value > 0)
                         _buildPriceRow(
                           'Adult Price x ${travelersController.adultCount.value}',
-                          '$returnCurrency ${_formatPrice(returnAdultPrice * travelersController.adultCount.value)}',
+                          '${currencies[index]} ${_formatPrice(adultPrices[index] * travelersController.adultCount.value)}',
                         ),
 
                       if (travelersController.childrenCount.value > 0)
@@ -368,7 +331,7 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
                             const SizedBox(height: 8),
                             _buildPriceRow(
                               'Child Price x ${travelersController.childrenCount.value}',
-                              '$returnCurrency ${_formatPrice(returnChildPrice * travelersController.childrenCount.value)}',
+                              '${currencies[index]} ${_formatPrice(childPrices[index] * travelersController.childrenCount.value)}',
                             ),
                           ],
                         ),
@@ -379,7 +342,7 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
                             const SizedBox(height: 8),
                             _buildPriceRow(
                               'Infant Price x ${travelersController.infantCount.value}',
-                              '$returnCurrency ${_formatPrice(returnInfantPrice * travelersController.infantCount.value)}',
+                              '${currencies[index]} ${_formatPrice(infantPrices[index] * travelersController.infantCount.value)}',
                             ),
                           ],
                         ),
@@ -387,13 +350,14 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
                       const SizedBox(height: 8),
                       _buildPriceRow(
                         'Subtotal',
-                        '$returnCurrency ${_formatPrice(returnTotalPrice)}',
+                        '${currencies[index]} ${_formatPrice(flightPrices[index])}',
                         isSubtotal: true,
                       ),
                     ],
                   ),
                 ),
-              ),
+              );
+            }).toList(),
 
             // Combined Total Price
             Padding(
@@ -409,7 +373,7 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: _buildPriceRow(
                   'Total Amount',
-                  '$currency ${_formatPrice(combinedTotalPrice)}',
+                  '${currencies.isNotEmpty ? currencies[0] : 'PKR'} ${_formatPrice(combinedTotalPrice)}',
                   isTotal: true,
                 ),
               ),
@@ -431,13 +395,17 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
                   Column(
                     children: [
                       Text(
-                        widget.isReturn ? 'Round Trip Total' : 'One Way Total',
+                        widget.isMulticity
+                            ? 'Multicity Total'
+                            : widget.isReturn
+                            ? 'Round Trip Total'
+                            : 'One Way Total',
                         style: const TextStyle(
                             fontWeight: FontWeight.bold, color: TColors.grey),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '$currency ${_formatPrice(combinedTotalPrice)}',
+                        '${currencies.isNotEmpty ? currencies[0] : 'PKR'} ${_formatPrice(combinedTotalPrice)}',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -449,19 +417,16 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
                     width: 200,
                     child: ElevatedButton(
                       onPressed: () {
-                        // Get.to(() => BookingForm(
-                        //   flight: widget.flight,
-                        //   returnFlight: widget.isReturn ? airBlueController.selectedReturnFlight : null,
-                        // ));
                         Get.to(() => AirBlueBookingFlight(
                           flight: airBlueController.selectedOutboundFlight ?? widget.flight,
                           returnFlight: widget.isReturn ? airBlueController.selectedReturnFlight : null,
+                          // multicityFlights: widget.isMulticity ? airBlueController.selectedMulticityFlights : null,
                           totalPrice: combinedTotalPrice,
-                          currency: currency,
+                          currency: currencies.isNotEmpty ? currencies[0] : 'PKR',
                           outboundFareOption: airBlueController.selectedOutboundFareOption,
                           returnFareOption: airBlueController.selectedReturnFareOption,
+                          // multicityFareOptions: widget.isMulticity ? airBlueController.selectedMulticityFareOptions : null,
                         ));
-
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: TColors.primary,

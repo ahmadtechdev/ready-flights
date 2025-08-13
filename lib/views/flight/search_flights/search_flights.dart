@@ -188,27 +188,6 @@ class FlightBookingPage extends StatelessWidget {
       child: SingleChildScrollView(
         child: Column(
           children: [
-            // Sabre flights section
-            Obx(() {
-              if (flightController.isLoading.value && flightController.filteredFlights.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-              return ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: flightController.filteredFlights.length,
-                itemBuilder: (context, index) {
-                  final flight = flightController.filteredFlights[index];
-                  return GestureDetector(
-                    onTap: () => flightController.handleFlightSelection(flight),
-                    child: FlightCard(flight: flight),
-                  );
-                },
-              );
-            }),
 
             // AirBlue flights section
             Obx(() {
@@ -231,6 +210,32 @@ class FlightBookingPage extends StatelessWidget {
                 },
               );
             }),
+
+
+
+
+            // Sabre flights section
+            Obx(() {
+              if (flightController.isLoading.value && flightController.filteredFlights.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              return ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: flightController.filteredFlights.length,
+                itemBuilder: (context, index) {
+                  final flight = flightController.filteredFlights[index];
+                  return GestureDetector(
+                    onTap: () => flightController.handleFlightSelection(flight),
+                    child: FlightCard(flight: flight),
+                  );
+                },
+              );
+            }),
+
 
             // PIA flights section
             Obx(() {
