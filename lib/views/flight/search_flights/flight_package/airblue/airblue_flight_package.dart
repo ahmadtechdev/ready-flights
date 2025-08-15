@@ -783,6 +783,12 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+
+      // Debug information
+      final bookingController = Get.find<FlightBookingController>();
+      print('DEBUG: No return flights found for trip type: ${bookingController.tripType.value}');
+      print('DEBUG: Available segments: ${airBlueController.flightsBySegment.keys.toList()}');
+      print('DEBUG: Available fare keys: ${airBlueController.fareOptionsByRPH.keys.toList()}');
       return;
     }
 

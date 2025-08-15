@@ -254,9 +254,20 @@ class AirBlueFlightController extends GetxController {
 
             if (fareOptions.isNotEmpty) {
               fareOptions.sort((a, b) => a.price.compareTo(b.price));
-
+              final bookingController = Get.find<FlightBookingController>();
+              final tripType = bookingController.tripType.value;
               // Create unique key for this segment and RPH
-              final fareKey = 'segment_${segmentIndex}_$rph';
+              // Inside the RPH processing loop:
+              String fareKey;
+              if (tripType == TripType.multiCity) {
+                fareKey = 'segment_${segmentIndex}_$rph';
+              } else if (tripType == TripType.roundTrip && segmentIndex > 0) {
+                // For round trip, segment 0 is outbound, segment 1 is return
+                fareKey = 'return_$rph';
+              } else {
+                fareKey = rph;
+              }
+
               fareOptionsByRPH[fareKey] = fareOptions;
 
               print('DEBUG: Storing fare options with key: $fareKey (${fareOptions.length} options)');
@@ -346,13 +357,9 @@ class AirBlueFlightController extends GetxController {
     if (tripType == TripType.multiCity) {
       // For multi-city, use segment-specific key
       rphKey = 'segment_${segmentIndex}_${flight.rph}';
-    } else if (selectedOutboundFlight != null && flight != selectedOutboundFlight) {
-      // This is a return flight
+    } else if (tripType == TripType.roundTrip && segmentIndex > 0) {
+      // For return flight in round trip
       rphKey = 'return_${flight.rph}';
-      if (!fareOptionsByRPH.containsKey(rphKey)) {
-        // Fallback to regular RPH if return_ prefixed key doesn't exist
-        rphKey = flight.rph;
-      }
     } else {
       // Default case for outbound flights
       rphKey = flight.rph;
@@ -362,6 +369,7 @@ class AirBlueFlightController extends GetxController {
     print('DEBUG: Using key: $rphKey');
     print('DEBUG: Available keys: ${fareOptionsByRPH.keys.toList()}');
 
+    // Rest of the method remains the same...
     final options = fareOptionsByRPH[rphKey] ?? [];
 
     if (options.isEmpty) {
@@ -389,8 +397,7 @@ class AirBlueFlightController extends GetxController {
     }
 
     return options;
-  }
-// ALSO NEED TO FIX: Update the AirBluePackageSelectionDialog usage
+  }// ALSO NEED TO FIX: Update the AirBluePackageSelectionDialog usage
 // The issue is also in how the fare options are retrieved in the dialog// FIXED: Handle flight selection - properly store flight immediately
   void handleMultiCityFlightSelection(AirBlueFlight flight, int segmentIndex) {
     print('DEBUG: handleMultiCityFlightSelection called with segment $segmentIndex');
@@ -675,12 +682,12 @@ class AirBlueFlightController extends GetxController {
   void handleReturnFlightSelection(AirBlueFlight flight) {
     selectedReturnFlight = flight;
 
-    // Open package selection for return flight
+    // Open package selection for return flight with segmentIndex 1
     Get.dialog(
       AirBluePackageSelectionDialog(
         flight: flight,
         isReturnFlight: true,
-        segmentIndex: 0,
+        segmentIndex: 1, // Return flight is segment 1 in round trip
         isMultiCity: false,
       ),
       barrierDismissible: false,
@@ -696,28 +703,40 @@ class AirBlueFlightController extends GetxController {
 
   // Add this method to get return flights when needed
   List<AirBlueFlight> getReturnFlights() {
-    // For multi-city, return flights are stored in segment 1 usually
-    // But this method is mainly for round-trip flights
+    // For multi-city, return flights are stored in their respective segments
+    // For round trip, return flights are in segment 1
+    final bookingController = Get.find<FlightBookingController>();
+    final tripType = bookingController.tripType.value;
+
     final returnFlights = <AirBlueFlight>[];
 
-    fareOptionsByRPH.forEach((rph, options) {
-      if (rph.startsWith('return_')) {
-        if (options.isNotEmpty) {
+    if (tripType == TripType.roundTrip) {
+      // For round trip, look for flights marked with 'return_' prefix
+      fareOptionsByRPH.forEach((rph, options) {
+        if (rph.startsWith('return_') && options.isNotEmpty) {
           final representativeFlight = AirBlueFlight.fromJson(
             options.first.rawData,
             apiService.airlineMap.value,
           ).copyWithFareOptions(options);
           returnFlights.add(representativeFlight);
         }
+      });
+
+      // Fallback: check segment 1 if no flights found with return_ prefix
+      if (returnFlights.isEmpty && flightsBySegment.containsKey(1)) {
+        returnFlights.addAll(flightsBySegment[1] ?? []);
       }
-    });
+    } else if (tripType == TripType.multiCity) {
+      // For multi-city, return flights would be in their respective segments
+      // This method shouldn't be called for multi-city trips
+      print('DEBUG: getReturnFlights called for multi-city trip - not supported');
+    }
 
     // Sort return flights by price
     returnFlights.sort((a, b) => a.price.compareTo(b.price));
 
     return returnFlights;
   }
-
   // Updated apply filters method - now works on original flights and updates filtered flights
   void applyFilters({
     List<String>? airlines,
