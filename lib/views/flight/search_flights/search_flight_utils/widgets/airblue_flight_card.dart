@@ -468,8 +468,6 @@ class _AirBlueFlightCardState extends State<AirBlueFlightCard>
                     itemBuilder: (context, index) {
                       final schedule = widget.flight.stopSchedules[index];
 
-                      print("flight details schedule");
-                      print(schedule);
                       return _buildFlightSegment(
                         schedule,
                         index,

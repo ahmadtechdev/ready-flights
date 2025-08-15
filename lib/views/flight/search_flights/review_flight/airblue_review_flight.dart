@@ -14,6 +14,7 @@ class AirBlueReviewTripPage extends StatefulWidget {
   final bool isReturn;
   final bool isMulticity;
   final List<AirBlueFlight>? multicityFlights;
+  final List<AirBlueFareOption?>? multicityFareOptions;
 
   const AirBlueReviewTripPage({
     super.key,
@@ -21,6 +22,7 @@ class AirBlueReviewTripPage extends StatefulWidget {
     this.isReturn = false,
     this.isMulticity = false,
     this.multicityFlights,
+    this.multicityFareOptions
   });
 
   @override
@@ -28,6 +30,10 @@ class AirBlueReviewTripPage extends StatefulWidget {
 }
 
 class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
+
+
+
+
   List<BoxShadow> _animatedShadow = [
     BoxShadow(
       color: TColors.primary.withOpacity(0.4),
@@ -61,10 +67,9 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
     flightPrices.clear();
     currencies.clear();
 
-    // Calculate prices for outbound flight
-    if(!widget.isMulticity){
-
-    _calculateFlightPrices(airBlueController.selectedOutboundFareOption!, 0);
+    // Calculate prices for outbound flight (only if not multicity)
+    if (!widget.isMulticity && airBlueController.selectedOutboundFareOption != null) {
+      _calculateFlightPrices(airBlueController.selectedOutboundFareOption!, 0);
     }
 
     // Calculate prices for return flight if it's a round trip
@@ -74,8 +79,9 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
 
     // Calculate prices for multicity flights if it's a multicity trip
     if (widget.isMulticity && airBlueController.selectedMultiCityFareOptions != null) {
+      // Only process the actual number of multicity flights we have
       for (int i = 0; i < airBlueController.selectedMultiCityFareOptions!.length; i++) {
-        _calculateFlightPrices(airBlueController.selectedMultiCityFareOptions![i], i + 1);
+        _calculateFlightPrices(airBlueController.selectedMultiCityFareOptions![i], i);
       }
     }
   }
@@ -181,11 +187,13 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
   }
 
   String _getFlightTitle(int index) {
+    if (widget.isMulticity) return 'Flight ${index + 1}'; // Changed for multicity
     if (index == 0) return 'Outbound Flight';
     if (widget.isReturn && index == 1) return 'Return Flight';
-    if (widget.isMulticity) return 'Flight ${index + 1}';
     return 'Flight';
   }
+
+// ... (keep the rest of the code the same)
 
   double get combinedTotalPrice {
     return flightPrices.fold(0.0, (sum, price) => sum + price);
@@ -193,6 +201,8 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
 
   @override
   Widget build(BuildContext context) {
+
+
     return Scaffold(
       backgroundColor: TColors.background,
       appBar: AppBar(
@@ -216,25 +226,26 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
           children: [
             const SizedBox(height: 8),
 
-            // Outbound Flight Card
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.only(left: 8.0, top: 8.0),
-                  child: Text(
-                    'Outbound Flight',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+            // Only show Outbound Flight if it's not multicity
+            if (!widget.isMulticity)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(left: 8.0, top: 8.0),
+                    child: Text(
+                      'Outbound Flight',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
-                ),
-                AirBlueFlightCard(
-                  flight: airBlueController.selectedOutboundFlight ?? widget.flight,
-                ),
-              ],
-            ),
+                  AirBlueFlightCard(
+                    flight: airBlueController.selectedOutboundFlight ?? widget.flight,
+                  ),
+                ],
+              ),
 
             // Return Flight Card if it's a round trip
             if (widget.isReturn && airBlueController.selectedReturnFlight != null)
@@ -258,30 +269,34 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
               ),
 
             // Multicity Flight Cards if it's a multicity trip
+            // In the build method, update the multicity flights section:
             if (widget.isMulticity && airBlueController.selectedMultiCityFlights != null)
               ...airBlueController.selectedMultiCityFlights!.asMap().entries.map((entry) {
                 final index = entry.key;
                 final flight = entry.value;
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 8.0, top: 8.0),
-                      child: Text(
-                        'Flight ${index + 2}', // +2 because index starts at 0 and we already have outbound as flight 1
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                // Only show if we have pricing data for this flight
+                if (index < flightPrices.length) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8.0, top: 8.0),
+                        child: Text(
+                          'Flight ${index + 1}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
-                    ),
-                    AirBlueFlightCard(
-                      flight: flight!,
-                    ),
-                  ],
-                );
+                      AirBlueFlightCard(
+                        flight: flight!,
+                      ),
+                    ],
+                  );
+                }
+                return const SizedBox.shrink();
               }).toList(),
-
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
               child: Text(
@@ -420,12 +435,12 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
                         Get.to(() => AirBlueBookingFlight(
                           flight: airBlueController.selectedOutboundFlight ?? widget.flight,
                           returnFlight: widget.isReturn ? airBlueController.selectedReturnFlight : null,
-                          // multicityFlights: widget.isMulticity ? airBlueController.selectedMulticityFlights : null,
+                          multicityFlights: widget.multicityFlights ,
                           totalPrice: combinedTotalPrice,
                           currency: currencies.isNotEmpty ? currencies[0] : 'PKR',
                           outboundFareOption: airBlueController.selectedOutboundFareOption,
                           returnFareOption: airBlueController.selectedReturnFareOption,
-                          // multicityFareOptions: widget.isMulticity ? airBlueController.selectedMulticityFareOptions : null,
+                          multicityFareOptions: widget.multicityFareOptions,
                         ));
                       },
                       style: ElevatedButton.styleFrom(

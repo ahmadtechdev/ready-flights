@@ -44,6 +44,8 @@ class AirBlueFlightController extends GetxController {
   final RxList<AirBlueFlight?> selectedMultiCityFlights = <AirBlueFlight?>[].obs;
   final RxList<AirBlueFareOption?> selectedMultiCityFareOptions = <AirBlueFareOption?>[].obs;
 
+
+
   // Track current segment being selected for multi-city
   final RxInt currentMultiCitySegment = 0.obs;
 
@@ -675,6 +677,7 @@ class AirBlueFlightController extends GetxController {
       flight: selectedMultiCityFlights.where((f) => f != null).cast<AirBlueFlight>().toList().first,
       multicityFlights: selectedMultiCityFlights.where((f) => f != null).cast<AirBlueFlight>().toList(),
       isMulticity: true,
+      multicityFareOptions: selectedMultiCityFareOptions,
     ));
   }
 

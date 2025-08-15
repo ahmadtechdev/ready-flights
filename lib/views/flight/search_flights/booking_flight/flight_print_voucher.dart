@@ -18,16 +18,20 @@ import 'booking_flight_controller.dart';
 class FlightBookingDetailsScreen extends StatefulWidget {
   final AirBlueFlight outboundFlight;
   final AirBlueFlight? returnFlight;
+  final List<AirBlueFlight>? multicityFlights; // Add this
   final AirBlueFareOption? outboundFareOption;
   final AirBlueFareOption? returnFareOption;
+  final List<AirBlueFareOption>? multicityFareOptions; // Add this
   final Map<String, dynamic>? pnrResponse;
 
   const FlightBookingDetailsScreen({
     super.key,
     required this.outboundFlight,
     this.returnFlight,
+    this.multicityFlights, // Add this
     this.outboundFareOption,
     this.returnFareOption,
+    this.multicityFareOptions, // Add this
     this.pnrResponse,
   });
 
@@ -547,8 +551,10 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
   Widget _buildBody() {
     final outboundFlight = widget.outboundFlight;
     final returnFlight = widget.returnFlight;
+    final multicityFlights = widget.multicityFlights;
     final outboundFareOption = widget.outboundFareOption;
     final returnFareOption = widget.returnFareOption;
+    final multicityFareOptions = widget.multicityFareOptions;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -565,8 +571,8 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
           ),
           const SizedBox(height: 12),
 
-          // Outbound Flight
-          ...[
+          // Outbound Flight (only show if not multicity)
+          if (multicityFlights == null || multicityFlights.isEmpty) ...[
             _buildFlightCard(
               flight: outboundFlight,
               fareOption: outboundFareOption,
@@ -585,6 +591,27 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
             const SizedBox(height: 16),
           ],
 
+          // Multicity Flights
+          if (multicityFlights != null && multicityFlights.isNotEmpty) ...[
+            ...multicityFlights.asMap().entries.map((entry) {
+              final index = entry.key;
+              final flight = entry.value;
+              return Column(
+                children: [
+                  _buildFlightCard(
+                    flight: flight,
+                    fareOption: multicityFareOptions != null && multicityFareOptions.length > index
+                        ? multicityFareOptions[index]
+                        : null,
+                    isReturn: false,
+                    flightNumber: index + 1,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              );
+            }),
+          ],
+
           _buildPassengerDetailsCard(),
           const SizedBox(height: 24),
           _buildPriceBreakdownCard(),
@@ -593,11 +620,11 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
       ),
     );
   }
-
   Widget _buildFlightCard({
     required AirBlueFlight flight,
     required AirBlueFareOption? fareOption,
     required bool isReturn,
+    int? flightNumber,
   }) {
     final firstLeg = flight.legSchedules.first;
     final lastLeg = flight.legSchedules.last;
@@ -623,7 +650,12 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
               children: [
                 Flexible(
                   child: Text(
-                    'Flight: ${flight.airlineName} (${flight.id.split('-').first})',
+                    // Update the title based on flight type
+                    flightNumber != null
+                        ? 'Flight $flightNumber: ${flight.airlineName} (${flight.id.split('-').first})'
+                        : isReturn
+                        ? 'Return Flight: ${flight.airlineName} (${flight.id.split('-').first})'
+                        : 'Outbound Flight: ${flight.airlineName} (${flight.id.split('-').first})',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: TColors.primary,
@@ -876,8 +908,10 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
   Widget _buildPriceBreakdownCard() {
     final outboundFlight = widget.outboundFlight;
     final returnFlight = widget.returnFlight;
+    final multicityFlights = widget.multicityFlights;
     final outboundFareOption = widget.outboundFareOption;
     final returnFareOption = widget.returnFareOption;
+    final multicityFareOptions = widget.multicityFareOptions;
 
     // Calculate prices with margin for each passenger type
     final adultPrice = _calculatePassengerPrice(
@@ -908,6 +942,13 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
     );
 
     final currency = outboundFlight.currency;
+
+    // Calculate total price from all flights
+    double totalPrice = outboundFareOption?.price ?? 0;
+    if (returnFareOption != null) totalPrice += returnFareOption.price;
+    if (multicityFareOptions != null) {
+      totalPrice += multicityFareOptions.fold(0.0, (sum, option) => sum + option.price);
+    }
 
     return Card(
       elevation: 2,
@@ -950,7 +991,7 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
             const Divider(),
             _buildPriceRow(
               'Total Amount',
-              '$currency ${(adultPrice['total']! * bookingController.adults.length + childPrice['total']! * bookingController.children.length + infantPrice['total']! * bookingController.infants.length).toStringAsFixed(2)}',
+              '${outboundFlight.currency} ${totalPrice.toStringAsFixed(2)}',
               isTotal: true,
             ),
           ],
@@ -988,7 +1029,7 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
 
     // Apply margin if needed (assuming apiService has calculatePriceWithMargin method)
     base = apiService.calculatePriceWithMargin(base, marginData);
-    Get.snackbar(base.toString(), "hello");
+
     return {
       'base': base,
       'tax': tax,
@@ -1064,8 +1105,10 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
   Future<void> _generatePDF() async {
     final outboundFlight = widget.outboundFlight;
     final returnFlight = widget.returnFlight;
+    final multicityFlights = widget.multicityFlights;
     final outboundFareOption = widget.outboundFareOption;
     final returnFareOption = widget.returnFareOption;
+    final multicityFareOptions = widget.multicityFareOptions;
 
     final pdf = pw.Document();
 
@@ -1178,13 +1221,16 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
             ),
             pw.Divider(),
 
-            // Outbound Flight
-            _buildPdfFlightSection(
-              flight: outboundFlight,
-              fareOption: outboundFareOption,
-              isReturn: false,
-            ),
-            pw.SizedBox(height: 16),
+            // Flight Details
+            if (multicityFlights == null || multicityFlights.isEmpty) ...[
+              _buildPdfFlightSection(
+                flight: outboundFlight,
+                fareOption: outboundFareOption,
+                isReturn: false,
+              ),
+              pw.SizedBox(height: 16),
+            ],
+
 
             // Return Flight
             if (returnFlight != null) ...[
@@ -1194,6 +1240,26 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                 isReturn: true,
               ),
               pw.SizedBox(height: 16),
+            ],
+
+            if (multicityFlights != null && multicityFlights.isNotEmpty) ...[
+              ...multicityFlights.asMap().entries.map((entry) {
+                final index = entry.key;
+                final flight = entry.value;
+                return pw.Column(
+                  children: [
+                    _buildPdfFlightSection(
+                      flight: flight,
+                      fareOption: multicityFareOptions != null && multicityFareOptions.length > index
+                          ? multicityFareOptions[index]
+                          : null,
+                      isReturn: false,
+                      flightNumber: index + 1,
+                    ),
+                    pw.SizedBox(height: 16),
+                  ],
+                );
+              }),
             ],
 
             // Passenger Details
@@ -1287,6 +1353,7 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
     required AirBlueFlight flight,
     required AirBlueFareOption? fareOption,
     required bool isReturn,
+    int? flightNumber,
   }) {
     final firstLeg = flight.legSchedules.first;
     final lastLeg = flight.legSchedules.last;
@@ -1309,7 +1376,12 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
               pw.Text(
-                '${isReturn ? 'Return' : 'Outbound'} Flight: ${flight.airlineName} (${flight.id.split('-').first})',
+                // Update title based on flight type
+                flightNumber != null
+                    ? 'Flight $flightNumber: ${flight.airlineName} (${flight.id.split('-').first})'
+                    : isReturn
+                    ? 'Return Flight: ${flight.airlineName} (${flight.id.split('-').first})'
+                    : 'Outbound Flight: ${flight.airlineName} (${flight.id.split('-').first})',
                 style: pw.TextStyle(
                   fontWeight: pw.FontWeight.bold,
                 ),

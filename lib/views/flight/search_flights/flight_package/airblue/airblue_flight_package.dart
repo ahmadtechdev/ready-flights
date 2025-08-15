@@ -584,6 +584,7 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
       flight: airBlueController.selectedMultiCityFlights.where((f) => f != null).cast<AirBlueFlight>().toList().first,
       multicityFlights: airBlueController.selectedMultiCityFlights.where((f) => f != null).cast<AirBlueFlight>().toList(),
       isMulticity: true,
+      multicityFareOptions: airBlueController.selectedMultiCityFareOptions,
     ));
   }
 

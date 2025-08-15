@@ -267,6 +267,7 @@ class AirBlueFlightApiService {
     required BookingFlightController bookingController,
     required AirBlueFlight flight,
     required AirBlueFlight? returnFlight,
+    required List<AirBlueFlight>? multicityFlights, // Add this
     required String token,
   }) async {
     try {
@@ -328,19 +329,23 @@ class AirBlueFlightApiService {
             };
           }).toList();
 
-      print("check");
-      print(infants);
-
-
-      // Prepare flights data
+           // Prepare flights data
       final flights = <Map<String, dynamic>>[];
 
-      // Add outbound flight
-      flights.add(_prepareFlightData(flight, "One-Way"));
-
+      // Only add outbound flight if it's not a multicity trip
+      if (multicityFlights == null || multicityFlights.isEmpty) {
+        flights.add(_prepareFlightData(flight, "One-Way"));
+      }
       // Add return flight if exists
       if (returnFlight != null) {
         flights.add(_prepareFlightData(returnFlight, "Return"));
+      }
+
+      // Add multicity flights if exists
+      if (multicityFlights != null && multicityFlights.isNotEmpty) {
+        for (var i = 0; i < multicityFlights.length; i++) {
+          flights.add(_prepareFlightData(multicityFlights[i], "Flight ${i + 1}"));
+        }
       }
 
       // Prepare final request body
@@ -443,62 +448,99 @@ class AirBlueFlightApiService {
   }
 
   Map<String, dynamic> _prepareFlightData(AirBlueFlight flight, String type) {
-    // Get first segment info (assuming there's at least one)
-    final segment =
-    flight.segmentInfo.isNotEmpty
-        ? flight.segmentInfo.first
-        : FlightSegmentInfo(
+    // Handle all segments (not just first one)
+    final segments = flight.segmentInfo.isNotEmpty
+        ? flight.segmentInfo
+        : [FlightSegmentInfo(
       bookingCode: 'Y',
       cabinCode: 'Y',
       mealCode: 'M',
       seatsAvailable: '',
-    );
+    )];
 
-    // Get first leg schedule (assuming there's at least one)
-    final leg =
-    flight.legSchedules.isNotEmpty
-        ? flight.legSchedules.first
-        : {
+    // Handle all legs (not just first one)
+    final legs = flight.legSchedules.isNotEmpty
+        ? flight.legSchedules
+        : [{
       'departure': {'airport': '', 'time': '', 'dateTime': ''},
       'arrival': {'airport': '', 'time': '', 'dateTime': ''},
-    };
+    }];
 
-    // Parse departure date and time
-    final departureDateTime = DateTime.parse(leg['departure']['dateTime']);
-    final arrivalDateTime = DateTime.parse(leg['arrival']['dateTime']);
-    final duration = arrivalDateTime.difference(departureDateTime);
+    // For multicity, we need to include all flight segments in the data
+    if (type.startsWith('Flight')) {
+      return {
+        "segments": legs.map((leg) {
+          final departureDateTime = DateTime.parse(leg['departure']['dateTime']);
+          final arrivalDateTime = DateTime.parse(leg['arrival']['dateTime']);
+          final duration = arrivalDateTime.difference(departureDateTime);
+          final segment = segments.length > legs.indexOf(leg)
+              ? segments[legs.indexOf(leg)]
+              : segments.first;
 
-    return {
-      "departure": {
-        "airport": leg['departure']['airport'],
-        "date": departureDateTime.toIso8601String().split('T')[0],
-        "time":
-        "${departureDateTime.hour.toString().padLeft(2, '0')}:${departureDateTime.minute.toString().padLeft(2, '0')}",
-        "terminal": leg['departure']['terminal'] ?? 'Main',
-      },
-      "arrival": {
-        "airport": leg['arrival']['airport'],
-        "date": arrivalDateTime.toIso8601String().split('T')[0],
-        "time":
-        "${arrivalDateTime.hour.toString().padLeft(2, '0')}:${arrivalDateTime.minute.toString().padLeft(2, '0')}",
-        "terminal": leg['arrival']['terminal'] ?? 'Main',
-      },
-      "flight_number": flight.id.split('-').first,
-      "airline_code": flight.airlineCode,
-      "operating_flight_number": flight.id.split('-').first,
-      "operating_airline_code": flight.airlineCode,
-      "cabin_class": _getCabinClassName(segment.cabinCode),
-      "sub_class": segment.cabinCode,
-      "hand_baggage": "7kg", // Default value as per web
-      "check_baggage":
-      "${flight.baggageAllowance.weight} ${flight.baggageAllowance.unit}",
-      "meal": segment.mealCode == 'M' ? 'Meal' : 'None',
-      "layover": "None", // Assuming non-stop flights
-      "duration": "${duration.inHours}h ${duration.inMinutes.remainder(60)}m",
-      "type": type,
-    };
+          return {
+            "departure": {
+              "airport": leg['departure']['airport'],
+              "date": departureDateTime.toIso8601String().split('T')[0],
+              "time": "${departureDateTime.hour.toString().padLeft(2, '0')}:${departureDateTime.minute.toString().padLeft(2, '0')}",
+              "terminal": leg['departure']['terminal'] ?? 'Main',
+            },
+            "arrival": {
+              "airport": leg['arrival']['airport'],
+              "date": arrivalDateTime.toIso8601String().split('T')[0],
+              "time": "${arrivalDateTime.hour.toString().padLeft(2, '0')}:${arrivalDateTime.minute.toString().padLeft(2, '0')}",
+              "terminal": leg['arrival']['terminal'] ?? 'Main',
+            },
+            "flight_number": flight.id.split('-').first,
+            "airline_code": flight.airlineCode,
+            "operating_flight_number": flight.id.split('-').first,
+            "operating_airline_code": flight.airlineCode,
+            "cabin_class": _getCabinClassName(segment.cabinCode),
+            "sub_class": segment.cabinCode,
+            "hand_baggage": "7kg",
+            "check_baggage": "${flight.baggageAllowance.weight} ${flight.baggageAllowance.unit}",
+            "meal": segment.mealCode == 'M' ? 'Meal' : 'None',
+            "layover": legs.length > 1 ? "Yes" : "None",
+            "duration": "${duration.inHours}h ${duration.inMinutes.remainder(60)}m",
+          };
+        }).toList(),
+        "type": type,
+      };
+    } else {
+      // For one-way/return flights, maintain backward compatibility
+      final firstLeg = legs.first;
+      final departureDateTime = DateTime.parse(firstLeg['departure']['dateTime']);
+      final arrivalDateTime = DateTime.parse(firstLeg['arrival']['dateTime']);
+      final duration = arrivalDateTime.difference(departureDateTime);
+      final segment = segments.first;
+
+      return {
+        "departure": {
+          "airport": firstLeg['departure']['airport'],
+          "date": departureDateTime.toIso8601String().split('T')[0],
+          "time": "${departureDateTime.hour.toString().padLeft(2, '0')}:${departureDateTime.minute.toString().padLeft(2, '0')}",
+          "terminal": firstLeg['departure']['terminal'] ?? 'Main',
+        },
+        "arrival": {
+          "airport": firstLeg['arrival']['airport'],
+          "date": arrivalDateTime.toIso8601String().split('T')[0],
+          "time": "${arrivalDateTime.hour.toString().padLeft(2, '0')}:${arrivalDateTime.minute.toString().padLeft(2, '0')}",
+          "terminal": firstLeg['arrival']['terminal'] ?? 'Main',
+        },
+        "flight_number": flight.id.split('-').first,
+        "airline_code": flight.airlineCode,
+        "operating_flight_number": flight.id.split('-').first,
+        "operating_airline_code": flight.airlineCode,
+        "cabin_class": _getCabinClassName(segment.cabinCode),
+        "sub_class": segment.cabinCode,
+        "hand_baggage": "7kg",
+        "check_baggage": "${flight.baggageAllowance.weight} ${flight.baggageAllowance.unit}",
+        "meal": segment.mealCode == 'M' ? 'Meal' : 'None',
+        "layover": legs.length > 1 ? "Yes" : "None",
+        "duration": "${duration.inHours}h ${duration.inMinutes.remainder(60)}m",
+        "type": type,
+      };
+    }
   }
-
   String _getCabinClassName(String cabinCode) {
     switch (cabinCode.toUpperCase()) {
       case 'F':
@@ -523,21 +565,33 @@ class AirBlueFlightApiService {
   Future<Map<String, dynamic>> createAirBluePNR({
     required AirBlueFlight flight,
     required AirBlueFlight? returnFlight,
+    required List<AirBlueFlight>? multicityFlights, // Add this
     required BookingFlightController bookingController,
     required String clientEmail,
     required String clientPhone,
     required bool isDomestic,
+    required AirBlueFareOption? outboundFareOption,
+    required AirBlueFareOption? returnFareOption,
+    required List<AirBlueFareOption?>? multicityFareOptions,
   }) async {
     try {
       // Prepare booking class array (selected flights)
       final bookingClass = <Map<String, dynamic>>[];
 
-      // Add outbound flight with its original raw data
-      bookingClass.add(flight.rawData); // Assuming we store rawData in AirBlueFlight
-
+      // Only add outbound flight if it's not a multicity trip
+      if (multicityFlights == null || multicityFlights.isEmpty) {
+        bookingClass.add(flight.rawData);
+      }
       // Add return flight if exists
       if (returnFlight != null) {
         bookingClass.add(returnFlight.rawData);
+      }
+
+      // Add multicity flights if exists
+      if (multicityFlights != null && multicityFlights.isNotEmpty) {
+        for (var multicityFlight in multicityFlights) {
+          bookingClass.add(multicityFlight.rawData);
+        }
       }
 
       // Prepare adults, children, infants data
@@ -582,11 +636,41 @@ class AirBlueFlightApiService {
       String ptcText = '';
       int rphCounter = 1;
 
+      print("Check booking Classs");
+      printJsonPretty(bookingClass);
+
+
       for (var flightData in bookingClass) {
         final originDestOption = flightData['AirItinerary']['OriginDestinationOptions']
         ['OriginDestinationOption'];
         final flightSegment = originDestOption['FlightSegment'];
 
+        // Get the selected fare option for this flight
+        // Get the selected fare option for this flight
+        AirBlueFareOption? selectedFareOption;
+
+// For outbound flight (first flight in bookingClass)
+        if (flightData == bookingClass.first && outboundFareOption != null) {
+          selectedFareOption = outboundFareOption;
+        }
+// For return flight (second flight in bookingClass)
+        else if (returnFlight != null &&
+            flightData == bookingClass[1] &&
+            returnFareOption != null) {
+          selectedFareOption = returnFareOption;
+        }
+// For multicity flights
+        else if (multicityFareOptions != null &&
+            multicityFareOptions!.isNotEmpty) {
+          final index = bookingClass.indexOf(flightData);
+          if (index < multicityFareOptions!.length) {
+            selectedFareOption = multicityFareOptions![index];
+          }
+        }
+
+        print('Selected fare option for flight ${flightSegment['FlightNumber']}:');
+        print('  Fare Basis: ${selectedFareOption?.fareBasisCode}');
+        print('  Cabin: ${selectedFareOption?.cabinName}');
         // Build destination XML
         destinationXml += '''
 <OriginDestinationOption RPH="$rphCounter">
@@ -652,7 +736,24 @@ class AirBlueFlightApiService {
 
           // Build fare info XML
           String fareInfoXml = '';
-          final fareInfo = ptc['FareInfo'] is List ? ptc['FareInfo'][0] : ptc['FareInfo'];
+          // Use the selected fare info if available
+          dynamic fareInfo;
+          if (selectedFareOption != null) {
+            // Find the matching fare info from the raw data using fareBasisCode
+            final allFareInfos = ptc['FareInfo'] is List ? ptc['FareInfo'] : [ptc['FareInfo']];
+            for (var info in allFareInfos) {
+              if (info['FareInfo']?['FareBasisCode'] == selectedFareOption.fareBasisCode) {
+                fareInfo = info;
+                break;
+              }
+            }
+          }
+
+          print("fare info check");
+          print(fareInfo);
+
+          // Fallback to first fare info if no match found
+          fareInfo ??= ptc['FareInfo'] is List ? ptc['FareInfo'][0] : ptc['FareInfo'];
 
           if (fareInfo != null) {
             // Build fare info taxes if exists
@@ -935,8 +1036,13 @@ class AirBlueFlightApiService {
       ['AirBookResult']['AirReservation']['BookingReferenceID'][0]['ID'];
       print("check pnr");
       print(pnr);
-      final timeLimit = jsonResponse['soap\$Envelope']['soap\$Body']['AirBookResponse']
-      ['AirBookResult']['AirReservation']['Ticketing'][0]['TicketTimeLimit'];
+      final ticketing = jsonResponse['soap\$Envelope']['soap\$Body']['AirBookResponse']
+      ['AirBookResult']['AirReservation']['Ticketing'];
+
+      final timeLimit = (ticketing is List)
+          ? ticketing[0]['TicketTimeLimit']
+          : ticketing['TicketTimeLimit'];
+
       print("check time limit");
       print(timeLimit);
 
