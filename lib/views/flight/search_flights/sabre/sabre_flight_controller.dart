@@ -60,7 +60,6 @@ class FlightController extends GetxController {
       Get.to(() => SabrePackageSelectionDialog(
         flight: flight,
         isAnyFlightRemaining: false,
-        // pricingInformation: flight.pricingInforArray, // Pass pricing information
       ));
     } else {
       // For return trips
@@ -71,7 +70,6 @@ class FlightController extends GetxController {
         Get.to(() => SabrePackageSelectionDialog(
           flight: flight,
           isAnyFlightRemaining: true,
-          // pricingInformation: flight.pricingInforArray, // Pass pricing information
         ));
       } else {
         // Select the second flight and move to the review page
@@ -79,7 +77,6 @@ class FlightController extends GetxController {
         Get.to(() => SabrePackageSelectionDialog(
           flight: flight,
           isAnyFlightRemaining: false,
-          // pricingInformation: flight.pricingInforArray, // Pass pricing information
         ));
       }
     }
@@ -403,7 +400,7 @@ extension FlightDateTimeExtension on FlightController {
           final segmentInfoList = parseSegmentInfo(mainFareInfo, legs, fareComponentDescsMap);
 
           List<Map<String, dynamic>> allStopSchedules = [];
-          List<String> allStops = [];
+
           int totalDuration = 0;
           List<Map<String, dynamic>> legSchedules = [];
 
@@ -476,8 +473,6 @@ extension FlightDateTimeExtension on FlightController {
             // Get fareBasisCode for this specific leg
             String fareBasisCode = legFareBasisMap[legId] ?? '';
 
-            // If we couldn't get a specific fareBasisCode for this leg,
-            // try to use one from segmentInfoList if available
             if (fareBasisCode.isEmpty && legIndex < segmentInfoList.length) {
               fareBasisCode = segmentInfoList[legIndex].fareBasisCode;
             }
@@ -550,11 +545,6 @@ extension FlightDateTimeExtension on FlightController {
 
           if (allStopSchedules.isEmpty) continue;
 
-
-          // print("meal check from controller");
-          // print(mainFareInfo['passengerInfoList'][0]['passengerInfo']
-          // ['fareComponents'][0]['segments'][0]['segment']
-          // ['mealCode'] );
           try {
             final firstSchedule = allStopSchedules.first;
             final lastSchedule = allStopSchedules.last;
@@ -569,50 +559,25 @@ extension FlightDateTimeExtension on FlightController {
               airline: airlineInfo.name,
               flightNumber:
               '${carrier['marketing'] ?? 'XX'}-${carrier['marketingFlightNumber'] ?? '000'}',
-              departureTime: firstSchedule['departure']['dateTime'],
-              arrivalTime: lastSchedule['arrival']['dateTime'],
-              duration: '${totalDuration ~/ 60}h ${totalDuration % 60}m',
-              price:
+            price:
               (mainFareInfo['totalFare']['totalPrice'] as num).toDouble(),
-              from:
-              '${firstSchedule['departure']['city'] ?? 'Unknown'} (${firstSchedule['departure']['airport'] ?? 'Unknown'})',
-              to: '${lastSchedule['arrival']['city'] ?? 'Unknown'} (${lastSchedule['arrival']['airport'] ?? 'Unknown'})',
-              legSchedules: legSchedules,
+             legSchedules: legSchedules,
               stopSchedules: allStopSchedules,
-              type: getFareType(mainFareInfo),
+              // type: getFareType(mainFareInfo),
               isRefundable: !(mainFareInfo['passengerInfoList'][0]
               ['passengerInfo']['nonRefundable'] ??
                   true),
               isNonStop: allStopSchedules.length == 1,
-              departureTerminal:
-              firstSchedule['departure']['terminal']?.toString() ?? 'Main',
-              arrivalTerminal:
-              lastSchedule['arrival']['terminal']?.toString() ?? 'Main',
-              departureCity:
-              firstSchedule['departure']['city']?.toString() ?? 'Unknown',
-              arrivalCity:
-              lastSchedule['arrival']['city']?.toString() ?? 'Unknown',
-              aircraftType:
-              carrier['equipment']['code']?.toString() ?? 'Unknown',
-              taxes: parseTaxes(mainFareInfo['passengerInfoList'][0]
-              ['passengerInfo']['taxes'] ??
-                  []),
+
               baggageAllowance: _parseBaggageAllowance(
                   mainFareInfo['passengerInfoList'][0]['passengerInfo']
                   ['baggageInformation'] as List? ??
                       [],
                   baggageAllowanceDescsMap),
               packages: packages,
-              stops: allStops
-                  .where((stop) =>
-              stop != firstSchedule['departure']['city'] &&
-                  stop != lastSchedule['arrival']['city'])
-                  .toList(),
+
               legElapsedTime: totalDuration,
-              cabinClass: mainFareInfo['passengerInfoList'][0]['passengerInfo']
-              ['fareComponents'][0]['segments'][0]['segment']
-              ['cabinCode'] ??
-                  'Y',
+
               mealCode: mainFareInfo['passengerInfoList'][0]['passengerInfo']
               ['fareComponents'][0]['segments'][0]['segment']
               ['mealCode'] ??
@@ -620,6 +585,7 @@ extension FlightDateTimeExtension on FlightController {
               groupId: itinerary['id'].toString(),
               segmentInfo: segmentInfoList,
               pricingInforArray: typedPricingInfo, // Use the properly typed list
+              isNDC: pricingInfo.any((pricing) => pricing['pricingSubsource'] == 'NDC_CONNECTOR'),
             );
             parsedFlights.add(flight);
           } catch (e) {

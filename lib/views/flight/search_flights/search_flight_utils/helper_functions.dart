@@ -23,22 +23,6 @@ String getFareType(Map<String, dynamic> fareInfo) {
   }
 }
 
-List<TaxDesc> parseTaxes(List<dynamic> taxes) {
-  try {
-    return taxes
-        .map((tax) => TaxDesc(
-              code: tax['code']?.toString() ?? 'Unknown',
-              amount: (tax['amount'] is int)
-                  ? tax['amount'].toDouble()
-                  : (tax['amount'] as double? ?? 0.0),
-              currency: tax['currency']?.toString() ?? 'PKR',
-              description: tax['description']?.toString() ?? 'No description',
-            ))
-        .toList();
-  } catch (e) {
-    return [];
-  }
-}
 
 BaggageAllowance parseBaggageAllowance(List<dynamic> baggageInfo) {
   try {

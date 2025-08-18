@@ -670,10 +670,7 @@ class AirBlueFlightApiService {
           }
         }
 
-        print('Selected fare option for flight ${flightSegment['FlightNumber']}:');
-        print('  Fare Basis: ${selectedFareOption?.fareBasisCode}');
-        print('  Cabin: ${selectedFareOption?.cabinName}');
-        print('  Fare Info raw data: ${selectedFareOption?.fareInfoRawData}');
+
         // Build destination XML
         destinationXml += '''
 <OriginDestinationOption RPH="$rphCounter">
@@ -751,17 +748,17 @@ class AirBlueFlightApiService {
               }
             }
           }
-
-          print("fare info check");
-          print(fareInfo);
+          //
+          // print("fare info check");
+          // print(fareInfo);
 
           // Fallback to first fare info if no match found
           fareInfo ??= ptc['FareInfo'] is List ? ptc['FareInfo'][0] : ptc['FareInfo'];
 
-          print("fare info 1 that is old");
-          print(fareInfo);
-          print("fare info 1 that is new");
-          print(selectedFareOption?.fareInfoRawData);
+          // print("fare info 1 that is old");
+          // print(fareInfo);
+          // print("fare info 1 that is new");
+          // print(selectedFareOption?.fareInfoRawData);
           fareInfo=selectedFareOption?.fareInfoRawData;
 
           if (fareInfo != null) {
@@ -1115,12 +1112,12 @@ class AirBlueFlightApiService {
 
     if (data is String && data.trim().startsWith('<')) {
       // Handle XML string
-      printLongText('Raw XML:\n$data');
+      // printLongText('Raw XML:\n$data');
 
       try {
         // Convert XML to JSON
         final jsonData = _convertXmlToJson(data);
-        printJsonPretty(jsonData);
+        // printJsonPretty(jsonData);
       } catch (e) {
         if (kDebugMode) {
           print('Error converting XML to JSON: $e');

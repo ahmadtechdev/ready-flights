@@ -465,10 +465,10 @@ class _FlightCardState extends State<FlightCard>
                               ),
                             ],
                           ),
-                          child: const Center(
+                          child: Center(
                             child: Text(
-                              'Sabre',
-                              style: TextStyle(
+                              widget.flight.isNDC?'Sabre NDC':"Sabre",
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
