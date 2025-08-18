@@ -93,7 +93,7 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
     double totalPrice = 0.0;
     String currency = 'PKR';
 
-    final ptcFareBreakdowns = fareOption.pricingInfo['PTC_FareBreakdowns']['PTC_FareBreakdown'];
+    final ptcFareBreakdowns = fareOption.pricingInfo['PTC_FareBreakdowns']['PTC_FareBreakdown'] ?? "";
 
     if (ptcFareBreakdowns is List) {
       for (var breakdown in ptcFareBreakdowns) {

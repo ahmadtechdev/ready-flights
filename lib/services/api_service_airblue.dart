@@ -580,17 +580,17 @@ class AirBlueFlightApiService {
 
       // Only add outbound flight if it's not a multicity trip
       if (multicityFlights == null || multicityFlights.isEmpty) {
-        bookingClass.add(flight.rawData);
+        bookingClass.add(outboundFareOption!.rawData);
       }
       // Add return flight if exists
       if (returnFlight != null) {
-        bookingClass.add(returnFlight.rawData);
+        bookingClass.add(returnFareOption!.rawData);
       }
 
       // Add multicity flights if exists
       if (multicityFlights != null && multicityFlights.isNotEmpty) {
-        for (var multicityFlight in multicityFlights) {
-          bookingClass.add(multicityFlight.rawData);
+        for (var multicityFlight in multicityFareOptions!) {
+          bookingClass.add(multicityFlight!.rawData);
         }
       }
 
@@ -645,6 +645,8 @@ class AirBlueFlightApiService {
         ['OriginDestinationOption'];
         final flightSegment = originDestOption['FlightSegment'];
 
+
+
         // Get the selected fare option for this flight
         // Get the selected fare option for this flight
         AirBlueFareOption? selectedFareOption;
@@ -671,6 +673,7 @@ class AirBlueFlightApiService {
         print('Selected fare option for flight ${flightSegment['FlightNumber']}:');
         print('  Fare Basis: ${selectedFareOption?.fareBasisCode}');
         print('  Cabin: ${selectedFareOption?.cabinName}');
+        print('  Fare Info raw data: ${selectedFareOption?.fareInfoRawData}');
         // Build destination XML
         destinationXml += '''
 <OriginDestinationOption RPH="$rphCounter">
@@ -754,6 +757,12 @@ class AirBlueFlightApiService {
 
           // Fallback to first fare info if no match found
           fareInfo ??= ptc['FareInfo'] is List ? ptc['FareInfo'][0] : ptc['FareInfo'];
+
+          print("fare info 1 that is old");
+          print(fareInfo);
+          print("fare info 1 that is new");
+          print(selectedFareOption?.fareInfoRawData);
+          fareInfo=selectedFareOption?.fareInfoRawData;
 
           if (fareInfo != null) {
             // Build fare info taxes if exists

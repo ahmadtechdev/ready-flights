@@ -619,23 +619,6 @@ class AirBlueFlightController extends GetxController {
     print('DEBUG: Date: ${cityPair.departureDateTime.value}');
     print('DEBUG: Available flights for segment: ${segmentFlights.length}');
 
-    if (segmentFlights.isEmpty) {
-      Get.snackbar(
-        'No Flights Available',
-        'No flights found for ${cityPair.fromCity.value} to ${cityPair.toCity.value}. Please check your search criteria.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-        duration: const Duration(seconds: 4),
-      );
-
-      // Try to proceed to review if other segments are available
-      if (selectedMultiCityFlights.where((f) => f != null).isNotEmpty) {
-        _proceedToMultiCityReview();
-      }
-      return;
-    }
-
     // Update current segment before showing selection
     currentMultiCitySegment.value = segmentIndex;
 
@@ -644,11 +627,11 @@ class AirBlueFlightController extends GetxController {
       Get.back();
     }
 
-    // Use a small delay to ensure the dialog is fully closed
+    // FIXED: Always navigate to the page, even if no flights - let the page handle empty flights
     Future.delayed(Duration(milliseconds: 200), () {
-      Get.offAll(() => AirBlueMultiCityFlightPage(
+      Get.to(() => AirBlueMultiCityFlightPage(
         currentSegment: segmentIndex,
-        availableFlights: segmentFlights,
+        availableFlights: segmentFlights, // Pass the list even if empty
       ));
     });
   }

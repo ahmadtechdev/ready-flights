@@ -701,10 +701,12 @@ class AirBlueFareOption {
 
         for (var fareInfo in fareInfoList) {
           if (fareInfo is Map) {
-            final info = fareInfo['FareInfo'] ?? fareInfo;
-            if (info is Map &&
-                info['FareBasisCode']?.toString().toUpperCase() == fareBasisCode.toUpperCase()) {
-              return Map<String, dynamic>.from(info);
+            // Check if this FareInfo contains the nested FareInfo with FareBasisCode
+            final nestedInfo = fareInfo['FareInfo'];
+            if (nestedInfo is Map &&
+                nestedInfo['FareBasisCode']?.toString().toUpperCase() == fareBasisCode.toUpperCase()) {
+              // Return the entire outer FareInfo object (which contains DepartureDate, DepartureAirport, etc.)
+              return Map<String, dynamic>.from(fareInfo);
             }
           }
         }

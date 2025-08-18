@@ -1,4 +1,4 @@
-// FIXED: airblue_multicity_flight_selection.dart - The issue was in the flight tap handler
+// FIXED: airblue_multicity_flight_selection.dart - Better handling of null/empty flights
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -11,12 +11,12 @@ import 'airblue_flight_model.dart';
 
 class AirBlueMultiCityFlightPage extends StatefulWidget {
   final int currentSegment;
-  final List<AirBlueFlight> availableFlights;
+  final List<AirBlueFlight>? availableFlights; // Made nullable
 
   const AirBlueMultiCityFlightPage({
     super.key,
     required this.currentSegment,
-    required this.availableFlights,
+    this.availableFlights, // Now nullable
   });
 
   @override
@@ -33,8 +33,13 @@ class _AirBlueMultiCityFlightPageState extends State<AirBlueMultiCityFlightPage>
       final airBlueController = Get.find<AirBlueFlightController>();
       airBlueController.debugMultiCityState();
       print('DEBUG: Multi-city flight page opened for segment ${widget.currentSegment}');
-      print('DEBUG: Available flights: ${widget.availableFlights.length}');
+      print('DEBUG: Available flights: ${_getSafeFlights().length}');
     });
+  }
+
+  // Helper method to get safe flight list
+  List<AirBlueFlight> _getSafeFlights() {
+    return widget.availableFlights ?? [];
   }
 
   @override
@@ -44,16 +49,7 @@ class _AirBlueMultiCityFlightPageState extends State<AirBlueMultiCityFlightPage>
 
     // Ensure we have a valid city pair for this segment
     if (widget.currentSegment >= bookingController.cityPairs.length) {
-      return Scaffold(
-        backgroundColor: TColors.background,
-        appBar: AppBar(
-          backgroundColor: TColors.background,
-          title: const Text('Error'),
-        ),
-        body: const Center(
-          child: Text('Invalid segment'),
-        ),
-      );
+      return _buildErrorScaffold('Invalid segment');
     }
 
     final cityPair = bookingController.cityPairs[widget.currentSegment];
@@ -98,15 +94,7 @@ class _AirBlueMultiCityFlightPageState extends State<AirBlueMultiCityFlightPage>
               Get.back();
             },
           ),
-          actions: [
-            // Debug button (remove in production)
-            IconButton(
-              icon: const Icon(Icons.bug_report),
-              onPressed: () {
-                airBlueController.debugMultiCityState();
-              },
-            ),
-          ],
+
         ),
         body: Column(
           children: [
@@ -118,7 +106,56 @@ class _AirBlueMultiCityFlightPageState extends State<AirBlueMultiCityFlightPage>
 
             // Flight list
             Expanded(
-              child: _buildFlightList(airBlueController),
+              child: _buildFlightList(airBlueController, cityPair),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Scaffold _buildErrorScaffold(String errorMessage) {
+    return Scaffold(
+      backgroundColor: TColors.background,
+      appBar: AppBar(
+        backgroundColor: TColors.background,
+        title: const Text('Error'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: TColors.grey.withOpacity(0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              errorMessage,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: TColors.text,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => Get.back(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: TColors.primary,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              child: const Text(
+                'Go Back',
+                style: TextStyle(
+                  color: TColors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ],
         ),
@@ -307,97 +344,18 @@ class _AirBlueMultiCityFlightPageState extends State<AirBlueMultiCityFlightPage>
     );
   }
 
-  Widget _buildFlightList(AirBlueFlightController airBlueController) {
-    if (widget.availableFlights.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.flight_takeoff_outlined,
-              size: 64,
-              color: TColors.grey.withOpacity(0.5),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No Flights Available',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: TColors.text,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'No flights found for this route.\nPlease check your search criteria or try different dates.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: TColors.grey,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    print('DEBUG: Skip segment button pressed for segment ${widget.currentSegment}');
-                    Get.back();
+  Widget _buildFlightList(AirBlueFlightController airBlueController, dynamic cityPair) {
+    final safeFlights = _getSafeFlights();
 
-                    // Try to proceed to next segment
-                    Future.delayed(const Duration(milliseconds: 500), () {
-                      airBlueController.proceedToNextMultiCitySegment();
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: TColors.grey,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  child: const Text(
-                    'Skip Segment',
-                    style: TextStyle(
-                      color: TColors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    print('DEBUG: Go back button pressed for segment ${widget.currentSegment}');
-                    Get.back();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: TColors.primary,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  child: const Text(
-                    'Go Back',
-                    style: TextStyle(
-                      color: TColors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
+    if (safeFlights.isEmpty) {
+      return _buildNoFlightsFound(airBlueController, cityPair);
     }
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: widget.availableFlights.length,
+      itemCount: safeFlights.length,
       itemBuilder: (context, index) {
-        final flight = widget.availableFlights[index];
+        final flight = safeFlights[index];
         return GestureDetector(
           // MAIN FIX: Use widget.currentSegment directly instead of trying to access it from controller
           onTap: () {
@@ -431,6 +389,100 @@ class _AirBlueMultiCityFlightPageState extends State<AirBlueMultiCityFlightPage>
           ),
         );
       },
+    );
+  }
+
+  Widget _buildNoFlightsFound(AirBlueFlightController airBlueController, dynamic cityPair) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.flight_takeoff_outlined,
+            size: 64,
+            color: TColors.grey.withOpacity(0.5),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No Flights Found for This Segment',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: TColors.text,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'No flights available from ${cityPair.fromCity.value} to ${cityPair.toCity.value}.\nPlease check your search criteria or try different dates.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: TColors.grey,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  print('DEBUG: Skip segment button pressed for segment ${widget.currentSegment}');
+                  Get.back();
+
+                  // Try to proceed to next segment
+                  Future.delayed(const Duration(milliseconds: 500), () {
+                    airBlueController.proceedToNextMultiCitySegment();
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: TColors.grey,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                child: const Text(
+                  'Skip This Segment',
+                  style: TextStyle(
+                    color: TColors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              ElevatedButton(
+                onPressed: () {
+                  print('DEBUG: Modify search button pressed for segment ${widget.currentSegment}');
+                  Get.back();
+
+                  // Show a snackbar suggesting to modify search
+                  Get.snackbar(
+                    'No Flights Available',
+                    'Try different dates or modify your search criteria for this route.',
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: TColors.primary,
+                    colorText: TColors.white,
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: TColors.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                child: const Text(
+                  'Modify Search',
+                  style: TextStyle(
+                    color: TColors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
