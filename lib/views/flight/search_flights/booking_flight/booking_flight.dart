@@ -1,13 +1,12 @@
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:country_picker/country_picker.dart';
 import 'package:ready_flights/services/api_service_sabre.dart';
 import '../../../../utility/colors.dart';
 import '../../../../widgets/travelers_selection_bottom_sheet.dart';
-
 import '../sabre/sabre_flight_models.dart';
 import '../search_flight_utils/widgets/sabre_flight_card.dart';
-import 'booking_flight_controller2.dart';
+import 'airblue/booking_flight_controller.dart';
 
 class BookingForm extends StatefulWidget {
   final SabreFlight flight;
@@ -19,23 +18,115 @@ class BookingForm extends StatefulWidget {
 
 class _BookingFormState extends State<BookingForm> {
   final _formKey = GlobalKey<FormState>();
-  final BookingFlightController bookingController =
-  Get.put(BookingFlightController());
-  final TravelersController travelersController =
-  Get.put(TravelersController());
+  final BookingFlightController bookingController = Get.put(
+    BookingFlightController(),
+  );
+  final TravelersController travelersController = Get.put(
+    TravelersController(),
+  );
+
   bool termsAccepted = false;
+
+  // Auto-fill function for testing
+  void _fillDummyData() {
+    // Fill booker information
+    bookingController.firstNameController.text = "John";
+    bookingController.lastNameController.text = "Doe";
+    bookingController.emailController.text = "john.doe@example.com";
+    bookingController.phoneController.text = "1234567890";
+    bookingController.remarksController.text = "Test booking";
+    bookingController.bookerPhoneCountry.value = Country.parse('PK');
+
+    // Fill adult travelers
+    for (int i = 0; i < bookingController.adults.length; i++) {
+      final adult = bookingController.adults[i];
+      adult.titleController.text = i % 2 == 0 ? "Mr" : "Mrs";
+      adult.firstNameController.text = "PAX${i + 1}";
+      adult.lastNameController.text = "Traveler";
+      adult.passportCnicController.text = bookingController.isDomesticFlight
+          ? "1234567890123"
+          : "AB123456${i + 1}";
+      adult.nationalityController.text = "Pakistan";
+      adult.nationalityCountry.value = Country.parse('PK');
+      adult.dateOfBirthController.text = "1990-0${(i % 9) + 1}-15";
+      adult.passportExpiryController.text = "2030-12-31";
+      adult.genderController.text = i % 2 == 0 ? "Male" : "Female";
+      adult.phoneController.text = "300123456${i + 1}";
+      adult.phoneCountry.value = Country.parse('PK');
+      adult.emailController.text = "adult${i + 1}@example.com";
+    }
+
+    // Fill child travelers
+    for (int i = 0; i < bookingController.children.length; i++) {
+      final child = bookingController.children[i];
+      child.titleController.text = i % 2 == 0 ? "Mstr" : "Miss";
+      child.firstNameController.text = "Child${i + 1}";
+      child.lastNameController.text = "Traveler";
+      child.passportCnicController.text = bookingController.isDomesticFlight
+          ? "1234567890${100 + i}"
+          : "CD123456${i + 1}";
+      child.nationalityController.text = "Pakistan";
+      child.nationalityCountry.value = Country.parse('PK');
+      child.dateOfBirthController.text = "2015-0${(i % 9) + 1}-15";
+      child.passportExpiryController.text = "2030-12-31";
+      child.genderController.text = i % 2 == 0 ? "Male" : "Female";
+      child.phoneController.text = "";
+      child.emailController.text = "";
+    }
+
+    // Fill infant travelers
+    for (int i = 0; i < bookingController.infants.length; i++) {
+      final infant = bookingController.infants[i];
+      infant.titleController.text = "Inf";
+      infant.firstNameController.text = "Infant${i + 1}";
+      infant.lastNameController.text = "Traveler";
+      infant.nationalityController.text = "Pakistan";
+      infant.nationalityCountry.value = Country.parse('PK');
+      infant.dateOfBirthController.text = "2023-0${(i % 9) + 1}-15";
+      infant.genderController.text = i % 2 == 0 ? "Male" : "Female";
+    }
+
+    // Accept terms and conditions
+    setState(() {
+      termsAccepted = true;
+    });
+
+    // Show success message
+    Get.snackbar(
+      'Success',
+      'Form filled with dummy data for testing',
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+      snackPosition: SnackPosition.TOP,
+      duration: const Duration(seconds: 2),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: TColors.background,
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('Booking Details'),
-        backgroundColor: TColors.background,
+        title: GestureDetector(
+          onTap: () {
+            // Single tap does nothing, preserving original behavior
+          },
+          onDoubleTap: () {
+            // Double tap fills dummy data
+            _fillDummyData();
+          },
+          child: const Text(
+            'Booking Details',
+            style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black87),
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(4.0),
+          padding: const EdgeInsets.all(16.0),
           child: Form(
             key: _formKey,
             child: Column(
@@ -43,20 +134,12 @@ class _BookingFormState extends State<BookingForm> {
               children: [
                 _buildFlightDetails(),
                 const SizedBox(height: 24),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: _buildTravelersForm(),
-                ),
+                _buildTravelersForm(),
                 const SizedBox(height: 24),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: _buildBookerDetails(),
-                ),
+                _buildBookerDetails(),
                 const SizedBox(height: 24),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: _buildTermsAndConditions(),
-                )
+                _buildTermsAndConditions(),
+                const SizedBox(height: 100), // Space for bottom bar
               ],
             ),
           ),
@@ -66,57 +149,10 @@ class _BookingFormState extends State<BookingForm> {
     );
   }
 
-  @override
-  void dispose() {
-    bookingController.dispose();
-    travelersController.dispose();
-    super.dispose();
-  }
-
-  Widget _buildTermsAndConditions() {
-    return Card(
-      color: TColors.background,
-      elevation: 0,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: CheckboxListTile(
-        title: RichText(
-          text: const TextSpan(
-            children: [
-              TextSpan(
-                text: 'I accept the ',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.black87,
-                ),
-              ),
-              TextSpan(
-                text: 'terms and conditions',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: TColors.primary,
-                  decoration: TextDecoration.underline,
-                ),
-                // You can add onTap handler here if you want to show T&C
-              ),
-            ],
-          ),
-        ),
-        value: termsAccepted,
-        onChanged: (value) {
-          setState(() {
-            termsAccepted = value ?? false;
-          });
-        },
-        activeColor: TColors.primary,
-        controlAffinity: ListTileControlAffinity.leading,
-      ),
-    );
-  }
-
   Widget _buildFlightDetails() {
     return FlightCard(
-      flight: widget.flight, // Pass the selected flight here
-      showReturnFlight: false, // Set to true if you want to show return flight
+      flight: widget.flight,
+      showReturnFlight: false,
     );
   }
 
@@ -145,19 +181,14 @@ class _BookingFormState extends State<BookingForm> {
       final infants = List.generate(
         travelersController.infantCount.value,
             (index) => _buildTravelerSection(
-            title: 'Infant ${index + 1}',
-            isInfant: true,
-            type: 'infant',
-            index: index),
+          title: 'Infant ${index + 1}',
+          isInfant: true,
+          type: 'infant',
+          index: index,
+        ),
       );
 
-      return Column(
-        children: [
-          ...adults,
-          ...children,
-          ...infants,
-        ],
-      );
+      return Column(children: [...adults, ...children, ...infants]);
     });
   }
 
@@ -167,7 +198,6 @@ class _BookingFormState extends State<BookingForm> {
     required String type,
     required int index,
   }) {
-    // Get the corresponding TravelerInfo object based on the type and index
     TravelerInfo travelerInfo;
     if (type == 'adult') {
       travelerInfo = bookingController.adults[index];
@@ -177,236 +207,150 @@ class _BookingFormState extends State<BookingForm> {
       travelerInfo = bookingController.infants[index];
     }
 
-    return Card(
-      color: TColors.background,
-      elevation: 3,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-        side: BorderSide(color: TColors.primary.withOpacity(0.2)),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      margin: const EdgeInsets.only(bottom: 20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Section
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: TColors.primary.withOpacity(0.1),
+              color: TColors.primary,
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(15),
-                topRight: Radius.circular(15),
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
               ),
             ),
             child: Row(
               children: [
-                Icon(
-                  _getTravelerIcon(type),
-                  color: TColors.primary,
-                  size: 24,
-                ),
+                Icon(_getTravelerIcon(type), color: Colors.white, size: 22),
                 const SizedBox(width: 12),
                 Text(
                   title,
                   style: const TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: TColors.primary,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
                   ),
                 ),
               ],
             ),
           ),
-          // Form Fields Section
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Title and Gender Row
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildCheckboxGroup(
+                        label: 'Title',
+                        options: isInfant
+                            ? ['Inf']
+                            : (type == 'child'
+                            ? ['Mstr', 'Miss']
+                            : ['Mr', 'Mrs', 'Ms']),
+                        controller: travelerInfo.titleController,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildCheckboxGroup(
+                        label: 'Gender',
+                        options: ['Male', 'Female'],
+                        controller: travelerInfo.genderController,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Name Fields
+                Column(
+                  children: [
+                    _buildTextField(
+                      label: 'Given Name*',
+                      controller: travelerInfo.firstNameController,
+                      isRequired: true,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      label: 'Surname*',
+                      controller: travelerInfo.lastNameController,
+                      isRequired: true,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Date of Birth
+                _buildDateField(
+                  label: 'Date of Birth*',
+                  controller: travelerInfo.dateOfBirthController,
+                ),
+
                 if (type == 'adult') ...[
-                  // Keep gender and title in one row
-                  Row(
+                  const SizedBox(height: 16),
+                  // Phone and Email
+                  Column(
                     children: [
-                      Expanded(
-                        child: _buildDropdown(
-                          hint: 'Gender',
-                          items: ['Male', 'Female'],
-                          controller: travelerInfo.genderController,
-                        ),
+                      _buildPhoneFieldWithCountryPicker(
+                        label: 'Phone*',
+                        phoneController: travelerInfo.phoneController,
+                        travelerInfo: travelerInfo,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildDropdown(
-                          hint: 'Title',
-                          items: ['Mr', 'Mrs', 'Ms'],
-                          controller: travelerInfo.titleController,
-                        ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        label: 'Passenger Email',
+                        controller: travelerInfo.emailController,
+                        keyboardType: TextInputType.emailAddress,
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  // One field per row for the rest
-                  _buildTextField(
-                    hint: 'Given Name',
-                    prefixIcon: Icons.person_outline,
-                    controller: travelerInfo.firstNameController,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    hint: 'Surname',
-                    prefixIcon: Icons.person_outline,
-                    controller: travelerInfo.lastNameController,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDateField(
-                    hint: 'Date of Birth',
-                    controller: travelerInfo.dateOfBirthController,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    hint: 'Phone',
-                    prefixIcon: Icons.phone_outlined,
-                    keyboardType: TextInputType.phone,
-                    controller: travelerInfo.phoneController,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    hint: 'Email',
-                    prefixIcon: Icons.email_outlined,
-                    keyboardType: TextInputType.emailAddress,
-                    controller: travelerInfo.emailController,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    hint: 'Nationality',
-                    prefixIcon: Icons.flag_outlined,
-                    controller: travelerInfo.nationalityController,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    hint: 'Passport Number',
-                    prefixIcon: Icons.document_scanner_outlined,
-                    controller: travelerInfo.passportController,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDateField(
-                    hint: 'Passport Expiry',
-                    controller: travelerInfo.passportExpiryController,
-                  ),
                 ],
-                if (type == 'child') ...[
-                  // Keep gender and title in one row
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildDropdown(
-                          hint: 'Gender',
-                          items: ['Male', 'Female'],
-                          controller: travelerInfo.genderController,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildDropdown(
-                          hint: 'Title',
-                          items: ['Mstr', 'Miss'],
-                          controller: travelerInfo.titleController,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // One field per row for the rest
-                  _buildTextField(
-                    hint: 'Given Name',
-                    prefixIcon: Icons.person_outline,
-                    controller: travelerInfo.firstNameController,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    hint: 'Surname',
-                    prefixIcon: Icons.person_outline,
-                    controller: travelerInfo.lastNameController,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDateField(
-                    hint: 'Date of Birth',
-                    controller: travelerInfo.dateOfBirthController,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    hint: 'Nationality',
-                    prefixIcon: Icons.flag_outlined,
-                    controller: travelerInfo.nationalityController,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    hint: 'Passport Number',
-                    prefixIcon: Icons.document_scanner_outlined,
-                    controller: travelerInfo.passportController,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDateField(
-                    hint: 'Passport Expiry',
-                    controller: travelerInfo.passportExpiryController,
-                  ),
-                ],
-                if (type == 'infant') ...[
-                  // Keep gender and title in one row
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildDropdown(
-                          hint: 'Gender',
-                          items: ['Male', 'Female'],
-                          controller: travelerInfo.genderController,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildDropdown(
-                          hint: 'Title',
-                          items: ['Inf'],
-                          controller: travelerInfo.titleController,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // One field per row for the rest
-                  _buildTextField(
-                    hint: 'Given Name',
-                    prefixIcon: Icons.person_outline,
-                    controller: travelerInfo.firstNameController,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    hint: 'Surname',
-                    prefixIcon: Icons.person_outline,
-                    controller: travelerInfo.lastNameController,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDateField(
-                    hint: 'Date of Birth',
-                    controller: travelerInfo.dateOfBirthController,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    hint: 'Nationality',
-                    prefixIcon: Icons.flag_outlined,
-                    controller: travelerInfo.nationalityController,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    hint: 'Passport Number',
-                    prefixIcon: Icons.document_scanner_outlined,
-                    controller: travelerInfo.passportController,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDateField(
-                    hint: 'Passport Expiry',
-                    controller: travelerInfo.passportExpiryController,
-                  ),
-                ],
+
+                // Nationality and Passport
+                Column(
+                  children: [
+                    _buildNationalityPickerField(
+                      label: 'Nationality*',
+                      travelerInfo: travelerInfo,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      label: bookingController.isDomesticFlight
+                          ? 'CNIC Number*'
+                          : 'Passport Number*',
+                      controller: travelerInfo.passportCnicController,
+                      isRequired: true,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Passport/CNIC Expiry
+                _buildDateField(
+                  label: bookingController.isDomesticFlight
+                      ? 'CNIC Expire'
+                      : 'Passport Expire',
+                  controller: travelerInfo.passportExpiryController,
+                ),
               ],
             ),
           ),
@@ -415,43 +359,557 @@ class _BookingFormState extends State<BookingForm> {
     );
   }
 
-  Widget _buildDateField({
-    required String hint,
-    required TextEditingController controller, // Pass the controller
-  }) {
+  Widget _buildBookerDetails() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: TextField(
-        controller: controller, // Bind the controller
-        decoration: InputDecoration(
-          hintText: hint,
-          prefixIcon: const Icon(Icons.calendar_today, color: TColors.primary),
-          border: InputBorder.none,
-          contentPadding:
-          const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        ),
-        readOnly: true,
-        onTap: () async {
-          final DateTime? pickedDate = await showDatePicker(
-            context: context,
-            initialDate: DateTime.now(),
-            firstDate: DateTime(1900),
-            lastDate: DateTime(2100),
-          );
-          if (pickedDate != null) {
-            controller.text = "${pickedDate.toLocal()}"
-                .split(' ')[0]; // Update the controller
-          }
-        },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: TColors.primary,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: const Text(
+              'Booker Details',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTextField(
+                        label: 'First Name*',
+                        controller: bookingController.firstNameController,
+                        isRequired: true,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildTextField(
+                        label: 'Last Name*',
+                        controller: bookingController.lastNameController,
+                        isRequired: true,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Column(
+                  children: [
+                    _buildTextField(
+                      label: 'Email*',
+                      controller: bookingController.emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      isRequired: true,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildBookerPhoneFieldWithCountryPicker(
+                      label: 'Phone*',
+                      phoneController: bookingController.phoneController,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildTextField(
+                  label: 'Remarks',
+                  controller: bookingController.remarksController,
+                  maxLines: 3,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-// Helper method to get appropriate icons for different traveler types
+  Widget _buildPhoneFieldWithCountryPicker({
+    required String label,
+    required TextEditingController phoneController,
+    required TravelerInfo travelerInfo,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey[700],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              // Country Code Picker
+              Obx(() {
+                final country = travelerInfo.phoneCountry.value;
+                return InkWell(
+                  onTap: () {
+                    bookingController.showPhoneCountryPicker(
+                      context,
+                      travelerInfo,
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        right: BorderSide(color: Colors.grey[300]!),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          country?.flagEmoji ?? '🇵🇰',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '+${country?.phoneCode ?? '92'}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const Icon(Icons.arrow_drop_down, size: 20),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+              // Phone Number Field
+              Expanded(
+                child: TextFormField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    hintText: 'Phone Number',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter phone number';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBookerPhoneFieldWithCountryPicker({
+    required String label,
+    required TextEditingController phoneController,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey[700],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              // Country Code Picker
+              Obx(() {
+                final country = bookingController.bookerPhoneCountry.value;
+                return InkWell(
+                  onTap: () {
+                    bookingController.showBookerPhoneCountryPicker(context);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        right: BorderSide(color: Colors.grey[300]!),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          country?.flagEmoji ?? '🇵🇰',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '+${country?.phoneCode ?? '92'}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const Icon(Icons.arrow_drop_down, size: 20),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+              // Phone Number Field
+              Expanded(
+                child: TextFormField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    hintText: 'Phone Number',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter phone number';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNationalityPickerField({
+    required String label,
+    required TravelerInfo travelerInfo,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey[700],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Obx(() {
+          final country = travelerInfo.nationalityCountry.value;
+          return InkWell(
+            onTap: () {
+              bookingController.showNationalityPicker(context, travelerInfo);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    country?.flagEmoji ?? '🇵🇰',
+                    style: const TextStyle(fontSize: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      country?.displayNameNoCountryCode ?? 'Select Nationality',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: country != null ? Colors.black87 : Colors.grey[600],
+                      ),
+                    ),
+                  ),
+                  const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildTermsAndConditions() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Checkbox(
+            value: termsAccepted,
+            onChanged: (value) {
+              setState(() {
+                termsAccepted = value ?? false;
+              });
+            },
+            activeColor: TColors.primary,
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  termsAccepted = !termsAccepted;
+                });
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: RichText(
+                  text: const TextSpan(
+                    children: [
+                      TextSpan(
+                        text: 'I read and accept all ',
+                        style: TextStyle(fontSize: 14, color: Colors.black87),
+                      ),
+                      TextSpan(
+                        text: 'Terms and conditions',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: TColors.primary,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required String label,
+    required TextEditingController controller,
+    TextInputType keyboardType = TextInputType.text,
+    bool isRequired = false,
+    int maxLines = 1,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey[700],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: TextFormField(
+            controller: controller,
+            keyboardType: keyboardType,
+            maxLines: maxLines,
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
+            ),
+            validator: isRequired
+                ? (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please fill in this field.';
+              }
+              return null;
+            }
+                : null,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDateField({
+    required String label,
+    required TextEditingController controller,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey[700],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: TextFormField(
+            controller: controller,
+            readOnly: true,
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
+              suffixIcon: Icon(Icons.calendar_month, color: Colors.grey),
+            ),
+            onTap: () async {
+              final DateTime? pickedDate = await showDatePicker(
+                context: context,
+                initialDate: DateTime.now(),
+                firstDate: DateTime(1900),
+                lastDate: DateTime(2100),
+              );
+              if (pickedDate != null) {
+                controller.text =
+                "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
+              }
+            },
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please select date';
+              }
+              return null;
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCheckboxGroup({
+    required String label,
+    required List<String> options,
+    required TextEditingController controller,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey[700],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          children: options.map((option) {
+            return InkWell(
+              onTap: () {
+                controller.text = option;
+                setState(() {});
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: controller.text == option
+                      ? TColors.primary
+                      : Colors.white,
+                  border: Border.all(
+                    color: controller.text == option
+                        ? TColors.primary
+                        : Colors.grey[300]!,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  option,
+                  style: TextStyle(
+                    color: controller.text == option
+                        ? Colors.white
+                        : Colors.black87,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
   IconData _getTravelerIcon(String type) {
     switch (type) {
       case 'adult':
@@ -465,125 +923,6 @@ class _BookingFormState extends State<BookingForm> {
     }
   }
 
-  Widget _buildBookerDetails() {
-    return Card(
-      color: TColors.background,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Booker Details',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _buildTextField(
-              hint: 'First Name',
-              prefixIcon: Icons.person_outline,
-              controller:
-              bookingController.firstNameController, // Bind to controller
-            ),
-            const SizedBox(height: 12),
-            _buildTextField(
-              hint: 'Last Name',
-              prefixIcon: Icons.person_outline,
-              controller:
-              bookingController.lastNameController, // Bind to controller
-            ),
-            const SizedBox(height: 12),
-            _buildTextField(
-              hint: 'Email',
-              prefixIcon: Icons.email_outlined,
-              keyboardType: TextInputType.emailAddress,
-              controller: bookingController.emailController,
-            ),
-            const SizedBox(height: 12),
-            _buildTextField(
-              hint: 'Phone',
-              prefixIcon: Icons.phone_outlined,
-              keyboardType: TextInputType.phone,
-              controller: bookingController.phoneController,
-            ),
-            const SizedBox(height: 12),
-            _buildTextField(
-              hint: 'Address',
-              prefixIcon: Icons.location_on_outlined,
-              controller: bookingController.addressController,
-            ),
-            const SizedBox(height: 12),
-            _buildTextField(
-              hint: 'City',
-              prefixIcon: Icons.location_city_outlined,
-              controller: bookingController.cityController,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Rest of the widget code remains the same...
-
-  Widget _buildDropdown({
-    required String hint,
-    required List<String> items,
-    required TextEditingController controller,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: DropdownButtonFormField<String>(
-        decoration: const InputDecoration(
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        ),
-        hint: Text(hint),
-        items: items.map((String value) {
-          return DropdownMenuItem<String>(
-            value: value,
-            child: Text(value),
-          );
-        }).toList(),
-        onChanged: (value) {
-          controller.text = value ?? '';
-        },
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required String hint,
-    required IconData prefixIcon,
-    required TextEditingController controller,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        decoration: InputDecoration(
-          hintText: hint,
-          prefixIcon: Icon(prefixIcon, color: TColors.primary),
-          border: InputBorder.none,
-          contentPadding:
-          const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        ),
-      ),
-    );
-  }
-
   Widget _buildBottomBar() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -593,143 +932,158 @@ class _BookingFormState extends State<BookingForm> {
           BoxShadow(
             color: Colors.grey.withOpacity(0.2),
             spreadRadius: 1,
-            blurRadius: 5,
+            blurRadius: 8,
+            offset: const Offset(0, -2),
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Total Amount'),
-              Text(
-                'PKR ${widget.flight.price.toStringAsFixed(0)}',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+      child: SafeArea(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Total Amount',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  'PKR ${widget.flight.price.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: TColors.primary,
+                  ),
+                ),
+              ],
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (_formKey.currentState!.validate() && termsAccepted) {
+                  // Print all booker details
+                  print('Booker Details:');
+                  print('First Name: ${bookingController.firstNameController.text}');
+                  print('Last Name: ${bookingController.lastNameController.text}');
+                  print('Email: ${bookingController.emailController.text}');
+                  print('Phone: ${bookingController.phoneController.text}');
+                  print('Remarks: ${bookingController.remarksController.text}');
+
+                  // Print all adult details
+                  for (var i = 0; i < bookingController.adults.length; i++) {
+                    print('Adult ${i + 1} Details:');
+                    print('Title: ${bookingController.adults[i].titleController.text}');
+                    print('First Name: ${bookingController.adults[i].firstNameController.text}');
+                    print('Last Name: ${bookingController.adults[i].lastNameController.text}');
+                    print('Date of Birth: ${bookingController.adults[i].dateOfBirthController.text}');
+                    print('Phone: ${bookingController.adults[i].phoneController.text}');
+                    print('Email: ${bookingController.adults[i].emailController.text}');
+                    print('Nationality: ${bookingController.adults[i].nationalityController.text}');
+                    print('Passport Number: ${bookingController.adults[i].passportCnicController.text}');
+                    print('Passport Expiry: ${bookingController.adults[i].passportExpiryController.text}');
+                    print('Gender: ${bookingController.adults[i].genderController.text}');
+                  }
+
+                  // Print all child details
+                  for (var i = 0; i < bookingController.children.length; i++) {
+                    print('Child ${i + 1} Details:');
+                    print('Title: ${bookingController.children[i].titleController.text}');
+                    print('First Name: ${bookingController.children[i].firstNameController.text}');
+                    print('Last Name: ${bookingController.children[i].lastNameController.text}');
+                    print('Date of Birth: ${bookingController.children[i].dateOfBirthController.text}');
+                    print('Nationality: ${bookingController.children[i].nationalityController.text}');
+                    print('Passport Number: ${bookingController.children[i].passportCnicController.text}');
+                    print('Passport Expiry: ${bookingController.children[i].passportExpiryController.text}');
+                    print('Gender: ${bookingController.children[i].genderController.text}');
+                  }
+
+                  // Print all infant details
+                  for (var i = 0; i < bookingController.infants.length; i++) {
+                    print('Infant ${i + 1} Details:');
+                    print('Title: ${bookingController.infants[i].titleController.text}');
+                    print('First Name: ${bookingController.infants[i].firstNameController.text}');
+                    print('Last Name: ${bookingController.infants[i].lastNameController.text}');
+                    print('Date of Birth: ${bookingController.infants[i].dateOfBirthController.text}');
+                    print('Nationality: ${bookingController.infants[i].nationalityController.text}');
+                    print('Passport Number: ${bookingController.infants[i].passportCnicController.text}');
+                    print('Passport Expiry: ${bookingController.infants[i].passportExpiryController.text}');
+                    print('Gender: ${bookingController.infants[i].genderController.text}');
+                  }
+
+                  // Get the booker's email and phone from the form
+                  final bookerEmail = bookingController.emailController.text;
+                  final bookerPhone = bookingController.phoneController.text;
+
+                  // Call the PNR request function
+                  final apiService = ApiServiceSabre();
+                  await apiService.createPNRRequest(
+                    flight: widget.flight,
+                    adults: bookingController.adults.toList(),
+                    children: bookingController.children.toList(),
+                    infants: bookingController.infants.toList(),
+                    bookerEmail: bookerEmail,
+                    bookerPhone: bookerPhone,
+                  );
+
+                  // Optionally, you can navigate to a confirmation screen or show a success message
+                  Get.snackbar(
+                    'Success',
+                    'Booking created successfully',
+                    backgroundColor: Colors.green,
+                    colorText: Colors.white,
+                    snackPosition: SnackPosition.TOP,
+                  );
+                } else if (!termsAccepted) {
+                  Get.snackbar(
+                    'Error',
+                    'Please accept terms and conditions',
+                    backgroundColor: Colors.red,
+                    colorText: Colors.white,
+                    snackPosition: SnackPosition.TOP,
+                  );
+                } else {
+                  Get.snackbar(
+                    'Error',
+                    'Please fill all required fields',
+                    backgroundColor: Colors.red,
+                    colorText: Colors.white,
+                    snackPosition: SnackPosition.TOP,
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: TColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 16,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
               ),
-            ],
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (_formKey.currentState!.validate()) {
-                // // Print all booker details
-                print('Booker Details:');
-                print(
-                    'First Name: ${bookingController.firstNameController.text}');
-                print(
-                    'Last Name: ${bookingController.lastNameController.text}');
-                print('Email: ${bookingController.emailController.text}');
-                print('Phone: ${bookingController.phoneController.text}');
-                print('Address: ${bookingController.addressController.text}');
-                print('City: ${bookingController.cityController.text}');
-
-                // Print all adult details
-                for (var i = 0; i < bookingController.adults.length; i++) {
-                  print('Adult ${i + 1} Details:');
-                  print(
-                      'Title: ${bookingController.adults[i].titleController.text}');
-                  print(
-                      'First Name: ${bookingController.adults[i].firstNameController.text}');
-                  print(
-                      'Last Name: ${bookingController.adults[i].lastNameController.text}');
-                  print(
-                      'Date of Birth: ${bookingController.adults[i].dateOfBirthController.text}');
-                  print(
-                      'Phone: ${bookingController.adults[i].phoneController.text}');
-                  print(
-                      'Email: ${bookingController.adults[i].emailController.text}');
-                  print(
-                      'Nationality: ${bookingController.adults[i].nationalityController.text}');
-                  print(
-                      'Passport Number: ${bookingController.adults[i].passportController.text}');
-                  print(
-                      'Passport Expiry: ${bookingController.adults[i].passportExpiryController.text}');
-                }
-
-                // Print all child details
-                for (var i = 0; i < bookingController.children.length; i++) {
-                  print('Child ${i + 1} Details:');
-                  print(
-                      'Title: ${bookingController.children[i].titleController.text}');
-                  print(
-                      'First Name: ${bookingController.children[i].firstNameController.text}');
-                  print(
-                      'Last Name: ${bookingController.children[i].lastNameController.text}');
-                  print(
-                      'Date of Birth: ${bookingController.children[i].dateOfBirthController.text}');
-                  print(
-                      'Nationality: ${bookingController.children[i].nationalityController.text}');
-                  print(
-                      'Passport Number: ${bookingController.children[i].passportController.text}');
-                  print(
-                      'Passport Expiry: ${bookingController.children[i].passportExpiryController.text}');
-                }
-
-                // Print all infant details
-                for (var i = 0; i < bookingController.infants.length; i++) {
-                  print('Infant ${i + 1} Details:');
-                  print(
-                      'Title: ${bookingController.infants[i].titleController.text}');
-                  print(
-                      'First Name: ${bookingController.infants[i].firstNameController.text}');
-                  print(
-                      'Last Name: ${bookingController.infants[i].lastNameController.text}');
-                  print(
-                      'Date of Birth: ${bookingController.infants[i].dateOfBirthController.text}');
-                  print(
-                      'Nationality: ${bookingController.infants[i].nationalityController.text}');
-                  print(
-                      'Passport Number: ${bookingController.infants[i].passportController.text}');
-                  print(
-                      'Passport Expiry: ${bookingController.infants[i].passportExpiryController.text}');
-                }
-
-                // Get the booker's email and phone from the form
-                final bookerEmail = bookingController.emailController.text;
-                final bookerPhone = bookingController.phoneController.text;
-
-                // Call the PNR request function
-                final apiService = ApiServiceSabre();
-                await apiService.createPNRRequest(
-                  flight: widget.flight,
-                  adults: bookingController.adults,
-                  children: bookingController.children,
-                  infants: bookingController.infants,
-                  bookerEmail: bookerEmail,
-                  bookerPhone: bookerPhone,
-                );
-
-                // Optionally, you can navigate to a confirmation screen or show a success message
-                Get.snackbar(
-                  'Success',
-                  // 'PNR request created successfully',
-                  'Booking created successfully',
-                  backgroundColor: Colors.green,
-                  colorText: Colors.white,
-                );
-
-                // Get.to(()=> const FlightBookingDetailsScreen());
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: TColors.primary,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
+              child: const Text(
+                'Create Booking',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
-            child: const Text(
-              'Create Booking',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    bookingController.dispose();
+    travelersController.dispose();
+    super.dispose();
   }
 }

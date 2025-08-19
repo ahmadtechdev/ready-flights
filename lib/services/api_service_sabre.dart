@@ -6,7 +6,8 @@ import 'package:flutter/foundation.dart';
 
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../views/flight/search_flights/booking_flight/booking_flight_controller2.dart';
+
+import '../views/flight/search_flights/booking_flight/airblue/booking_flight_controller.dart';
 import '../views/flight/search_flights/sabre/sabre_flight_models.dart';
 import 'api_service_airblue.dart';
 
@@ -616,10 +617,10 @@ class ApiServiceSabre extends GetxService {
           "NameNumber": "${i + 1}.1",
           "NameReference": "", // Empty string for adults
           "PassengerType": "ADT",
-          "GivenName": "${adult.firstNameController.text} ${adult.titleController.text}", // Concatenate title with first name
-          "Surname": adult.lastNameController.text,
+          "GivenName": "${adult.firstNameController.text.trim()} ${adult.titleController.text}", // Concatenate title with first name
+          "Surname": adult.lastNameController.text.trim(),
           "DateOfBirth": adult.dateOfBirthController.text, // Add date of birth
-          "PassportNumber": adult.passportController.text, // Add passport number
+          "PassportNumber": adult.passportCnicController.text.trim(), // Add passport number
           "PassportExpiry": adult.passportExpiryController.text, // Add passport expiry
         });
       }
@@ -631,10 +632,10 @@ class ApiServiceSabre extends GetxService {
           "NameNumber": "${adults.length + i + 1}.1",
           "NameReference": "C04", // Format as C04, C05, etc.
           "PassengerType": "CNN",
-          "GivenName": "${child.firstNameController.text} ${child.titleController.text}", // Concatenate title with first name
-          "Surname": child.lastNameController.text,
+          "GivenName": "${child.firstNameController.text.trim()} ${child.titleController.text}", // Concatenate title with first name
+          "Surname": child.lastNameController.text.trim(),
           "DateOfBirth": child.dateOfBirthController.text, // Add date of birth
-          "PassportNumber": child.passportController.text, // Add passport number
+          "PassportNumber": child.passportCnicController.text.trim(), // Add passport number
           "PassportExpiry": child.passportExpiryController.text, // Add passport expiry
         });
       }
@@ -647,10 +648,10 @@ class ApiServiceSabre extends GetxService {
           "NameReference": "I12", // Format as I12, I13, etc.
           "PassengerType": "INF",
           "Infant": true,
-          "GivenName": "${infant.firstNameController.text} ${infant.titleController.text}", // Concatenate title with first name
-          "Surname": infant.lastNameController.text,
+          "GivenName": "${infant.firstNameController.text.trim()} ${infant.titleController.text}", // Concatenate title with first name
+          "Surname": infant.lastNameController.text.trim(),
           "DateOfBirth": infant.dateOfBirthController.text, // Add date of birth
-          "PassportNumber": infant.passportController.text, // Add passport number
+          "PassportNumber": infant.passportCnicController.text.trim(), // Add passport number
           "PassportExpiry": infant.passportExpiryController.text, // Add passport expiry
         });
       }
@@ -696,8 +697,22 @@ class ApiServiceSabre extends GetxService {
 
       // Get the first adult's phone and email
       final firstAdultPhone = adults.isNotEmpty ? adults[0].phoneController.text : bookerPhone;
+      final firstAdultCountry = adults.isNotEmpty ? adults[0].phoneCountry : "92"; // fallback
       final firstAdultEmail = adults.isNotEmpty ? adults[0].emailController.text : bookerEmail;
 
+      // Format phone with 00 + countryCode + number (without leading 0)
+      String formatPhone(String phone, String countryCode) {
+        phone = phone.replaceAll(RegExp(r'\D'), ''); // remove non-digits
+        if (phone.startsWith('0')) {
+          phone = phone.substring(1); // drop leading 0
+        }
+        return '0092$phone';
+      }
+
+      final formattedPhone = formatPhone(firstAdultPhone, firstAdultCountry.toString());
+
+print("phone check");
+print(formattedPhone);
       List<Map<String, String>> passengerType = [];
 
       if (adults.isNotEmpty) {
@@ -740,7 +755,7 @@ class ApiServiceSabre extends GetxService {
                     .where((passenger) => passenger["PassengerType"] != "INF") // Exclude infants
                     .map((passenger) => {
                   "NameNumber": passenger["NameNumber"],
-                  "Phone": firstAdultPhone, // Use first adult's phone for all travelers
+                  "Phone": formattedPhone, // Use first adult's phone for all travelers
                   "PhoneUseType": "M"
                 })
                     .toList(),
@@ -868,7 +883,7 @@ class ApiServiceSabre extends GetxService {
                       "PersonName": {
                         "NameNumber": passenger["NameNumber"],
                       },
-                      "Text": firstAdultPhone,
+                      "Text": formattedPhone,
                     },
                     {
                       "SSR_Code": "CTCE",
