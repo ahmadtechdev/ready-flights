@@ -12,7 +12,7 @@ import 'package:xml2json/xml2json.dart';
 import 'package:xml/xml.dart' as xml;
 import '../views/flight/search_flights/airblue/airblue_flight_model.dart';
 import '../views/flight/search_flights/airblue/airblue_pnr_pricing.dart';
-import '../views/flight/search_flights/booking_flight/booking_flight_controller.dart';
+import '../views/flight/search_flights/booking_flight/airblue/booking_flight_controller.dart';
 import '../views/flight/search_flights/sabre/sabre_flight_models.dart';
 
 class AirBlueFlightApiService {

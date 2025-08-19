@@ -14,6 +14,10 @@ class FlightPackageInfo {
   final String brandCode;
   final String brandDescription;
   final bool isSoldOut;
+  // New fields for NDC support
+  final String? offerItemId;       // For NDC packages
+  final Map<String, dynamic>? pricingInfo; // For NDC packages
+
 
 
   FlightPackageInfo({
@@ -29,22 +33,10 @@ class FlightPackageInfo {
     this.brandCode = '',
     this.brandDescription = '',
     this.isSoldOut = false,
+    this.offerItemId,
+    this.pricingInfo,
   }) : cabinName = cabinName ?? _deriveCabinName(cabinCode);
 
-  static String _deriveCabinName(String code) {
-    switch (code.toUpperCase()) {
-      case 'F':
-        return 'First Class';
-      case 'C':
-        return 'Business Class';
-      case 'Y':
-        return 'Economy Class';
-      case 'W':
-        return 'Premium Economy';
-      default:
-        return 'Economy Class';
-    }
-  }
 
   factory FlightPackageInfo.fromApiResponse(Map<String, dynamic> fareInfo) {
     try {
@@ -76,8 +68,6 @@ class FlightPackageInfo {
           passengerInfo['fareComponents'].isNotEmpty &&
           passengerInfo['fareComponents'][0].containsKey('brandFeatures')) {
 
-        // Note: Need to implement brand resolution if needed
-        // This would require access to the brandFeatures reference data
       }
 
       return FlightPackageInfo(
@@ -91,6 +81,8 @@ class FlightPackageInfo {
         baggageAllowance: parseBaggageAllowance(baggageInfo),
         brandCode: brandCode,
         brandDescription: brandDescription,
+        offerItemId: passengerInfo['offerItemId'],
+        pricingInfo: fareInfo['pricingInfo'],
       );
     } catch (e) {
       return FlightPackageInfo(
@@ -111,6 +103,20 @@ class FlightPackageInfo {
     }
   }
 
+  static String _deriveCabinName(String code) {
+    switch (code.toUpperCase()) {
+      case 'F':
+        return 'First Class';
+      case 'C':
+        return 'Business Class';
+      case 'Y':
+        return 'Economy Class';
+      case 'W':
+        return 'Premium Economy';
+      default:
+        return 'Economy Class';
+    }
+  }
   // Create a sold-out package variant
   factory FlightPackageInfo.soldOut({
     required String brandCode,

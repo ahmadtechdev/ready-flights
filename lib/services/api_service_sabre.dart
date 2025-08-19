@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -156,7 +157,7 @@ class ApiServiceSabre extends GetxService {
             cabin: cabin,
           );
 
-          _printJsonPretty(airBlueResponse);
+          printJsonPretty(airBlueResponse);
 
           // Here you would normally process the Air Blue response and merge with Sabre results
           // For now, we're just logging it to console
@@ -331,7 +332,7 @@ class ApiServiceSabre extends GetxService {
       if (response.statusCode == 200) {
         return response.data;
       } else {
-        throw Exception('Failed to search flights: ${response.statusCode}');
+        throw Exception('Failed to model_controllers flights: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Error searching flights with Sabre: $e');
@@ -340,7 +341,7 @@ class ApiServiceSabre extends GetxService {
 
 
 
-  // Helper method to search flights with Air Blue
+  // Helper method to model_controllers flights with Air Blue
   Future<Map<String, dynamic>> _searchFlightsWithAirBlue({
     required int type,
     required String origin,
@@ -389,25 +390,54 @@ class ApiServiceSabre extends GetxService {
     required int adult,
     required int child,
     required int infant,
+    bool isNDC = false, // Add this parameter
   }) async {
     try {
       final token = await getValidToken() ?? await generateToken();
+      print("token:");
+      print(token);
 
-      _printJsonPretty(requestBody);
+      print("availability request");
+      printJsonPretty(requestBody);
+
+      final String endpoint;
+      final Map<String, dynamic> requestData;
+
+      if (isNDC) {
+        // Handle NDC validation
+        endpoint = '/v1/offers/price';
+        requestData = {
+          "query": [
+            {
+              "offerItemId": requestBody['offerItemId'] ?? [],
+            }
+          ],
+          "params": {
+            "formOfPayment": requestBody['formOfPayment'] ?? [],
+          },
+        };
+      } else {
+        // Handle standard validation
+        endpoint = '/v4/shop/flights/revalidate';
+        requestData = requestBody;
+      }
 
       final response = await dio.post(
-        '/v4/shop/flights/revalidate',
+        endpoint,
         options: Options(
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer $token'
           },
         ),
-        data: requestBody,
+        data: requestData,
       );
 
-      _printJsonPretty(response.data);
+      print("availability request data");
+      printJsonPretty(requestData);
 
+      print("availability response");
+      printJsonPretty(response.data);
       if (response.statusCode == 200) {
         return response.data;
       } else {
@@ -420,10 +450,18 @@ class ApiServiceSabre extends GetxService {
   }
 
   /// Helper function to print large JSON data in readable format
-  void _printJsonPretty(dynamic jsonData) {
+  /// Prints JSON nicely with chunking
+  void printJsonPretty(dynamic jsonData) {
     const int chunkSize = 1000;
     final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);
     for (int i = 0; i < jsonString.length; i += chunkSize) {
+      final chunk = jsonString.substring(
+        i,
+        i + chunkSize < jsonString.length ? i + chunkSize : jsonString.length,
+      );
+      if (kDebugMode) {
+        print(chunk);
+      }
     }
   }
 
@@ -888,7 +926,7 @@ class ApiServiceSabre extends GetxService {
 
       // Print the request body
       print('PNR Request Body:');
-      _printJsonPretty(requestBody);
+      printJsonPretty(requestBody);
 
       // Make the API call
       final token = await getValidToken() ?? await generateToken();
@@ -907,7 +945,7 @@ class ApiServiceSabre extends GetxService {
       if (response.statusCode == 200) {
         print("PNR Response");
         print(response.data);
-        _printJsonPretty(response.data);
+        printJsonPretty(response.data);
 print("Next Request Data");
         // Extract necessary data from the PNR response
         final pnrData = response.data['CreatePassengerNameRecordRS'];
@@ -937,7 +975,7 @@ print("Next Request Data");
           print('PNR creation status is not complete.');
         }
       } else {
-        _printJsonPretty(response.data);
+        printJsonPretty(response.data);
       }
     } catch (e) {
       print('Error in createPNRRequest: $e');
@@ -974,7 +1012,7 @@ print("Next Request Data");
 
       // Print the request body for debugging
       print('Get Booking Request Body:');
-      _printJsonPretty(requestBody);
+      printJsonPretty(requestBody);
 
       // Make the API call
       final response = await dio.post(
@@ -990,7 +1028,7 @@ print("Next Request Data");
 
       // Print the response for debugging
       print('Get Booking Response:');
-      _printJsonPretty(response.data);
+      printJsonPretty(response.data);
 
       if (response.statusCode == 200) {
         // Return the response data if the request is successful

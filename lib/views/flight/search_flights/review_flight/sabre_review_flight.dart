@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'dart:async';
@@ -13,12 +12,14 @@ class ReviewTripPage extends StatefulWidget {
   final bool isMulti; // Indicates if it's a multi-city trip
   final SabreFlight flight; // Selected flight
   final Map<String, dynamic> pricingInformation; // Pricing information from API for the selected package
+  final bool isNDC; // Flag to indicate if this is an NDC flight
 
   const ReviewTripPage({
     super.key,
     required this.isMulti,
     required this.flight,
     required this.pricingInformation,
+    this.isNDC = false,
   });
 
   @override
@@ -39,12 +40,12 @@ class ReviewTripPageState extends State<ReviewTripPage> {
   // Get the travelers controller to access passenger counts
   final travelersController = Get.find<TravelersController>();
 
-  // Variables to store calculated prices
-  late double adultPrice;
-  late double childPrice;
-  late double infantPrice;
-  late double totalPrice;
-  late String currency;
+  // Variables to store calculated prices - initialized with defaults
+  double adultPrice = 0.0;
+  double childPrice = 0.0;
+  double infantPrice = 0.0;
+  double totalPrice = 0.0;
+  String currency = 'PKR'; // Default currency
 
   @override
   void initState() {
@@ -54,42 +55,111 @@ class ReviewTripPageState extends State<ReviewTripPage> {
   }
 
   void _calculatePrices() {
-    // Extract pricing information from the API response
-    final passengerInfoList = widget.pricingInformation["fare"]['passengerInfoList'] ?? '';
-
-    // Initialize prices
-    adultPrice = 0.0;
-    childPrice = 0.0;
-    infantPrice = 0.0;
-    totalPrice = 0.0;
-    currency = 'PKR'; // Default currency
-
-    // Calculate prices based on passenger type
-    for (var passengerInfo in passengerInfoList) {
-      final passengerType = passengerInfo['passengerInfo']['passengerType'];
-      final passengerTotalFare = passengerInfo['passengerInfo']['passengerTotalFare'];
-      final price = passengerTotalFare['totalFare'].toDouble();
-
-      if (passengerType == 'ADT') {
-        adultPrice = price;
-      } else if (passengerType == 'CHN') {
-        childPrice = price;
-      } else if (passengerType == 'INF') {
-        infantPrice = price;
-      }
-
-      // Update total price
-      totalPrice += price;
+    if (widget.isNDC) {
+      _calculateNDCPrices();
+    } else {
+      _calculateStandardPrices();
     }
 
-    // If total price is not available, use the totalFare from the pricingInformation
-    if (totalPrice == 0.0) {
-      final totalFare = widget.pricingInformation['fare']['totalFare'];
-      totalPrice = totalFare['totalPrice'];
-      currency = totalFare['currency'];
-    }
+    // Ensure we have valid values
+    adultPrice = adultPrice.isFinite ? adultPrice : 0.0;
+    childPrice = childPrice.isFinite ? childPrice : 0.0;
+    infantPrice = infantPrice.isFinite ? infantPrice : 0.0;
+    totalPrice = totalPrice.isFinite ? totalPrice : 0.0;
+    currency = currency.isNotEmpty ? currency : 'PKR';
   }
 
+  void _calculateNDCPrices() {
+    try {
+      // For NDC, the pricing information is already extracted correctly in the package selection
+      // Extract total amount directly from the pricing information
+      totalPrice = double.tryParse(widget.pricingInformation['totalAmount']?.toString() ?? '0') ?? 0.0;
+      currency = widget.pricingInformation['totalCurrency']?.toString() ?? 'PKR';
+
+      // Calculate individual passenger prices
+      final totalPassengers = travelersController.adultCount.value +
+          travelersController.childrenCount.value +
+          travelersController.infantCount.value;
+
+      if (totalPassengers > 0) {
+        // For NDC, distribute the total price among all passengers
+        // You might want to adjust this logic based on your airline's pricing structure
+        adultPrice = travelersController.adultCount.value > 0
+            ? totalPrice / totalPassengers * travelersController.adultCount.value / travelersController.adultCount.value
+            : 0.0;
+
+        childPrice = travelersController.childrenCount.value > 0
+            ? totalPrice / totalPassengers * travelersController.childrenCount.value / travelersController.childrenCount.value
+            : 0.0;
+
+        infantPrice = travelersController.infantCount.value > 0
+            ? totalPrice / totalPassengers * travelersController.infantCount.value / travelersController.infantCount.value
+            : 0.0;
+      } else {
+        adultPrice = totalPrice; // Default to total price if no passengers specified
+        childPrice = 0.0;
+        infantPrice = 0.0;
+      }
+
+      print('NDC Pricing Debug:');
+      print('Total Price: $totalPrice $currency');
+      print('Adult Price: $adultPrice');
+      print('Child Price: $childPrice');
+      print('Infant Price: $infantPrice');
+
+    } catch (e) {
+      print('Error calculating NDC prices: $e');
+      // Fallback values already set in declarations
+      totalPrice = 0.0;
+      adultPrice = 0.0;
+      childPrice = 0.0;
+      infantPrice = 0.0;
+      currency = 'PKR';
+    }
+  }
+  void _calculateStandardPrices() {
+    try {
+      // Check if this is a standard revalidation response
+      if (widget.pricingInformation.containsKey('fare')) {
+        final fareInfo = widget.pricingInformation['fare'];
+        final passengerInfoList = fareInfo['passengerInfoList'] as List? ?? [];
+
+        // Calculate prices based on passenger type
+        for (var passengerInfo in passengerInfoList) {
+          final passengerType = passengerInfo['passengerInfo']['passengerType'];
+          final passengerTotalFare = passengerInfo['passengerInfo']['passengerTotalFare'];
+          final price = double.tryParse(passengerTotalFare['totalFare'].toString()) ?? 0.0;
+
+          if (passengerType == 'ADT') {
+            adultPrice = price;
+          } else if (passengerType == 'CHD') {
+            childPrice = price;
+          } else if (passengerType == 'INF') {
+            infantPrice = price;
+          }
+
+          // Update total price
+          totalPrice += price;
+        }
+
+        // If total price is not available, use the totalFare from the pricingInformation
+        if (totalPrice == 0.0) {
+          final totalFare = fareInfo['totalFare'];
+          totalPrice = double.tryParse(totalFare['totalPrice'].toString()) ?? 0.0;
+          currency = totalFare['currency']?.toString() ?? 'PKR';
+        }
+      } else {
+        // Fallback for other response formats
+        totalPrice = double.tryParse(widget.pricingInformation['totalAmount']?.toString() ?? '0') ?? 0.0;
+        currency = widget.pricingInformation['totalCurrency']?.toString() ?? 'PKR';
+        adultPrice = travelersController.adultCount.value > 0
+            ? totalPrice / travelersController.adultCount.value
+            : 0.0;
+      }
+    } catch (e) {
+      // Fallback values already set in declarations
+    }
+  }
   void _startShadowAnimation() {
     _shadowTimer = Timer.periodic(const Duration(milliseconds: 1500), (_) {
       setState(() {
@@ -124,8 +194,7 @@ class ReviewTripPageState extends State<ReviewTripPage> {
   String _formatPrice(double price) {
     return price.toStringAsFixed(2).replaceAllMapped(
         RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-            (Match m) => '${m[1]},'
-    );
+            (Match m) => '${m[1]},');
   }
 
   @override
@@ -186,8 +255,7 @@ class ReviewTripPageState extends State<ReviewTripPage> {
                       if (travelersController.adultCount.value > 0)
                         _buildPriceRow(
                             'Adult Price x ${travelersController.adultCount.value}',
-                            '$currency ${_formatPrice(adultPrice * travelersController.adultCount.value)}'
-                        ),
+                            '$currency ${_formatPrice(adultPrice * travelersController.adultCount.value)}'),
 
                       // Show child price if there are children
                       if (travelersController.childrenCount.value > 0)
@@ -196,8 +264,7 @@ class ReviewTripPageState extends State<ReviewTripPage> {
                             const SizedBox(height: 8),
                             _buildPriceRow(
                                 'Child Price x ${travelersController.childrenCount.value}',
-                                '$currency ${_formatPrice(childPrice * travelersController.childrenCount.value)}'
-                            ),
+                                '$currency ${_formatPrice(childPrice * travelersController.childrenCount.value)}'),
                           ],
                         ),
 
@@ -208,8 +275,7 @@ class ReviewTripPageState extends State<ReviewTripPage> {
                             const SizedBox(height: 8),
                             _buildPriceRow(
                                 'Infant Price x ${travelersController.infantCount.value}',
-                                '$currency ${_formatPrice(infantPrice * travelersController.infantCount.value)}'
-                            ),
+                                '$currency ${_formatPrice(infantPrice * travelersController.infantCount.value)}'),
                           ],
                         ),
 
@@ -314,112 +380,3 @@ class ReviewTripPageState extends State<ReviewTripPage> {
     );
   }
 }
-// const Row(
-//                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//                         children: [
-//                           Text(
-//                             'Sasta Refund',
-//                             style: TextStyle(
-//                               fontWeight: FontWeight.bold,
-//                               fontSize: 14,
-//                             ),
-//                           ),
-//                           Text(
-//                             'PKR 849',
-//                             style: TextStyle(
-//                               fontWeight: FontWeight.bold,
-//                               fontSize: 14,
-//                               color: TColors.primary,
-//                             ),
-//                           ),
-//                         ],
-//                       ),
-//                       const SizedBox(height: 12),
-//                       Row(
-//                         children: [
-//                           Image.asset(
-//                             "assets/img/refund2.png",
-//                             height: 100,
-//                             width: 100,
-//                           ),
-//                           const SizedBox(width: 8),
-//                           const SizedBox(
-//                             width: 180,
-//                             child: Column(
-//                               crossAxisAlignment: CrossAxisAlignment.start,
-//                               children: [
-//                                 Text(
-//                                   'Enhance your booking experience with:',
-//                                   style: TextStyle(
-//                                       color: TColors.grey, fontSize: 11),
-//                                   softWrap: true,
-//                                   overflow: TextOverflow.visible,
-//                                   maxLines: null,
-//                                 ),
-//                                 SizedBox(height: 8),
-//                                 Row(
-//                                   children: [
-//                                     Icon(Icons.check,
-//                                         size: 14, color: TColors.primary),
-//                                     SizedBox(width: 8),
-//                                     Text(
-//                                       'Zero cancellation fees',
-//                                       style: TextStyle(fontSize: 11),
-//                                     ),
-//                                   ],
-//                                 ),
-//                                 SizedBox(height: 4),
-//                                 Row(
-//                                   children: [
-//                                     Icon(Icons.check,
-//                                         size: 14, color: TColors.primary),
-//                                     SizedBox(width: 8),
-//                                     Text('Guaranteed refund',
-//                                         style: TextStyle(fontSize: 11)),
-//                                   ],
-//                                 ),
-//                                 SizedBox(height: 4),
-//                                 Row(
-//                                   children: [
-//                                     Icon(Icons.check,
-//                                         size: 14, color: TColors.primary),
-//                                     SizedBox(width: 8),
-//                                     Text(
-//                                       'Ensured flexibility for your trip',
-//                                       style: TextStyle(fontSize: 11),
-//                                       softWrap: true,
-//                                       overflow: TextOverflow.visible,
-//                                       maxLines: null,
-//                                     ),
-//                                   ],
-//                                 ),
-//                               ],
-//                             ),
-//                           ),
-//                         ],
-//                       ),
-//                       Align(
-//                         alignment: Alignment.centerRight,
-//                         child: TextButton(
-//                           onPressed: () {},
-//                           child: const Text(
-//                             'Terms & Conditions',
-//                             style:
-//                                 TextStyle(color: TColors.primary, fontSize: 12),
-//                           ),
-//                         ),
-//                       ),
-//                       SizedBox(
-//                         width: double.infinity,
-//                         child: ElevatedButton(
-//                           onPressed: () {},
-//                           style: ElevatedButton.styleFrom(
-//                             backgroundColor: TColors.primary,
-//                             foregroundColor: TColors.background,
-//                             shape: RoundedRectangleBorder(
-//                               borderRadius: BorderRadius.circular(42),
-//                             ),
-//                           ),
-//                           child: const Text('+ Add'),
-//                         ),
-//                       ),

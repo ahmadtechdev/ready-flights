@@ -123,7 +123,7 @@
 //       isLoading.value = true;
 //       errorMessage.value = '';
 //
-//       print('Starting flight search...');
+//       print('Starting flight model_controllers...');
 //
 //       // Update trip type based on flightDateController
 //       updateTripType(flightDateController.tripType.value);
@@ -208,7 +208,7 @@
 //
 //       searchResults.value = results;
 //       flightController.loadFlights(results);
-//       print('Flight search completed successfully');
+//       print('Flight model_controllers completed successfully');
 //
 //       // Navigate based on trip type
 //       Get.to(() => FlightBookingPage(

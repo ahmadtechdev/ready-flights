@@ -355,7 +355,7 @@ class AllFlightBookingScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Text(
-              'Try changing the date range or search criteria',
+              'Try changing the date range or model_controllers criteria',
               textAlign: TextAlign.center,
               style: TextStyle(color: TColors.grey),
             ),
@@ -808,7 +808,7 @@ class FlightPdfGenerator {
         pw.Text('Notice', style: pw.TextStyle(font: fontBold, fontSize: 12)),
         pw.SizedBox(height: 5),
         pw.Text(
-          '1. Refund Policy All Refunds are governed by the rule published by the airline which is self explanatory and shown in the search results page.',
+          '1. Refund Policy All Refunds are governed by the rule published by the airline which is self explanatory and shown in the model_controllers results page.',
           style: pw.TextStyle(font: font, fontSize: 10),
         ),
         pw.SizedBox(height: 20),

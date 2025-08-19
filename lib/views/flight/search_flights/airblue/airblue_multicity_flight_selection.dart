@@ -413,7 +413,7 @@ class _AirBlueMultiCityFlightPageState extends State<AirBlueMultiCityFlightPage>
           ),
           const SizedBox(height: 8),
           Text(
-            'No flights available from ${cityPair.fromCity.value} to ${cityPair.toCity.value}.\nPlease check your search criteria or try different dates.',
+            'No flights available from ${cityPair.fromCity.value} to ${cityPair.toCity.value}.\nPlease check your model_controllers criteria or try different dates.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -452,13 +452,13 @@ class _AirBlueMultiCityFlightPageState extends State<AirBlueMultiCityFlightPage>
               const SizedBox(width: 16),
               ElevatedButton(
                 onPressed: () {
-                  print('DEBUG: Modify search button pressed for segment ${widget.currentSegment}');
+                  print('DEBUG: Modify model_controllers button pressed for segment ${widget.currentSegment}');
                   Get.back();
 
                   // Show a snackbar suggesting to modify search
                   Get.snackbar(
                     'No Flights Available',
-                    'Try different dates or modify your search criteria for this route.',
+                    'Try different dates or modify your model_controllers criteria for this route.',
                     snackPosition: SnackPosition.BOTTOM,
                     backgroundColor: TColors.primary,
                     colorText: TColors.white,

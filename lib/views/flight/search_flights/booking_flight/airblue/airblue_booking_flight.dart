@@ -3,15 +3,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:country_picker/country_picker.dart';
-import '../../../../services/api_service_airblue.dart';
-import '../../../../utility/colors.dart';
-import '../../../../widgets/travelers_selection_bottom_sheet.dart';
-import '../airblue/airblue_flight_controller.dart';
-import '../airblue/airblue_flight_model.dart';
-import '../airblue/airblue_pnr_pricing.dart';
-import '../search_flight_utils/widgets/airblue_flight_card.dart';
+import '../../../../../services/api_service_airblue.dart';
+import '../../../../../utility/colors.dart';
+import '../../../../../widgets/travelers_selection_bottom_sheet.dart';
+import '../../airblue/airblue_flight_controller.dart';
+import '../../airblue/airblue_flight_model.dart';
+import '../../airblue/airblue_pnr_pricing.dart';
+import '../../search_flight_utils/widgets/airblue_flight_card.dart';
 import 'booking_flight_controller.dart';
-import 'flight_print_voucher.dart';
+import '../flight_print_voucher.dart';
 
 class AirBlueBookingFlight extends StatefulWidget {
   final AirBlueFlight flight;

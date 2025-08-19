@@ -106,12 +106,12 @@ class CityController extends GetxController {
         cities.clear();
         Get.snackbar(
           'Info',
-          'No cities found for your search',
+          'No cities found for your model_controllers',
           snackPosition: SnackPosition.BOTTOM,
         );
       }
     } catch (e) {
-      print("Error in city search: $e");
+      print("Error in city model_controllers: $e");
       cities.clear();
       Get.snackbar(
         'Error',
@@ -214,12 +214,12 @@ class CustomTextField extends StatelessWidget {
                         !cityController.isLoading.value) {
                       return const Center(
                         child: Text(
-                          'No cities found. Try a different search term.',
+                          'No cities found. Try a different model_controllers term.',
                         ),
                       );
                     }
                     return const Center(
-                      child: Text('Start typing to search for cities'),
+                      child: Text('Start typing to model_controllers for cities'),
                     );
                   }
 

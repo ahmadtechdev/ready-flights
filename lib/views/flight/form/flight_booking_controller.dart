@@ -473,7 +473,7 @@ class FlightBookingController extends GetxController {
 
       // Don't wait for all APIs to complete - they'll update UI as they finish
       Future.wait(futures).catchError((e) {
-        debugPrint('Error in flight search: $e');
+        debugPrint('Error in flight model_controllers: $e');
       });
 
       // Navigate immediately to results page

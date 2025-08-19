@@ -47,7 +47,7 @@ class AllFlightBookingController extends GetxController {
     // Load bookings
     loadBookings();
 
-    // Add listener to search controller
+    // Add listener to model_controllers controller
     searchController.addListener(() {
       searchTerm.value = searchController.text;
       filterBookings();
@@ -125,13 +125,13 @@ class AllFlightBookingController extends GetxController {
     totalBookings.value = allBookings.length;
   }
 
-  // Filter bookings based on date range and search term
+  // Filter bookings based on date range and model_controllers term
   void filterBookings() {
     String term = searchTerm.value.toLowerCase();
 
     filteredBookings.value =
         allBookings.where((booking) {
-          // Check if booking matches search term (if any)
+          // Check if booking matches model_controllers term (if any)
           bool matchesSearch =
               term.isEmpty ||
               booking.bookingId.toLowerCase().contains(term) ||

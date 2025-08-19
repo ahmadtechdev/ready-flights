@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:country_picker/country_picker.dart';
 
-import '../../../../widgets/travelers_selection_bottom_sheet.dart';
-import '../../form/flight_booking_controller.dart';
+import '../../../../../widgets/travelers_selection_bottom_sheet.dart';
+import '../../../form/flight_booking_controller.dart';
 
 class TravelerInfo {
   final TextEditingController titleController;
@@ -235,7 +235,7 @@ class BookingFlightController extends GetxController {
         ),
         inputDecoration: InputDecoration(
           labelText: 'Search',
-          hintText: 'Start typing to search',
+          hintText: 'Start typing to model_controllers',
           prefixIcon: const Icon(Icons.search),
           border: OutlineInputBorder(
             borderSide: BorderSide(
@@ -266,7 +266,7 @@ class BookingFlightController extends GetxController {
         ),
         inputDecoration: InputDecoration(
           labelText: 'Search',
-          hintText: 'Start typing to search',
+          hintText: 'Start typing to model_controllers',
           prefixIcon: const Icon(Icons.search),
           border: OutlineInputBorder(
             borderSide: BorderSide(
@@ -297,7 +297,7 @@ class BookingFlightController extends GetxController {
         ),
         inputDecoration: InputDecoration(
           labelText: 'Search nationality',
-          hintText: 'Start typing to search',
+          hintText: 'Start typing to model_controllers',
           prefixIcon: const Icon(Icons.search),
           border: OutlineInputBorder(
             borderSide: BorderSide(

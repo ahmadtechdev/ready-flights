@@ -450,184 +450,223 @@ class SabrePackageSelectionDialog extends StatelessWidget {
       // Extract flight segments and organize them based on the flight scenario
       final List<Map<String, dynamic>> originDestinations = [];
 
-      // Process all flight segments for each leg schedule
-      for (
+      Map<String, dynamic> requestBody;
+
+      if (flight.isNDC) {
+
+        print("offer item id check ");
+        print(flight.packages[selectedPackageIndex].offerItemId);
+        // Prepare NDC validation request
+        requestBody = {
+          "offerItemId": [flight.packages[selectedPackageIndex].offerItemId],
+          "formOfPayment": [
+            {
+              "binNumber": "545251",
+              "subCode": "FDA",
+              "cardType": "MC"
+            }
+          ],
+        };
+      }else{
+        // Process all flight segments for each leg schedule
+        for (
         var legIndex = 0;
         legIndex < flight.legSchedules.length;
         legIndex++
-      ) {
-        final legSchedule = flight.legSchedules[legIndex];
-        final List<Map<String, dynamic>> flightSegments = [];
+        ) {
+          final legSchedule = flight.legSchedules[legIndex];
+          final List<Map<String, dynamic>> flightSegments = [];
 
-        // Process all schedules within this leg
-        for (var i = 0; i < legSchedule['schedules'].length; i++) {
-          var schedule = legSchedule['schedules'][i];
+          // Process all schedules within this leg
+          for (var i = 0; i < legSchedule['schedules'].length; i++) {
+            var schedule = legSchedule['schedules'][i];
 
-          // Access the bookingCode from the current segment index
-          final bookingCode =
-              (flight.segmentInfo.length > i)
-                  ? flight.segmentInfo[i].bookingCode
-                  : '';
+            // Access the bookingCode from the current segment index
+            final bookingCode =
+            (flight.segmentInfo.length > i)
+                ? flight.segmentInfo[i].bookingCode
+                : '';
 
-          final carrier = schedule['carrier'];
-          flightSegments.add({
-            "ClassOfService": bookingCode,
-            "Number": carrier['marketingFlightNumber'],
-            "DepartureDateTime": schedule['departure']['dateTime'],
-            "ArrivalDateTime": schedule['arrival']['dateTime'],
-            "Type": "A",
+            final carrier = schedule['carrier'];
+            flightSegments.add({
+              "ClassOfService": bookingCode,
+              "Number": carrier['marketingFlightNumber'],
+              "DepartureDateTime": schedule['departure']['dateTime'],
+              "ArrivalDateTime": schedule['arrival']['dateTime'],
+              "Type": "A",
+              "OriginLocation": {
+                "LocationCode": schedule['departure']['airport'],
+              },
+              "DestinationLocation": {
+                "LocationCode": schedule['arrival']['airport'],
+              },
+              "Airline": {
+                "Operating": carrier['operating'] ?? carrier['marketing'],
+                "Marketing": carrier['marketing'],
+              },
+            });
+          }
+
+          // Create origin destination information for this leg
+          final originDestination = {
+            "RPH": (legIndex + 1).toString(),
+            "DepartureDateTime": legSchedule['departure']['dateTime'],
             "OriginLocation": {
-              "LocationCode": schedule['departure']['airport'],
+              "LocationCode": legSchedule['departure']['airport'],
             },
             "DestinationLocation": {
-              "LocationCode": schedule['arrival']['airport'],
+              "LocationCode": legSchedule['arrival']['airport'],
             },
-            "Airline": {
-              "Operating": carrier['operating'] ?? carrier['marketing'],
-              "Marketing": carrier['marketing'],
+            "TPA_Extensions": {
+              "Flight": flightSegments,
+              "SegmentType": {"Code": "O"},
             },
-          });
+          };
+
+          originDestinations.add(originDestination);
         }
 
-        // Create origin destination information for this leg
-        final originDestination = {
-          "RPH": (legIndex + 1).toString(),
-          "DepartureDateTime": legSchedule['departure']['dateTime'],
-          "OriginLocation": {
-            "LocationCode": legSchedule['departure']['airport'],
-          },
-          "DestinationLocation": {
-            "LocationCode": legSchedule['arrival']['airport'],
-          },
-          "TPA_Extensions": {
-            "Flight": flightSegments,
-            "SegmentType": {"Code": "O"},
+        // Create the request body
+        requestBody = {
+          "OTA_AirLowFareSearchRQ": {
+            "Version": "4",
+            "TravelPreferences": {
+              "LookForAlternatives": false,
+              "TPA_Extensions": {
+                "VerificationItinCallLogic": {
+                  "AlwaysCheckAvailability": true,
+                  "Value": "B",
+                },
+              },
+            },
+            "TravelerInfoSummary": {
+              "SeatsRequested": [
+                travelersController.adultCount.value +
+                    travelersController.childrenCount.value,
+              ],
+              "AirTravelerAvail": [
+                {
+                  "PassengerTypeQuantity": [
+                    if (travelersController.adultCount.value > 0)
+                      {
+                        "Code": "ADT",
+                        "Quantity": travelersController.adultCount.value,
+                      },
+                    if (travelersController.childrenCount.value > 0)
+                      {
+                        "Code": "CHD",
+                        "Quantity": travelersController.childrenCount.value,
+                      },
+                    if (travelersController.infantCount.value > 0)
+                      {
+                        "Code": "INF",
+                        "Quantity": travelersController.infantCount.value,
+                      },
+                  ],
+                },
+              ],
+              "PriceRequestInformation": {
+                "TPA_Extensions": {
+                  "BrandedFareIndicators": {
+                    "MultipleBrandedFares": true,
+                    "ReturnBrandAncillaries": true,
+                  },
+                },
+              },
+            },
+            "POS": {
+              "Source": [
+                {
+                  "PseudoCityCode": "6MD8",
+                  "RequestorID": {
+                    "Type": "1",
+                    "ID": "1",
+                    "CompanyName": {"Code": "TN"},
+                  },
+                },
+              ],
+            },
+            "OriginDestinationInformation": originDestinations,
+            "TPA_Extensions": {
+              "IntelliSellTransaction": {
+                "RequestType": {"Name": "50ITINS"},
+              },
+            },
           },
         };
-
-        originDestinations.add(originDestination);
       }
 
-      // Create the request body
-      final requestBody = {
-        "OTA_AirLowFareSearchRQ": {
-          "Version": "4",
-          "TravelPreferences": {
-            "LookForAlternatives": false,
-            "TPA_Extensions": {
-              "VerificationItinCallLogic": {
-                "AlwaysCheckAvailability": true,
-                "Value": "B",
-              },
-            },
-          },
-          "TravelerInfoSummary": {
-            "SeatsRequested": [
-              travelersController.adultCount.value +
-                  travelersController.childrenCount.value,
-            ],
-            "AirTravelerAvail": [
-              {
-                "PassengerTypeQuantity": [
-                  if (travelersController.adultCount.value > 0)
-                    {
-                      "Code": "ADT",
-                      "Quantity": travelersController.adultCount.value,
-                    },
-                  if (travelersController.childrenCount.value > 0)
-                    {
-                      "Code": "CHD",
-                      "Quantity": travelersController.childrenCount.value,
-                    },
-                  if (travelersController.infantCount.value > 0)
-                    {
-                      "Code": "INF",
-                      "Quantity": travelersController.infantCount.value,
-                    },
-                ],
-              },
-            ],
-            "PriceRequestInformation": {
-              "TPA_Extensions": {
-                "BrandedFareIndicators": {
-                  "MultipleBrandedFares": true,
-                  "ReturnBrandAncillaries": true,
-                },
-              },
-            },
-          },
-          "POS": {
-            "Source": [
-              {
-                "PseudoCityCode": "6MD8",
-                "RequestorID": {
-                  "Type": "1",
-                  "ID": "1",
-                  "CompanyName": {"Code": "TN"},
-                },
-              },
-            ],
-          },
-          "OriginDestinationInformation": originDestinations,
-          "TPA_Extensions": {
-            "IntelliSellTransaction": {
-              "RequestType": {"Name": "50ITINS"},
-            },
-          },
-        },
-      };
+
 
       // Check flight availability
       final response = await apiService.checkFlightAvailability(
         type: flightController.currentScenario.value.index,
-        flightSegments:
-            originDestinations
-                .expand(
-                  (od) =>
-                      (od['TPA_Extensions']['Flight']
-                          as List<Map<String, dynamic>>),
-                )
-                .toList(),
+        flightSegments: flight.isNDC ? [] : originDestinations
+            .expand((od) => (od['TPA_Extensions']['Flight'] as List<Map<String, dynamic>>))
+            .toList(),
         adult: travelersController.adultCount.value,
         child: travelersController.childrenCount.value,
         infant: travelersController.infantCount.value,
         requestBody: requestBody,
+        isNDC: flight.isNDC, // Pass the flag
       );
 
       print("availibility check:");
       print(response);
 
-      // Parse the response to get the pricing information
+      // Parse the response
       flightController.parseApiResponse(response, isAvailabilityCheck: true);
 
-      // Handle the response and navigation
-      if (response.containsKey('groupedItineraryResponse')) {
-        // Get the pricing information from the parsed response
-        final pricingInformation =
-            flightController.availabilityFlights.first.pricingInforArray;
+      if (response.containsKey('groupedItineraryResponse') || response.containsKey('payloadAttributes')) {
+        // Handle response based on NDC or standard
+        if (flight.isNDC) {
 
-        final validateBasicCode =
-            flightController
-                .availabilityFlights
-                .first
-                .legSchedules
-                .first['fareBasisCode'];
-        final basicCode = flight.legSchedules.first['fareBasisCode'];
+          // Extract pricing information from NDC response
+          final responseData = response['response'] as Map<String, dynamic>;
+          final offers = responseData['offers'] as List<dynamic>;
+          final firstOffer = offers.first as Map<String, dynamic>;
+          final price = firstOffer['totalPrice'] as Map<String, dynamic>;
 
-        if (validateBasicCode == basicCode) {
-          Get.to(
-            () => ReviewTripPage(
+          // Create pricing information map
+          final pricingInformation = {
+            'totalAmount': price['totalAmount']['amount'],
+            'totalCurrency': price['totalAmount']['curCode'],
+            'baseAmount': price['baseAmount']['amount'],
+            'baseCurrency': price['baseAmount']['curCode'],
+            'taxes': price['totalTaxes']['amount'],
+            'taxesCurrency': price['totalTaxes']['curCode'],
+            // You can add more fields from the response as needed
+          };
+          // Handle NDC response
+          Get.to(() => ReviewTripPage(
+            isMulti: false,
+            flight: flight,
+            pricingInformation: pricingInformation,
+            isNDC: true,
+          ));
+        } else {
+          // Handle standard response
+          final validateBasicCode = flightController
+              .availabilityFlights
+              .first
+              .legSchedules
+              .first['fareBasisCode'];
+          final basicCode = flight.legSchedules.first['fareBasisCode'];
+
+          if (validateBasicCode == basicCode) {
+            Get.to(() => ReviewTripPage(
               isMulti: false,
               flight: flight,
-              pricingInformation:
-                  pricingInformation[selectedPackageIndex], // Pass the selected package's pricing information
-            ),
-          );
-        } else {
-          CustomSnackBar(
-            message: 'Basic FLight Code Not Matched',
-            backgroundColor: TColors.third,
-          ).show();
+              pricingInformation: flightController
+                  .availabilityFlights.first.pricingInforArray[selectedPackageIndex],
+              isNDC: false,
+            ));
+          } else {
+            CustomSnackBar(
+              message: 'Basic Flight Code Not Matched',
+              backgroundColor: TColors.third,
+            ).show();
+          }
         }
       } else {
         throw Exception('Invalid response format');
@@ -635,14 +674,15 @@ class SabrePackageSelectionDialog extends StatelessWidget {
     } catch (e) {
       Get.snackbar(
         'Error',
-        'This flight package is no longer available. Please select another option.',
+        // 'This flight package is no longer available. Please select another option.',
+        e.toString(),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
         duration: const Duration(seconds: 3),
       );
     } finally {
-      isLoading.value = false; // Hide loader
+      isLoading.value = false;
     }
   }
 }

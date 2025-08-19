@@ -97,7 +97,7 @@ class ApiServiceHotel extends GetxService {
     } catch (e) {
       return [];
     }
-  } // Fetches hotels based on search parameters.
+  } // Fetches hotels based on model_controllers parameters.
 
   Future<void> fetchHotels({
     required String destinationCode,

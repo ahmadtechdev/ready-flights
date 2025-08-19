@@ -97,7 +97,7 @@ class AirblueReturnFlightsPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'No return flights found for this route.\nPlease check your search criteria or try different dates.',
+            'No return flights found for this route.\nPlease check your model_controllers criteria or try different dates.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,

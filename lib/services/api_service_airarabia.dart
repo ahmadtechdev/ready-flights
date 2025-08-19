@@ -40,7 +40,7 @@ class ApiServiceAirArabia {
 
 
       final response = await _dio.request(
-        'https://onerooftravel.net/api/search/air-arabia-flights',
+        'https://onerooftravel.net/api/model_controllers/air-arabia-flights',
         options: Options(
           method: 'POST',
           headers: headers,
