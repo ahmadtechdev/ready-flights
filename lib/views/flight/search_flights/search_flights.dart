@@ -203,10 +203,7 @@ class FlightBookingPage extends StatelessWidget {
                 itemCount: airBlueController.filteredFlights.length,
                 itemBuilder: (context, index) {
                   final flight = airBlueController.filteredFlights[index];
-                  return GestureDetector(
-                    onTap: () => airBlueController.handleAirBlueFlightSelection(flight),
-                    child: AirBlueFlightCard(flight: flight),
-                  );
+                  return AirBlueFlightCard(flight: flight);
                 },
               );
             }),
@@ -228,10 +225,7 @@ class FlightBookingPage extends StatelessWidget {
                 itemCount: flightController.filteredFlights.length,
                 itemBuilder: (context, index) {
                   final flight = flightController.filteredFlights[index];
-                  return GestureDetector(
-                    onTap: () => flightController.handleFlightSelection(flight),
-                    child: FlightCard(flight: flight),
-                  );
+                  return FlightCard(flight: flight);
                 },
               );
             }),

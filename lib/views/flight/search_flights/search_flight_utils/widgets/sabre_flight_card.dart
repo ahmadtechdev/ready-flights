@@ -6,6 +6,7 @@ import '../../../../../services/api_service_sabre.dart';
 
 import '../../../../../utility/colors.dart';
 import '../../../form/flight_booking_controller.dart';
+import '../../pia/pia_flight_controller.dart';
 import '../../sabre/sabre_flight_controller.dart';
 import '../../sabre/sabre_flight_models.dart';
 import '../helper_functions.dart';
@@ -13,12 +14,16 @@ import '../helper_functions.dart';
 class FlightCard extends StatefulWidget {
   final SabreFlight flight;
   final bool showReturnFlight;
+  final bool isShowBookButton;
 
   const FlightCard({
     super.key,
     required this.flight,
     this.showReturnFlight = true,
+    this.isShowBookButton = true,
   });
+
+
 
   @override
   State<FlightCard> createState() => _FlightCardState();
@@ -33,8 +38,7 @@ class _FlightCardState extends State<FlightCard>
   final Rx<Map<String, dynamic>> marginData = Rx<Map<String, dynamic>>({});
   final RxDouble finalPrice = 0.0.obs;
 
-
-
+  final flightController = Get.find<FlightController>();
   @override
   void initState() {
     super.initState();
@@ -193,56 +197,93 @@ class _FlightCardState extends State<FlightCard>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     // Airline Logo and Name
-                    Row(
-                      children: [
-                        if (firstLeg != null && airlineInfo != null)
-                          CachedNetworkImage(
-                            imageUrl: firstLeg['airlineImg'],
-                            height: 32,
-                            width: 32,
-                            placeholder: (context, url) => const CircularProgressIndicator(strokeWidth: 2),
-                            errorWidget: (context, url, error) => const Icon(Icons.flight, size: 32),
-                            fit: BoxFit.contain,
-                          ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    SizedBox(
+                      width: 150,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
                           children: [
-                            Text(
-                              firstLeg?['airlineName'] ?? 'Airline',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
+                            if (firstLeg != null && airlineInfo != null)
+                              CachedNetworkImage(
+                                imageUrl: firstLeg['airlineImg'],
+                                height: 32,
+                                width: 32,
+                                placeholder: (context, url) => const CircularProgressIndicator(strokeWidth: 2),
+                                errorWidget: (context, url, error) => const Icon(Icons.flight, size: 32),
+                                fit: BoxFit.contain,
                               ),
-                            ),
-                            Text(
-                              firstLeg?['airlineCode'] ?? 'Code',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  firstLeg?['airlineName'] ?? 'Airline',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                Text(
+                                  "${firstLeg?['airlineCode']}-${widget.flight.stopSchedules[0]['carrier']['marketingFlightNumber']}" ?? 'Code',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
+                      ),
+                    ),
+                    //
+                    if(!widget.isShowBookButton)...[
+
+
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+
+                        GetX<FlightController>(
+                          builder: (controller) => Text(
+                            '${controller.selectedCurrency.value} ${finalPrice.value.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: TColors.primary,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          width: 60,
+                          // height: 60,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFBB0103),
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              widget.flight.isNDC?'Sabre NDC':"Sabre",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
-                    // Price
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Text(
-                        'Book Now',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    )
+                    ]
                   ],
                 ),
 
@@ -291,70 +332,82 @@ class _FlightCardState extends State<FlightCard>
                         // Flight Duration and Line
                         Expanded(
                           flex: 3,
-                          child: Column(
-                            children: [
-                              Text(
-                                '${legSchedule['elapsedTime'] ~/ 60}h ${legSchedule['elapsedTime'] % 60}m',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: TColors.primary,
-                                    ),
+                          child: InkWell(
+                            onTap: () {
+                              setState(() {
+                                isExpanded = !isExpanded;
+                                if (isExpanded) {
+                                  _controller.forward();
+                                } else {
+                                  _controller.reverse();
+                                }
+                              });
+                            },
+                            child: Column(
+                              children: [
+                                Text(
+                                  '${legSchedule['elapsedTime'] ~/ 60}h ${legSchedule['elapsedTime'] % 60}m',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                    fontWeight: FontWeight.w500,
                                   ),
-                                  Expanded(
-                                    child: Container(
-                                      height: 2,
-                                      decoration: BoxDecoration(
-                                        color: TColors.primary.withOpacity(0.3),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: TColors.primary,
                                       ),
                                     ),
-                                  ),
-                                  const Icon(
-                                    Icons.flight,
-                                    size: 20,
-                                    color: TColors.primary,
-                                  ),
-                                  Expanded(
-                                    child: Container(
-                                      height: 2,
-                                      decoration: BoxDecoration(
-                                        color: TColors.primary.withOpacity(0.3),
+                                    Expanded(
+                                      child: Container(
+                                        height: 2,
+                                        decoration: BoxDecoration(
+                                          color: TColors.primary.withOpacity(0.3),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
+                                    const Icon(
+                                      Icons.flight,
+                                      size: 20,
                                       color: TColors.primary,
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                legSchedule['stops'].isEmpty
-                                    ? 'Direct'
-                                    : '${legSchedule['stops'].length} stop${legSchedule['stops'].length > 1 ? 's' : ''}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: legSchedule['stops'].isEmpty ? Colors.green : Colors.orange,
-                                  fontWeight: FontWeight.w500,
+                                    Expanded(
+                                      child: Container(
+                                        height: 2,
+                                        decoration: BoxDecoration(
+                                          color: TColors.primary.withOpacity(0.3),
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: TColors.primary,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 4),
+                                Text(
+                                  legSchedule['stops'].isEmpty
+                                      ? 'Direct'
+                                      : '${legSchedule['stops'].length} stop${legSchedule['stops'].length > 1 ? 's' : ''}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: legSchedule['stops'].isEmpty ? Colors.green : Colors.orange,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
 
@@ -396,150 +449,211 @@ class _FlightCardState extends State<FlightCard>
                   );
                 }).toList(),
 
+                // Expandable Details Section (keeping your existing detailed view)
+                SizeTransition(
+                  sizeFactor: _expandAnimation,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(12),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Flight Segments
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: widget.flight.stopSchedules.length,
+                          itemBuilder: (context, index) {
+                            final schedule = widget.flight.stopSchedules[index];
+                            return _buildFlightSegment(
+                              schedule,
+                              index,
+                              widget.flight.stopSchedules.length,
+                            );
+                          },
+                        ),
+
+                        // // Baggage Information
+                        // _buildSectionCard(
+                        //   title: 'Baggage Allowance',
+                        //   content: formatBaggageInfo(),
+                        //   icon: Icons.luggage,
+                        // ),
+                        //
+                        // // Fare Rules
+                        // _buildSectionCard(
+                        //   title: 'Policy',
+                        //   content: _buildFareRules(),
+                        //   icon: Icons.rule,
+                        // ),
+                      ],
+                    ),
+                  ),
+                ),
                 // const SizedBox(height: 12),
 
                 // Bottom Row - Flight Details Button and Book Button
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+
+
                     // Flight Details Button (instead of discount)
-                    InkWell(
-                      onTap: () {
-                        setState(() {
-                          isExpanded = !isExpanded;
-                          if (isExpanded) {
-                            _controller.forward();
-                          } else {
-                            _controller.reverse();
-                          }
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: TColors.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Flight Details',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: TColors.primary,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            AnimatedRotation(
-                              duration: const Duration(milliseconds: 300),
-                              turns: isExpanded ? 0.5 : 0,
-                              child: Icon(
-                                Icons.keyboard_arrow_down,
-                                size: 16,
-                                color: TColors.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    // InkWell(
+                    //   onTap: () {
+                    //     setState(() {
+                    //       isExpanded = !isExpanded;
+                    //       if (isExpanded) {
+                    //         _controller.forward();
+                    //       } else {
+                    //         _controller.reverse();
+                    //       }
+                    //     });
+                    //   },
+                    //   child: Container(
+                    //     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    //     decoration: BoxDecoration(
+                    //       color: TColors.primary.withOpacity(0.1),
+                    //       borderRadius: BorderRadius.circular(6),
+                    //     ),
+                    //     child: Row(
+                    //       mainAxisSize: MainAxisSize.min,
+                    //       children: [
+                    //         Text(
+                    //           'Flight Details',
+                    //           style: TextStyle(
+                    //             fontSize: 12,
+                    //             fontWeight: FontWeight.w600,
+                    //             color: TColors.primary,
+                    //           ),
+                    //         ),
+                    //         const SizedBox(width: 4),
+                    //         AnimatedRotation(
+                    //           duration: const Duration(milliseconds: 300),
+                    //           turns: isExpanded ? 0.5 : 0,
+                    //           child: Icon(
+                    //             Icons.keyboard_arrow_down,
+                    //             size: 16,
+                    //             color: TColors.primary,
+                    //           ),
+                    //         ),
+                    //       ],
+                    //     ),
+                    //   ),
+                    // ),
 
                     // Provider Badge and Book Button
                     // const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Container(
-                          width: 60,
-                          // height: 60,
+                    if(widget.isShowBookButton)...[
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 60,
+                            // height: 60,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFBB0103),
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Text(
+                                widget.flight.isNDC?'Sabre NDC':"Sabre",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                          GetX<FlightController>(
+                            builder: (controller) => Text(
+                              '${controller.selectedCurrency.value} ${finalPrice.value.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: TColors.primary,
+                              ),
+                            ),
+                          ),
+
+                        ],
+                      ),
+                      InkWell(
+                        onTap: () => flightController.handleFlightSelection(widget.flight),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFBB0103),
-                            borderRadius: BorderRadius.circular(8),
+                            gradient: LinearGradient(
+                              colors: [
+                                TColors.primary,
+                                TColors.primary.withOpacity(0.8),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
+                                color: TColors.primary.withOpacity(0.3),
+                                spreadRadius: 0,
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                              BoxShadow(
                                 color: Colors.black.withOpacity(0.1),
-                                blurRadius: 4,
+                                spreadRadius: 0,
+                                blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
                             ],
                           ),
-                          child: Center(
-                            child: Text(
-                              widget.flight.isNDC?'Sabre NDC':"Sabre",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Book Now',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
+                                ),
                               ),
-                              textAlign: TextAlign.center,
-                            ),
+                              SizedBox(width: 8),
+                              Icon(
+                                Icons.flight_takeoff,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ],
                           ),
                         ),
-                        GetX<FlightController>(
-                          builder: (controller) => Text(
-                            '${controller.selectedCurrency.value} ${finalPrice.value.toStringAsFixed(0)}',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: TColors.primary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ]
                   ],
                 ),
               ],
             ),
           ),
 
-          // Expandable Details Section (keeping your existing detailed view)
-          SizeTransition(
-            sizeFactor: _expandAnimation,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(12),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Flight Segments
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: widget.flight.stopSchedules.length,
-                    itemBuilder: (context, index) {
-                      final schedule = widget.flight.stopSchedules[index];
-                      return _buildFlightSegment(
-                        schedule,
-                        index,
-                        widget.flight.stopSchedules.length,
-                      );
-                    },
-                  ),
 
-                  // Baggage Information
-                  _buildSectionCard(
-                    title: 'Baggage Allowance',
-                    content: formatBaggageInfo(),
-                    icon: Icons.luggage,
-                  ),
-
-                  // Fare Rules
-                  _buildSectionCard(
-                    title: 'Policy',
-                    content: _buildFareRules(),
-                    icon: Icons.rule,
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -551,6 +665,7 @@ class _FlightCardState extends State<FlightCard>
       int totalSegments,
       ) {
     // Get flight number and carrier from the schedule
+
     final carrier = schedule['carrier'] ?? {};
     final flightNumber =
         '${carrier['marketing'] ?? 'XX'}-${carrier['marketingFlightNumber'] ?? '000'}';

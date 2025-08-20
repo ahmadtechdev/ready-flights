@@ -75,18 +75,18 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
       final bookingController = Get.find<FlightBookingController>();
       if (segmentIndex < bookingController.cityPairs.length) {
         final cityPair = bookingController.cityPairs[segmentIndex];
-        return 'Select Package: ${cityPair.fromCity.value} → ${cityPair.toCity.value}';
+        return 'Select: ${cityPair.fromCity.value} → ${cityPair.toCity.value}';
       }
-      return 'Select Package for Segment ${segmentIndex + 1}';
+      return 'Select Flight for Segment ${segmentIndex + 1}';
     } else if (isReturnFlight) {
-      return 'Select Return Flight Package';
+      return 'Select Return Flight ';
     } else {
-      return 'Select Flight Package';
+      return 'Select Flight ';
     }
   }
 
   Widget _buildFlightInfo() {
-    return AirBlueFlightCard(flight: flight, showReturnFlight: false);
+    return AirBlueFlightCard(flight: flight, showReturnFlight: false, isShowBookButton: false,);
   }
 
   Future<void> _prefetchMarginData() async {
@@ -155,11 +155,12 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
 
   Widget _buildPackagesList() {
     // Get fare options for the selected flight based on RPH
-    // In _buildPackagesList method
     final List<AirBlueFareOption> fareOptions = airBlueController.getFareOptionsForFlight(
         flight,
-        segmentIndex: segmentIndex  // Always pass the segment index
-    ); print('DEBUG: Getting packages for segment $segmentIndex');
+        segmentIndex: segmentIndex
+    );
+
+    print('DEBUG: Getting packages for segment $segmentIndex');
     print('DEBUG: Flight RPH: ${flight.rph}');
     print('DEBUG: Expected fare key: segment_${segmentIndex}_${flight.rph}');
 
@@ -172,7 +173,7 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
             Icon(Icons.warning_amber_rounded, size: 48, color: Colors.amber),
             SizedBox(height: 16),
             Text(
-              'No packages available for this flight',
+              'No flights available for this flight',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
             SizedBox(height: 8),
@@ -189,214 +190,279 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Padding(
-          padding: EdgeInsets.only(left: 16, top: 8, bottom: 8),
+          padding: EdgeInsets.only(left: 16, top: 8, bottom: 16),
           child: Text(
-            'Available Brands',
+            'Available ',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 20,
               fontWeight: FontWeight.bold,
               color: TColors.text,
             ),
           ),
         ),
         Expanded(
-          child: PageView.builder(
-            controller: _pageController,
-            padEnds: false,
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: fareOptions.length,
             itemBuilder: (context, index) {
-              return AnimatedBuilder(
-                animation: _pageController,
-                builder: (context, child) {
-                  double value = 1.0;
-                  if (_pageController.position.haveDimensions) {
-                    value = _pageController.page! - index;
-                    value = (1 - (value.abs() * 0.3)).clamp(0.0, 1.0);
-                  }
-                  return Transform.scale(
-                    scale: Curves.easeOutQuint.transform(value),
-                    child: _buildPackageCard(fareOptions[index], flight, index),
-                  );
-                },
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: _buildVerticalPackageCard(fareOptions[index], flight, index),
               );
             },
-          ),
-        ),
-        SizedBox(
-          height: 50,
-          child: Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                fareOptions.length,
-                    (index) => AnimatedBuilder(
-                  animation: _pageController,
-                  builder: (context, child) {
-                    double value = 0;
-                    if (_pageController.position.haveDimensions) {
-                      value = _pageController.page! - index;
-                    }
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      height: 8,
-                      width: value.abs() < 0.5 ? 24 : 8,
-                      decoration: BoxDecoration(
-                        color: value.abs() < 0.5
-                            ? TColors.primary
-                            : TColors.grey.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildPackageCard(AirBlueFareOption package, AirBlueFlight flight, int index) {
+
+  Widget _buildVerticalPackageCard(AirBlueFareOption package, AirBlueFlight flight, int index) {
     final headerColor = TColors.primary;
     final isSoldOut = false;
     final price = finalPrices['${package.cabinCode}-${package.fareName}']?.value ?? package.price;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: TColors.background,
-        borderRadius: BorderRadius.circular(24),
+        color: TColors.white,
+        borderRadius: BorderRadius.circular(16), // smaller radius
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12, // reduced
+            offset: const Offset(0, 4), // reduced
           ),
         ],
       ),
       child: Column(
         children: [
-          // Header with package name
+          // Header
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), // reduced
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [headerColor, headerColor.withOpacity(0.8)],
+                colors: [
+                  headerColor,
+                  headerColor.withOpacity(0.85),
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(24),
-                topRight: Radius.circular(24),
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
               ),
             ),
-            child: Center(
-              child: Text(
-                package.fareName,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: TColors.background,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        package.fareName,
+                        style: const TextStyle(
+                          fontSize: 16, // reduced
+                          fontWeight: FontWeight.bold,
+                          color: TColors.white,
+                        ),
+                      ),
+
+                    ],
+                  ),
                 ),
-              ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // reduced
+                  decoration: BoxDecoration(
+                    color: TColors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: TColors.white.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    '${package.currency} ${price.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: TColors.white,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 
           // Package details
-          Expanded(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    _buildPackageDetail(
-                      Icons.luggage,
-                      'Hand Baggage',
-                      '7 KG', // Hardcoded as per web
-                    ),
-                    const SizedBox(height: 8),
-                    _buildPackageDetail(
-                      Icons.luggage,
-                      'Checked Baggage',
-                      package.baggageAllowance,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildPackageDetail(
-                      Icons.restaurant,
-                      'Meal',
-                      'Yes', // Hardcoded as per web
-                    ),
-                    const SizedBox(height: 8),
-                    _buildPackageDetail(
-                      Icons.airline_seat_recline_normal,
-                      'Cabin Class',
-                      '${package.cabinCode} (${package.cabinCode})',
-                    ),
-                    const SizedBox(height: 8),
-                    _buildPackageDetail(
-                      Icons.change_circle,
-                      'Change Fee',
-                      package.changeFee,
-                      details: flight.changeFeeDetails,
-                      showInfoIcon: true,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildPackageDetail(
-                      Icons.currency_exchange,
-                      'Refund Fee',
-                      package.refundFee,
-                      details: flight.refundFeeDetails,
-                      showInfoIcon: true,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Price and button
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14), // reduced
             child: Column(
               children: [
-                Text(
-                  '${package.currency} ${price.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: TColors.text,
-                  ),
+                // First row
+                _buildPackageDetail(
+                  Icons.work_outline_rounded,
+                  'Hand Baggage',
+                  '7 KG',
+
+                ),
+                const SizedBox(height: 12), // reduced
+                _buildPackageDetail(
+                  Icons.luggage,
+                  'Checked Baggage',
+                  package.baggageAllowance,
+
+                ),
+
+                const SizedBox(height: 12),
+
+                // Second row
+                _buildPackageDetail(
+                  Icons.restaurant_rounded,
+                  'Meal',
+                  'Included',
+
                 ),
                 const SizedBox(height: 12),
-                Obx(() => ElevatedButton(
-                  onPressed: isSoldOut || isLoading.value
-                      ? null
-                      : () => onSelectPackage(index),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isSoldOut ? Colors.grey : TColors.primary,
-                    minimumSize: const Size(double.infinity, 48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
+                _buildPackageDetail(
+                  Icons.airline_seat_recline_normal,
+                  'Cabin',
+                  // package.cabinCode,
+                  "Economy",
+
+                ),
+
+                const SizedBox(height: 12),
+
+                // Third row
+                _buildPackageDetail(
+                  Icons.swap_horiz_rounded,
+                  'Change Fee',
+                  package.changeFee,
+
+                  details: flight.changeFeeDetails,
+                ),
+                const SizedBox(height: 12),
+                _buildPackageDetail(
+                  Icons.money_off_rounded,
+                  'Refund Fee',
+                  package.refundFee,
+
+                  details: flight.refundFeeDetails,
+                ),
+
+                const SizedBox(height: 16),
+
+                // Button
+                Obx(() => SizedBox(
+                  width: double.infinity,
+                  height: 44, // reduced button height
+                  child: ElevatedButton(
+                    onPressed: isSoldOut || isLoading.value
+                        ? null
+                        : () => onSelectPackage(index),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isSoldOut ? Colors.grey : TColors.primary,
+                      foregroundColor: TColors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
                     ),
-                    elevation: 2,
-                  ),
-                  child: isLoading.value
-                      ? const CircularProgressIndicator(
-                    strokeWidth: 3,
-                    valueColor: AlwaysStoppedAnimation<Color>(TColors.background),
-                  )
-                      : Text(
-                    _getButtonText(),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: TColors.background,
+                    child: isLoading.value
+                        ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(TColors.white),
+                      ),
+                    )
+                        : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _getButtonText(),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Icon(Icons.arrow_forward_rounded, size: 18),
+                      ],
                     ),
                   ),
                 )),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactDetail(
+      IconData icon,
+      String title,
+      String value,
+      Color iconColor, {
+        List<Map<String, dynamic>>? details,
+      }) {
+    final bool hasDetails = details != null && details.isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(10), // reduced
+      decoration: BoxDecoration(
+        color: iconColor.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: iconColor.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4), // reduced
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(icon, color: iconColor, size: 14), // smaller icon
+              ),
+              const Spacer(),
+              if (hasDetails)
+                GestureDetector(
+                  onTap: () => _showFeeDetailsDialog(title, details!),
+                  child: Icon(Icons.info_outline_rounded,
+                      size: 14, color: iconColor),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: TColors.text.withOpacity(0.7),
+            ),
+          ),
+          const SizedBox(height: 1),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: TColors.text,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -421,7 +487,14 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, color: TColors.primary, size: 20),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: TColors.secondary,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: TColors.background, size: 18),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

@@ -32,7 +32,7 @@ class _BookingFormState extends State<BookingForm> {
     // Fill booker information
     bookingController.firstNameController.text = "John";
     bookingController.lastNameController.text = "Doe";
-    bookingController.emailController.text = "john.doe@example.com";
+    bookingController.emailController.text = "example@gmail.com";
     bookingController.phoneController.text = "1234567890";
     bookingController.remarksController.text = "Test booking";
     bookingController.bookerPhoneCountry.value = Country.parse('PK');
