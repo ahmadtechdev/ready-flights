@@ -5,6 +5,7 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import 'package:ready_flights/utility/colors.dart';
 import 'package:ready_flights/views/home/booking_card.dart';
 import 'package:ready_flights/views/users/login/login.dart';
+import 'package:url_launcher/url_launcher.dart';
 // import 'package:url_launcher/url_launcher.dart';
 import 'featured_items.dart';
 
@@ -204,27 +205,27 @@ class HomeBanner extends StatelessWidget {
 class CustomerServiceSection extends StatelessWidget {
   const CustomerServiceSection({super.key});
 
-  final String mobileNumber = "923027253781";
+  final String mobileNumber = "923007240421";
 
   Future<void> launchWhatsApp() async {
-    // String message = "Sastay Hotels ";
-    // final url = "https://wa.me/$mobileNumber?text=${Uri.encodeComponent(message)}";
+    String message = "Ready FLights ";
+    final url = "https://wa.me/$mobileNumber?text=${Uri.encodeComponent(message)}";
 
-    // if (await canLaunchUrl(Uri.parse(url))) {
-    //   await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    // } else {
-    //   throw 'Could not launch $url';
-    // }
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } else {
+      throw 'Could not launch $url';
+    }
   }
 
   Future<void> launchCall() async {
-    // final url = "tel:$mobileNumber";
+    final url = "tel:$mobileNumber";
 
-    // if (await canLaunchUrl(Uri.parse(url))) {
-    //   await launchUrl(Uri.parse(url));
-    // } else {
-    //   throw 'Could not launch $url';
-    // }
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    } else {
+      throw 'Could not launch $url';
+    }
   }
 
   @override

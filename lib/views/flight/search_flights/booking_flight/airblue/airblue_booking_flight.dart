@@ -210,7 +210,7 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
       return Column(children: [...adults, ...children, ...infants]);
     });
   }
-
+// Updated _buildTravelerSection method with dropdown implementation
   Widget _buildTravelerSection({
     required String title,
     required bool isInfant,
@@ -273,30 +273,21 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Title and Gender Row
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildCheckboxGroup(
-                        label: 'Title',
-                        options:
-                        isInfant
-                            ? ['Inf']
-                            : (type == 'child'
-                            ? ['Mstr', 'Miss']
-                            : ['Mr', 'Mrs', 'Ms']),
-                        controller: travelerInfo.titleController,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildCheckboxGroup(
-                        label: 'Gender',
-                        options: ['Male', 'Female'],
-                        controller: travelerInfo.genderController,
-                      ),
-                    ),
-                  ],
+                // Title and Gender Row - Now using dropdowns
+                _buildDropdownField(
+                  label: 'Title',
+                  options: isInfant
+                      ? ['Inf']
+                      : (type == 'child'
+                      ? ['Mstr', 'Miss']
+                      : ['Mr', 'Mrs', 'Ms']),
+                  controller: travelerInfo.titleController,
+                ),
+                const SizedBox(height: 16),
+                _buildDropdownField(
+                  label: 'Gender',
+                  options: ['Male', 'Female'],
+                  controller: travelerInfo.genderController,
                 ),
                 const SizedBox(height: 16),
 
@@ -344,6 +335,7 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                   ),
                   const SizedBox(height: 16),
                 ],
+
                 // Nationality and Passport Row
                 Column(
                   children: [
@@ -353,8 +345,7 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                     ),
                     const SizedBox(height: 16),
                     _buildTextField(
-                      label:
-                      bookingController.isDomesticFlight
+                      label: bookingController.isDomesticFlight
                           ? 'CNIC Number*'
                           : 'Passport Number*',
                       controller: travelerInfo.passportCnicController,
@@ -366,15 +357,11 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
 
                 // Passport Expiry
                 _buildDateField(
-                  label:
-                  bookingController.isDomesticFlight
+                  label: bookingController.isDomesticFlight
                       ? 'CNIC Expire'
                       : 'Passport Expire',
                   controller: travelerInfo.passportExpiryController,
                 ),
-
-
-
               ],
             ),
           ),
@@ -382,7 +369,6 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
       ),
     );
   }
-
   Widget _buildBookerDetails() {
     return Container(
       decoration: BoxDecoration(
@@ -877,10 +863,12 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
     );
   }
 
-  Widget _buildCheckboxGroup({
+  // Replace the _buildCheckboxGroup method with this dropdown method
+  Widget _buildDropdownField({
     required String label,
     required List<String> options,
     required TextEditingController controller,
+    bool isRequired = true,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -894,47 +882,45 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
           ),
         ),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          children:
-          options.map((option) {
-            return InkWell(
-              onTap: () {
-                controller.text = option;
-                setState(() {});
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color:
-                  controller.text == option
-                      ? TColors.primary
-                      : Colors.white,
-                  border: Border.all(
-                    color:
-                    controller.text == option
-                        ? TColors.primary
-                        : Colors.grey[300]!,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  option,
-                  style: TextStyle(
-                    color:
-                    controller.text == option
-                        ? Colors.white
-                        : Colors.black87,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: DropdownButtonFormField<String>(
+            value: controller.text.isNotEmpty ? controller.text : null,
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
               ),
-            );
-          }).toList(),
+            ),
+            hint: Text(
+              'Select $label',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+            items: options.map((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
+              );
+            }).toList(),
+            onChanged: (String? newValue) {
+              if (newValue != null) {
+                controller.text = newValue;
+                setState(() {});
+              }
+            },
+            validator: isRequired
+                ? (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please select $label';
+              }
+              return null;
+            }
+                : null,
+          ),
         ),
       ],
     );

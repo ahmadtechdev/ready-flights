@@ -84,6 +84,20 @@ class TravelerInfo {
     }
   }
 
+  // Helper method to format phone number with country code
+  String getFormattedPhoneNumber() {
+    String phone = phoneController.text.trim();
+    String countryCode = phoneCountry.value?.phoneCode ?? '92';
+
+    // Remove leading zero if present
+    if (phone.startsWith('0')) {
+      phone = phone.substring(1);
+    }
+
+    // Return formatted phone number
+    return '$countryCode$phone';
+  }
+
   Map<String, dynamic> toJson() {
     Map<String, dynamic> data = {
       'title': titleController.text,
@@ -99,7 +113,7 @@ class TravelerInfo {
       data.addAll({
         'passportNumber': passportCnicController.text,
         'passportExpiry': passportExpiryController.text,
-        'phone': phoneController.text,
+        'phone': getFormattedPhoneNumber(), // Use formatted phone number
         'phoneCountryCode': phoneCountry.value?.phoneCode ?? '',
         'phoneCountry': phoneCountry.value?.countryCode ?? '',
         'email': emailController.text,
@@ -150,8 +164,6 @@ class BookingFlightController extends GetxController {
     updateChildren();
     updateInfants();
   }
-
-
 
   void updateAdults() {
     final currentCount = adults.length;
@@ -215,6 +227,20 @@ class BookingFlightController extends GetxController {
     }
   }
 
+  // Helper method to format booker phone number with country code
+  String getFormattedBookerPhoneNumber() {
+    String phone = phoneController.text.trim();
+    String countryCode = bookerPhoneCountry.value?.phoneCode ?? '92';
+
+    // Remove leading zero if present
+    if (phone.startsWith('0')) {
+      phone = phone.substring(1);
+    }
+
+    // Return formatted phone number
+    return '$countryCode$phone';
+  }
+
   // Country picker methods
   void showPhoneCountryPicker(BuildContext context, TravelerInfo travelerInfo) {
     showCountryPicker(
@@ -235,7 +261,7 @@ class BookingFlightController extends GetxController {
         ),
         inputDecoration: InputDecoration(
           labelText: 'Search',
-          hintText: 'Start typing to model_controllers',
+          hintText: 'Start typing to search',
           prefixIcon: const Icon(Icons.search),
           border: OutlineInputBorder(
             borderSide: BorderSide(
@@ -266,7 +292,7 @@ class BookingFlightController extends GetxController {
         ),
         inputDecoration: InputDecoration(
           labelText: 'Search',
-          hintText: 'Start typing to model_controllers',
+          hintText: 'Start typing to search',
           prefixIcon: const Icon(Icons.search),
           border: OutlineInputBorder(
             borderSide: BorderSide(
@@ -297,7 +323,7 @@ class BookingFlightController extends GetxController {
         ),
         inputDecoration: InputDecoration(
           labelText: 'Search nationality',
-          hintText: 'Start typing to model_controllers',
+          hintText: 'Start typing to search',
           prefixIcon: const Icon(Icons.search),
           border: OutlineInputBorder(
             borderSide: BorderSide(

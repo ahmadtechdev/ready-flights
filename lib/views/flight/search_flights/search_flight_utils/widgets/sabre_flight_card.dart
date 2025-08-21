@@ -869,7 +869,7 @@ class _FlightCardState extends State<FlightCard>
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          getMealInfo(widget.flight.mealCode),
+                          carrier=="PK"?"MEAL YES" :getMealInfo(widget.flight.mealCode),
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.green,

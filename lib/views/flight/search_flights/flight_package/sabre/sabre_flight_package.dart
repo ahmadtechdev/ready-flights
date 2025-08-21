@@ -41,8 +41,8 @@ class SabrePackageSelectionDialog extends StatelessWidget {
         ),
         title: Text(
           isAnyFlightRemaining
-              ? 'Select Return Flight Package'
-              : 'Select Flight Package',
+              ? 'Select Return Flight '
+              : 'Select Flight ',
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
@@ -99,7 +99,7 @@ class SabrePackageSelectionDialog extends StatelessWidget {
         const Padding(
           padding: EdgeInsets.only(left: 16, top: 8, bottom: 16),
           child: Text(
-            'Available Packages',
+            'Available',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -332,8 +332,8 @@ class SabrePackageSelectionDialog extends StatelessWidget {
                           package.isSoldOut
                               ? 'Not Available'
                               : (isAnyFlightRemaining
-                              ? 'Select Return Package'
-                              : 'Select Package'),
+                              ? 'Select Return Flight'
+                              : 'Select Flight'),
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
