@@ -269,7 +269,13 @@ class AirBlueFlightApiService {
     required AirBlueFlight? returnFlight,
     required List<AirBlueFlight>? multicityFlights, // Add this
     required String token,
+    required String pnr,
+    required String finalPrice,
+    required int pnrStatus,
+
   }) async {
+
+
     try {
       // Prepare booking info
       final bookingInfo = {
@@ -296,6 +302,7 @@ class AirBlueFlightApiService {
               "passport": adult.passportCnicController.text,
               "passport_expiry": adult.passportExpiryController.text,
               "cnic": adult.passportCnicController.text, // CNIC is not collected in current form, leaving empty
+              "pnr":pnr
             };
           }).toList();
 
@@ -348,6 +355,8 @@ class AirBlueFlightApiService {
         }
       }
 
+
+
       // Prepare final request body
       final requestBody = {
         "booking_info": bookingInfo,
@@ -355,12 +364,20 @@ class AirBlueFlightApiService {
         "children": children,
         "infants": infants,
         "flights": flights,
+        "pnr": pnr,
+        "buyingPrice": finalPrice,
+        "sellingPrice":finalPrice,
+        "pnrStatus": pnrStatus,
+
       };
+
+      print("bok body");
+      printJsonPretty(requestBody);
 
       // Configure Dio
       final dio = Dio(
         BaseOptions(
-          baseUrl: 'https://onerooftravel.net/api/',
+          baseUrl: 'https://readyflights.pk/api/',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer $token',
@@ -388,7 +405,11 @@ class AirBlueFlightApiService {
               response.data is String
                   ? jsonDecode(response.data)
                   : response.data;
+          print("check errors");
+          print(errorData);
         } catch (e) {
+          print("error data");
+          print(e);
           errorData = {'message': response.data?.toString() ?? 'Unknown error'};
         }
 
@@ -1011,19 +1032,17 @@ class AirBlueFlightApiService {
         ),
       );
 
-      printDebugData('PNR RESPONSE', response.data.toString());
+      // printDebugData('PNR RESPONSE', response.data.toString());
 
       // Convert XML to JSON
       final jsonResponse = _convertXmlToJson(response.data.toString());
-      // printDebugData('PNR RESPONSE (JSON)', jsonResponse);
+      // printJsonPretty(jsonResponse);
 
       // Parse the pricing information
       List<AirBluePNRPricing> pnrPricing = [];
       try {
         final ptcBreakdowns = jsonResponse['soap\$Envelope']['soap\$Body']['AirBookResponse']
         ['AirBookResult']['AirReservation']['PriceInfo']['PTC_FareBreakdowns']['PTC_FareBreakdown'];
-
-
 
         if (ptcBreakdowns is List) {
           for (var breakdown in ptcBreakdowns) {
@@ -1052,13 +1071,27 @@ class AirBlueFlightApiService {
       print("check time limit");
       print(timeLimit);
 
+      // Extract total fare
+      final totalFare = jsonResponse['soap\$Envelope']['soap\$Body']['AirBookResponse']
+      ['AirBookResult']['AirReservation']['PriceInfo']['ItinTotalFare']['TotalFare']['Amount'];
+
+// Determine booking status (1 for success, 0 for failure)
+// Check if Success element exists and PNR is generated
+      final successElement = jsonResponse['soap\$Envelope']['soap\$Body']['AirBookResponse']
+      ['AirBookResult']['Success'];
+      final status = (successElement != null && pnr != null && pnr.isNotEmpty) ? 1 : 0;
+
+
 // Add the pricing info to the return map
       final result = {
         ...jsonResponse,
         'pnrPricing': pnrPricing.map((p) => p.toJson()).toList(),
         'rawPricingObjects': pnrPricing, // Add the actual objects if needed
         'pnr':pnr,
-        'timeLimit':timeLimit
+        'timeLimit':timeLimit,
+        'pnrJson': jsonResponse,
+        'finalPrice': totalFare, // Add the total fare
+        'status': status, // Add status (1 for success, 0 for failure)
       };
 
       return result;
@@ -1117,7 +1150,7 @@ class AirBlueFlightApiService {
       try {
         // Convert XML to JSON
         final jsonData = _convertXmlToJson(data);
-        // printJsonPretty(jsonData);
+        printJsonPretty(jsonData);
       } catch (e) {
         if (kDebugMode) {
           print('Error converting XML to JSON: $e');

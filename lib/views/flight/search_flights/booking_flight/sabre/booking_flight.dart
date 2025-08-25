@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:country_picker/country_picker.dart';
 import 'package:ready_flights/services/api_service_sabre.dart';
-import '../../../../utility/colors.dart';
-import '../../../../widgets/travelers_selection_bottom_sheet.dart';
-import '../sabre/sabre_flight_models.dart';
-import '../search_flight_utils/widgets/sabre_flight_card.dart';
-import 'airblue/booking_flight_controller.dart';
+import 'package:ready_flights/views/flight/search_flights/booking_flight/sabre/sabre_flight_voucher.dart';
+import '../../../../../utility/colors.dart';
+import '../../../../../widgets/travelers_selection_bottom_sheet.dart';
+import '../../sabre/sabre_flight_models.dart';
+import '../../search_flight_utils/widgets/sabre_flight_card.dart';
+import '../airblue/booking_flight_controller.dart';
 
 class BookingForm extends StatefulWidget {
   final SabreFlight flight;
-  const BookingForm({super.key, required this.flight});
+  Map<String, dynamic>? revalidatePricing;
+  BookingForm({super.key, required this.flight, this.revalidatePricing});
 
   @override
   State<BookingForm> createState() => _BookingFormState();
@@ -32,7 +34,7 @@ class _BookingFormState extends State<BookingForm> {
     // Fill booker information
     bookingController.firstNameController.text = "John";
     bookingController.lastNameController.text = "Doe";
-    bookingController.emailController.text = "example@gmail.com";
+    bookingController.emailController.text = "ahmadtechdev@gmail.com";
     bookingController.phoneController.text = "1234567890";
     bookingController.remarksController.text = "Test booking";
     bookingController.bookerPhoneCountry.value = Country.parse('PK');
@@ -41,8 +43,8 @@ class _BookingFormState extends State<BookingForm> {
     for (int i = 0; i < bookingController.adults.length; i++) {
       final adult = bookingController.adults[i];
       adult.titleController.text = i % 2 == 0 ? "Mr" : "Mrs";
-      adult.firstNameController.text = "PAX${i + 1}";
-      adult.lastNameController.text = "Traveler";
+      adult.firstNameController.text = "Ahmad";
+      adult.lastNameController.text = "Raza";
       adult.passportCnicController.text = bookingController.isDomesticFlight
           ? "1234567890123"
           : "AB123456${i + 1}";
@@ -53,7 +55,7 @@ class _BookingFormState extends State<BookingForm> {
       adult.genderController.text = i % 2 == 0 ? "Male" : "Female";
       adult.phoneController.text = "300123456${i + 1}";
       adult.phoneCountry.value = Country.parse('PK');
-      adult.emailController.text = "adult${i + 1}@example.com";
+      adult.emailController.text = "ahmadtechdev@gmail.com";
     }
 
     // Fill child travelers
@@ -661,7 +663,10 @@ class _BookingFormState extends State<BookingForm> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      country?.displayNameNoCountryCode ?? 'Select Nationality',
+                      // Show both country name and code for clarity
+                      country != null
+                          ? '${country.displayNameNoCountryCode} (${country.countryCode})'
+                          : 'Select Nationality',
                       style: TextStyle(
                         fontSize: 14,
                         color: country != null ? Colors.black87 : Colors.grey[600],
@@ -1021,14 +1026,20 @@ class _BookingFormState extends State<BookingForm> {
 
                   // Call the PNR request function
                   final apiService = ApiServiceSabre();
-                  await apiService.createPNRRequest(
+                  final pnrResponse = await apiService.createPNRRequest(
                     flight: widget.flight,
                     adults: bookingController.adults.toList(),
                     children: bookingController.children.toList(),
                     infants: bookingController.infants.toList(),
                     bookerEmail: bookerEmail,
-                    bookerPhone: bookerPhone,
+                    bookerPhone: bookingController.getFormattedBookerPhoneNumber(),
+                    revalidatePricing: widget.revalidatePricing
                   );
+
+                  Get.to(() => SabreFlightBookingDetailsScreen(
+                    flight: widget.flight,
+                    pnrResponse: pnrResponse, // Assuming response contains the PNR data
+                  ));
 
                   // Optionally, you can navigate to a confirmation screen or show a success message
                   Get.snackbar(

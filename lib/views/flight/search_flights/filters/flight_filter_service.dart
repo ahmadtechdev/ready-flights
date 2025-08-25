@@ -36,7 +36,7 @@ class FilterController extends GetxController {
 
     // Get airlines from the sabre controller
     try {
-      final sabreController = Get.find<FlightController>();
+      final sabreController = Get.find<SabreFlightController>();
       allAirlines.addAll(sabreController.getAvailableAirlines());
     } catch (e) {
       // Controller not found
@@ -203,7 +203,7 @@ class FilterController extends GetxController {
 
     // Apply to Sabre controller
     try {
-      final sabreController = Get.find<FlightController>();
+      final sabreController = Get.find<SabreFlightController>();
       sabreController.applyFilters(
         airlines: selectedAirlines,
         stops: selectedStops,

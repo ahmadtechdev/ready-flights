@@ -17,7 +17,7 @@ class FlightFilterBottomSheet extends StatefulWidget {
 
 class _FlightFilterBottomSheetState extends State<FlightFilterBottomSheet> {
   final FilterController filterController = Get.put(FilterController());
-  final FlightController sabreController = Get.find<FlightController>();
+  final SabreFlightController sabreController = Get.find<SabreFlightController>();
   final AirArabiaFlightController airArabiaController = Get.find<AirArabiaFlightController>();
   final AirBlueFlightController airBlueController = Get.find<AirBlueFlightController>();
   final PIAFlightController piaController = Get.find<PIAFlightController>();

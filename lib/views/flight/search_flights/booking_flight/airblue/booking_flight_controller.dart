@@ -84,27 +84,13 @@ class TravelerInfo {
     }
   }
 
-  // Helper method to format phone number with country code
-  String getFormattedPhoneNumber() {
-    String phone = phoneController.text.trim();
-    String countryCode = phoneCountry.value?.phoneCode ?? '92';
-
-    // Remove leading zero if present
-    if (phone.startsWith('0')) {
-      phone = phone.substring(1);
-    }
-
-    // Return formatted phone number
-    return '$countryCode$phone';
-  }
-
   Map<String, dynamic> toJson() {
     Map<String, dynamic> data = {
       'title': titleController.text,
       'firstName': firstNameController.text,
       'lastName': lastNameController.text,
       'dateOfBirth': dateOfBirthController.text,
-      'nationality': nationalityCountry.value?.displayNameNoCountryCode ?? '',
+      'nationality': nationalityCountry.value?.countryCode ?? '', // Only country code
       'nationalityCode': nationalityCountry.value?.countryCode ?? '',
       'gender': genderController.text,
     };
@@ -121,6 +107,23 @@ class TravelerInfo {
     }
 
     return data;
+  }
+
+// Update the helper method to format phone number correctly
+  String getFormattedPhoneNumber() {
+    String phone = phoneController.text.trim();
+    String countryCode = phoneCountry.value?.phoneCode ?? '92';
+
+    // Remove any non-digit characters
+    phone = phone.replaceAll(RegExp(r'[^0-9]'), '');
+
+    // Remove leading zero if present
+    if (phone.startsWith('0')) {
+      phone = phone.substring(1);
+    }
+
+    // Return formatted phone number with country code
+    return '+$countryCode$phone';
   }
 }
 
@@ -227,18 +230,21 @@ class BookingFlightController extends GetxController {
     }
   }
 
-  // Helper method to format booker phone number with country code
+// Helper method to format booker phone number with country code
   String getFormattedBookerPhoneNumber() {
     String phone = phoneController.text.trim();
     String countryCode = bookerPhoneCountry.value?.phoneCode ?? '92';
+
+    // Remove any non-digit characters
+    phone = phone.replaceAll(RegExp(r'[^0-9]'), '');
 
     // Remove leading zero if present
     if (phone.startsWith('0')) {
       phone = phone.substring(1);
     }
 
-    // Return formatted phone number
-    return '$countryCode$phone';
+    // Return formatted phone number with country code
+    return '+$countryCode$phone';
   }
 
   // Country picker methods

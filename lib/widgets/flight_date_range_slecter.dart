@@ -488,7 +488,7 @@ class _GridCalendarPickerState extends State<_GridCalendarPicker> {
                 ),
                 child: Text(
                   selectedDate != null
-                      ? 'Confirm - ${_formatSelectedDate(selectedDate!)}'
+                      ? 'Select - ${_formatSelectedDate(selectedDate!)}'
                       : 'Select a date',
                   style: const TextStyle(
                     color: Colors.white,

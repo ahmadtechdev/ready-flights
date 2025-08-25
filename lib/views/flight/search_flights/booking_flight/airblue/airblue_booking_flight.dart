@@ -11,7 +11,7 @@ import '../../airblue/airblue_flight_model.dart';
 import '../../airblue/airblue_pnr_pricing.dart';
 import '../../search_flight_utils/widgets/airblue_flight_card.dart';
 import 'booking_flight_controller.dart';
-import '../flight_print_voucher.dart';
+import 'flight_print_voucher.dart';
 
 class AirBlueBookingFlight extends StatefulWidget {
   final AirBlueFlight flight;
@@ -58,7 +58,7 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
     // Fill booker information
     bookingController.firstNameController.text = "John";
     bookingController.lastNameController.text = "Doe";
-    bookingController.emailController.text = "john.doe@example.com";
+    bookingController.emailController.text = "ahmadtechdev@gmail.com";
     bookingController.phoneController.text = "1234567890";
     bookingController.remarksController.text = "Test booking";
     bookingController.bookerPhoneCountry.value = Country.parse('PK');
@@ -67,7 +67,7 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
     for (int i = 0; i < bookingController.adults.length; i++) {
       final adult = bookingController.adults[i];
       adult.titleController.text = i % 2 == 0 ? "Mr" : "Mrs";
-      adult.firstNameController.text = "PAX${i + 1}";
+      adult.firstNameController.text = "ahmad${i + 1}";
       adult.lastNameController.text = "Traveler";
       adult.passportCnicController.text = bookingController.isDomesticFlight
           ? "1234567890123"
@@ -996,63 +996,46 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                       barrierDismissible: false,
                     );
 
-                    // Call the API to save booking
-                    final response = await AirBlueFlightApiService()
-                        .saveAirBlueBooking(
-                      bookingController: bookingController,
-                      flight: widget.flight,
-                      returnFlight: widget.returnFlight,
-                      multicityFlights: widget.multicityFlights,
-                      token: 'your_auth_token_here',
-                    );
+                    // Step 1: Create PNR first
+                    Map<String, dynamic>? pnrResponse;
+                    AirBlueFlight? updatedOutboundFlight;
+                    AirBlueFlight? updatedReturnFlight;
+                    bool pnrCreated = false;
 
-                    // Hide loading
-                    Get.back();
-
-                    if (response['status'] == 200) {
-                      Get.snackbar(
-                        'Success',
-                        'Booking created successfully',
-                        backgroundColor: Colors.green,
-                        colorText: Colors.white,
-                        snackPosition: SnackPosition.TOP,
+                    try {
+                      pnrResponse = await AirBlueFlightApiService()
+                          .createAirBluePNR(
+                        flight: widget.flight,
+                        returnFlight: widget.returnFlight,
+                        multicityFlights: widget.multicityFlights,
+                        bookingController: bookingController,
+                        clientEmail: bookingController.emailController.text,
+                        clientPhone: bookingController.phoneController.text,
+                        isDomestic: bookingController.isDomesticFlight,
+                        multicityFareOptions: widget.multicityFareOptions,
+                        outboundFareOption: widget.outboundFareOption,
+                        returnFareOption: widget.returnFareOption,
                       );
 
-                      try {
-                        final pnrResponse = await AirBlueFlightApiService()
-                            .createAirBluePNR(
-                          flight: widget.flight,
-                          returnFlight: widget.returnFlight,
-                          multicityFlights: widget.multicityFlights, // Add this
-                          bookingController: bookingController,
-                          clientEmail:
-                          bookingController.emailController.text,
-                          clientPhone:
-                          bookingController.phoneController.text,
-                          isDomestic: bookingController.isDomesticFlight,
-                          multicityFareOptions: widget.multicityFareOptions, outboundFareOption: widget.outboundFareOption, returnFareOption: widget.returnFareOption
-                        );
+                      // Process PNR response if successful
+                      if (pnrResponse != null) {
+                        pnrCreated = true;
 
                         // Access the pricing information
                         if (pnrResponse['pnrPricing'] != null) {
-                          for (var price
-                          in pnrResponse['rawPricingObjects']
-                          as List<AirBluePNRPricing>) {
+                          for (var price in pnrResponse['rawPricingObjects'] as List<AirBluePNRPricing>) {
                             // Handle pricing objects
                           }
                         }
 
                         // Update the flight with PNR pricing
-                        final updatedOutboundFlight = widget.flight
-                            .copyWithPNRPricing(
+                        updatedOutboundFlight = widget.flight.copyWithPNRPricing(
                           pnrResponse['rawPricingObjects'] ?? [],
                         );
 
                         // If you have a return flight
-                        AirBlueFlight? updatedReturnFlight;
                         if (widget.returnFlight != null) {
-                          updatedReturnFlight = widget.returnFlight
-                              ?.copyWithPNRPricing(
+                          updatedReturnFlight = widget.returnFlight?.copyWithPNRPricing(
                             pnrResponse['rawPricingObjects'] ?? [],
                           );
                         }
@@ -1064,66 +1047,115 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                           colorText: Colors.white,
                           snackPosition: SnackPosition.TOP,
                         );
+                      }
+                    } catch (e) {
+                      // PNR creation failed, but we'll continue with booking save
+                      print('PNR creation failed: $e');
+                      Get.snackbar(
+                        'Warning',
+                        'PNR creation failed, but continuing with booking: $e',
+                        backgroundColor: Colors.orange,
+                        colorText: Colors.white,
+                        snackPosition: SnackPosition.TOP,
+                      );
+                    }
 
+                    // Step 2: Save booking regardless of PNR creation result
+                    try {
+                      final response = await AirBlueFlightApiService()
+                          .saveAirBlueBooking(
+                        bookingController: bookingController,
+                        flight: widget.flight,
+                        returnFlight: widget.returnFlight,
+                        multicityFlights: widget.multicityFlights,
+                        token: 'your_auth_token_here',
+                        pnr:pnrResponse?['pnr']??"",
+                        finalPrice:pnrResponse?['finalPrice']??"",
+                        pnrStatus:pnrResponse?['status']??0,
+
+
+                      );
+
+                      // Hide loading
+                      Get.back();
+
+                      if (response['status'] == 200) {
+                        Get.snackbar(
+                          'Success',
+                          'Booking saved successfully',
+                          backgroundColor: Colors.green,
+                          colorText: Colors.white,
+                          snackPosition: SnackPosition.TOP,
+                        );
+
+                        // Navigate to booking details screen
                         Get.to(
                               () => FlightBookingDetailsScreen(
-                            outboundFlight: updatedOutboundFlight,
-                            returnFlight: updatedReturnFlight,
+                            outboundFlight: updatedOutboundFlight ?? widget.flight,
+                            returnFlight: updatedReturnFlight ?? widget.returnFlight,
                             outboundFareOption: widget.outboundFareOption,
                             returnFareOption: widget.returnFareOption,
                             pnrResponse: pnrResponse,
                           ),
                         );
-                      } catch (e) {
+                      } else {
+                        // Handle API success response with error status
+                        String errorMessage = response['message'] ?? 'Failed to save booking';
+                        if (response['errors'] != null) {
+                          errorMessage += '\n${(response['errors'] as Map).entries.map((e) {
+                            return '${e.key}: ${e.value}';
+                          }).join('\n')}';
+                        }
                         Get.snackbar(
                           'Error',
-                          'Failed to create PNR: $e',
+                          errorMessage,
                           backgroundColor: Colors.red,
                           colorText: Colors.white,
+                          duration: const Duration(seconds: 5),
                           snackPosition: SnackPosition.TOP,
                         );
                       }
-                    } else {
-                      // Handle API success response with error status
-                      String errorMessage =
-                          response['message'] ?? 'Failed to create booking';
-                      if (response['errors'] != null) {
-                        errorMessage +=
-                        '\n${(response['errors'] as Map).entries.map((e) {
-                          return '${e.key}: ${e.value}';
-                        }).join('\n')}';
+                    } catch (e) {
+                      // Hide loading if not already hidden
+                      Get.back();
+
+                      if (e is ApiException) {
+                        String errorMessage = e.message;
+                        if (e.errors.isNotEmpty) {
+                          errorMessage += '\n${e.errors.entries.map((e) {
+                            return '${e.key}: ${e.value}';
+                          }).join('\n')}';
+                        }
+                        print(e.statusCode);
+                        print(errorMessage);
+                        Get.snackbar(
+                          'Error (${e.statusCode ?? 'Unknown'})',
+                          errorMessage,
+                          backgroundColor: Colors.red,
+                          colorText: Colors.white,
+                          duration: const Duration(seconds: 5),
+                          snackPosition: SnackPosition.TOP,
+                        );
+                      } else {
+                        print(e);
+                        Get.snackbar(
+                          'Error',
+                          'Failed to save booking: $e',
+                          backgroundColor: Colors.red,
+                          colorText: Colors.white,
+                          duration: const Duration(seconds: 5),
+                          snackPosition: SnackPosition.TOP,
+                        );
                       }
-                      Get.snackbar(
-                        'Error',
-                        errorMessage,
-                        backgroundColor: Colors.red,
-                        colorText: Colors.white,
-                        duration: const Duration(seconds: 5),
-                        snackPosition: SnackPosition.TOP,
-                      );
                     }
-                  } on ApiException catch (e) {
-                    Get.back();
-                    String errorMessage = e.message;
-                    if (e.errors.isNotEmpty) {
-                      errorMessage +=
-                      '\n${e.errors.entries.map((e) {
-                        return '${e.key}: ${e.value}';
-                      }).join('\n')}';
-                    }
-                    Get.snackbar(
-                      'Error (${e.statusCode ?? 'Unknown'})',
-                      errorMessage,
-                      backgroundColor: Colors.red,
-                      colorText: Colors.white,
-                      duration: const Duration(seconds: 5),
-                      snackPosition: SnackPosition.TOP,
-                    );
+
                   } catch (e) {
+                    print(e);
+                    // Hide loading in case of unexpected error
                     Get.back();
                     Get.snackbar(
                       'Error',
-                      e.toString(),
+                      'An unexpected error occurred: $e',
                       backgroundColor: Colors.red,
                       colorText: Colors.white,
                       duration: const Duration(seconds: 5),

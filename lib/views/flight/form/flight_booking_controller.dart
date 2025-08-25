@@ -99,7 +99,7 @@ class FlightBookingController extends GetxController {
 
   // API Service and Flight Controller
   final ApiServiceSabre apiServiceFlight = Get.put(ApiServiceSabre());
-  final FlightController flightController = Get.put(FlightController());
+  final SabreFlightController flightController = Get.put(SabreFlightController());
   final AirArabiaFlightController airArabiaController = Get.put(
     AirArabiaFlightController(),
   );

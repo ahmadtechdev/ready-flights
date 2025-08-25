@@ -11,7 +11,7 @@ import 'sabre_flight_models.dart';
 import 'sabre_package_modal.dart';
 
 
-class FlightController extends GetxController {
+class SabreFlightController extends GetxController {
   var selectedCurrency = 'PKR'.obs;
   var flights = <SabreFlight>[].obs;
   final isLoading = true.obs;
@@ -152,7 +152,7 @@ class FlightController extends GetxController {
 
 }
 
-extension FlightDateTimeExtension on FlightController {
+extension FlightDateTimeExtension on SabreFlightController {
   // Add this method to parse segment information
   Map<int, Map<String, dynamic>> parseFareComponentDescs(Map<String, dynamic> response) {
     Map<int, Map<String, dynamic>> fareComponentDescsMap = {};
@@ -657,7 +657,7 @@ extension FlightDateTimeExtension on FlightController {
 
 }
 
-extension FlightSegmentExtension on FlightController {
+extension FlightSegmentExtension on SabreFlightController {
   // Update to include fareComponentDescsMap
   List<List<FlightSegmentInfo>> parseAllSegmentInfo(
       Map<String, dynamic> fareInfo,
@@ -795,7 +795,7 @@ extension FlightSegmentExtension on FlightController {
 
 }
 
-extension AirlineFilter on FlightController {
+extension AirlineFilter on SabreFlightController {
 
   // Method to get available airlines from current flights
   List<FilterAirline> getAvailableAirlines() {
@@ -856,7 +856,7 @@ extension AirlineFilter on FlightController {
 }
 
 // Update the FilterFlight extension to handle airline filtering by code
-extension FilterFlightUpdated on FlightController {
+extension FilterFlightUpdated on SabreFlightController {
 
   // Updated apply filters method with better airline filtering
   void applyFilters({

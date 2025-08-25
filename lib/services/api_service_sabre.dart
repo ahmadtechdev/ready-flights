@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../views/flight/search_flights/booking_flight/airblue/booking_flight_controller.dart';
+import '../views/flight/search_flights/booking_flight/sabre/sabre_flight_voucher.dart';
 import '../views/flight/search_flights/sabre/sabre_flight_models.dart';
 import 'api_service_airblue.dart';
 
@@ -595,30 +596,34 @@ class ApiServiceSabre extends GetxService {
 
 
 
-  Future<void> createPNRRequest({
+  Future<dynamic> createPNRRequest({
     required SabreFlight flight,
     required List<TravelerInfo> adults,
     required List<TravelerInfo> children,
     required List<TravelerInfo> infants,
     required String bookerEmail,
     required String bookerPhone,
+    required Map<String, dynamic>? revalidatePricing,
   }) async {
     print("flight ndc check");
     print(flight.isNDC);
+
     try {
       if (flight.isNDC) {
         // Handle NDC PNR creation
-        await _createNDCPNRRequest(
+        final response = await _createNDCPNRRequest(
           flight: flight,
           adults: adults,
           children: children,
           infants: infants,
           bookerEmail: bookerEmail,
           bookerPhone: bookerPhone,
+            revalidatePricing:revalidatePricing
         );
+        return response;
       } else {
-        // Handle standard PNR creation (existing logic)
-        await _createStandardPNRRequest(
+        // Handle standard PNR creation
+        final response = await _createStandardPNRRequest(
           flight: flight,
           adults: adults,
           children: children,
@@ -626,6 +631,7 @@ class ApiServiceSabre extends GetxService {
           bookerEmail: bookerEmail,
           bookerPhone: bookerPhone,
         );
+        return response;
       }
     } catch (e) {
       print('Error in createPNRRequest: $e');
@@ -633,7 +639,8 @@ class ApiServiceSabre extends GetxService {
     }
   }
 
-  Future<void> _createStandardPNRRequest({
+
+  Future<dynamic> _createStandardPNRRequest({
     required SabreFlight flight,
     required List<TravelerInfo> adults,
     required List<TravelerInfo> children,
@@ -882,9 +889,10 @@ class ApiServiceSabre extends GetxService {
                     "PersonName": {
                       "NameNumber": passenger["NameNumber"],
                     },
-                    "Text": formattedPhone,
+                    "Text": "+923067011601",
                   },
                   {
+
                     "SSR_Code": "CTCE",
                     "PersonName": {
                       "NameNumber": passenger["NameNumber"],
@@ -959,6 +967,7 @@ class ApiServiceSabre extends GetxService {
       print("Standard PNR Response:");
       printJsonPretty(response.data);
       handlePnrResponse(response.data);
+      return response.data;
     } else {
       print("Standard PNR Error Response:");
       printJsonPretty(response.data);
@@ -966,37 +975,61 @@ class ApiServiceSabre extends GetxService {
     }
   }
 
-  Future<void> _createNDCPNRRequest({
+  Future<dynamic> _createNDCPNRRequest({
     required SabreFlight flight,
     required List<TravelerInfo> adults,
     required List<TravelerInfo> children,
     required List<TravelerInfo> infants,
     required String bookerEmail,
     required String bookerPhone,
+    required Map<String, dynamic>? revalidatePricing,
   }) async {
     try {
-      // Extract offer information from flight data
-      print("flight pricing info array check:");
-      print(flight.pricingInforArray[0]['offerId']);
-      print(flight.pricingInforArray[0]['offer']['offerId']);
-      print(flight.pricingInforArray[0]['fare']['passengerInfoList'][0]['passengerInfo']['offerItemId']);
-      print("----------------");
-
-      final offerId = flight.pricingInforArray.isNotEmpty
-          ? flight.pricingInforArray[0]['offer']['offerId']
+      // Extract offer information
+      final offerId = revalidatePricing!.isNotEmpty
+          ? revalidatePricing['offerId']
           : 'default-offer-id';
 
-      final offerItemId = flight.pricingInforArray.isNotEmpty
-          ? flight.pricingInforArray[0]['fare']['passengerInfoList'][0]['passengerInfo']['offerItemId']
+      final offerItemId = revalidatePricing.isNotEmpty
+          ? revalidatePricing['offerItemId']
           : 'default-offer-item-id';
 
-      // Build contact infos for all passengers
+      // Helper function to format phone number
+      String formatPhoneNumber(String phone, String countryCode) {
+        // Remove any non-digit characters
+        phone = phone.replaceAll(RegExp(r'\D'), '');
+
+        // Remove leading zero if present
+        if (phone.startsWith('0')) {
+          phone = phone.substring(1);
+        }
+
+        // Return without + sign for NDC API
+        return '0$countryCode$phone';
+      }
+
+      // Helper function to format email for SSR
+      String formatEmailForSSR(String email) {
+        return email
+            .replaceAll('@', '//')
+            .replaceAll('_', '..')
+            .replaceAll('-', './');
+      }
+
+      // Helper function to format date for INFT SSR
+      String formatDateForINFT(String dateString) {
+        final date = DateTime.parse(dateString);
+        return '${date.year.toString().substring(2)}${date.month.toString().padLeft(2, '0')}${date.day.toString().padLeft(2, '0')}';
+      }
+
+      // Build request components
       List<Map<String, dynamic>> contactInfos = [];
       List<Map<String, dynamic>> passengers = [];
       List<Map<String, dynamic>> secureFlightList = [];
       List<Map<String, dynamic>> serviceList = [];
 
       int passengerIndex = 1;
+      int infantCounter = 1;
 
       // Process Adults
       for (int i = 0; i < adults.length; i++) {
@@ -1007,26 +1040,27 @@ class ApiServiceSabre extends GetxService {
         final dob = adult.dateOfBirthController.text.isEmpty ? '1990-01-01' : adult.dateOfBirthController.text;
         final passportNumber = adult.passportCnicController.text.trim();
         final passportExpiry = adult.passportExpiryController.text.isEmpty ? '2030-12-31' : adult.passportExpiryController.text;
-        final nationality = adult.nationalityController?.text.trim() ?? 'PK';
+        final nationality = adult.nationalityCountry.value?.countryCode ?? 'PK';
         final gender = adult.genderController.text.startsWith('M') ? 'M' : 'F';
+        final email = adult.emailController.text.trim().isEmpty ? bookerEmail : adult.emailController.text.trim();
 
-        // Format email for SSR (like web version)
-        final formattedEmail = bookerEmail
-            .replaceAll('@', '//')
-            .replaceAll('_', '..')
-            .replaceAll('-', './');
+        // Format phone number properly
+        final phoneCountryCode = adult.phoneCountry.value?.phoneCode ?? '92';
+        final adultPhone = adult.phoneController.text.trim().isEmpty ? bookerPhone : adult.phoneController.text.trim();
+        final formattedPhoneForAPI = formatPhoneNumber(adultPhone, phoneCountryCode);
+        final formattedEmailForSSR = formatEmailForSSR(email);
 
         // Contact info
         contactInfos.add({
           "id": "CI-$passengerIndex",
           "emailAddresses": [
             {
-              "address": bookerEmail
+              "address": email
             }
           ],
           "phones": [
             {
-              "number": bookerPhone.replaceAll(RegExp(r'\D'), '')
+              "number": formattedPhoneForAPI
             }
           ]
         });
@@ -1045,19 +1079,19 @@ class ApiServiceSabre extends GetxService {
               "documentNumber": passportNumber,
               "documentTypeCode": "passport",
               "issuingCountryCode": nationality,
-              "placeOfIssue": "GB",
-              "citizenshipCountryCode": "PK",
-              "residenceCountryCode": "PK",
+              "placeOfIssue": nationality,
+              "citizenshipCountryCode": nationality,
+              "residenceCountryCode": nationality,
               "titleName": title,
-              "givenName": "$lastName $title",
-              "middleName": "GEORGE",
-              "surname": firstName,
-              "suffixName": "Jr.",
+              "givenName": "$lastName $title", // REVERSED as per web structure
+              "middleName": "", // Remove dummy middle name
+              "surname": firstName, // REVERSED as per web structure
+              "suffixName": "", // Remove dummy suffix
               "birthdate": dob,
               "genderCode": gender,
-              "issueDate": "2025-07-05",
+              "issueDate": DateTime.now().subtract(Duration(days: 365)).toIso8601String().substring(0, 10), // One year ago
               "expiryDate": passportExpiry,
-              "hostCountryCode": "PK"
+              "hostCountryCode": nationality
             }
           ]
         });
@@ -1081,14 +1115,14 @@ class ApiServiceSabre extends GetxService {
             "PersonName": {
               "NameNumber": "$passengerIndex.1"
             },
-            "Text": bookerPhone
+            "Text": formattedPhoneForAPI
           },
           {
             "SSR_Code": "CTCE",
             "PersonName": {
               "NameNumber": "$passengerIndex.1"
             },
-            "Text": formattedEmail
+            "Text": formattedEmailForSSR
           }
         ]);
 
@@ -1104,14 +1138,14 @@ class ApiServiceSabre extends GetxService {
         final dob = child.dateOfBirthController.text.isEmpty ? '2015-01-01' : child.dateOfBirthController.text;
         final passportNumber = child.passportCnicController.text.trim();
         final passportExpiry = child.passportExpiryController.text.isEmpty ? '2030-12-31' : child.passportExpiryController.text;
-        final nationality = child.nationalityController?.text.trim() ?? 'PK';
+        final nationality = child.nationalityCountry.value?.countryCode ?? 'PK';
         final gender = child.genderController.text.startsWith('M') ? 'M' : 'F';
 
-        final formattedEmail = bookerEmail
-            .replaceAll('@', '//')
-            .replaceAll('_', '..')
-            .replaceAll('-', './');
+        // Use booker's contact info for children
+        final formattedPhoneForAPI = formatPhoneNumber(bookerPhone, '92'); // Assuming booker phone country code
+        final formattedEmailForSSR = formatEmailForSSR(bookerEmail);
 
+        // Contact info
         contactInfos.add({
           "id": "CI-$passengerIndex",
           "emailAddresses": [
@@ -1121,11 +1155,12 @@ class ApiServiceSabre extends GetxService {
           ],
           "phones": [
             {
-              "number": bookerPhone.replaceAll(RegExp(r'\D'), '')
+              "number": formattedPhoneForAPI
             }
           ]
         });
 
+        // Passenger info
         passengers.add({
           "contactInfoRefId": "CI-$passengerIndex",
           "birthdate": dob,
@@ -1137,19 +1172,19 @@ class ApiServiceSabre extends GetxService {
             {
               "id": "ID-1",
               "documentNumber": passportNumber,
-              "documentTypeCode": "PT", // Note: Different from adult
+              "documentTypeCode": "PT", // Children use "PT"
               "issuingCountryCode": nationality,
-              "placeOfIssue": "GB",
+              "placeOfIssue": nationality,
               "citizenshipCountryCode": nationality,
               "residenceCountryCode": nationality,
               "titleName": title,
-              "givenName": "$lastName $title",
-              "middleName": "GEORGE",
-              "surname": firstName,
-              "suffixName": "Jr.",
+              "givenName": "$lastName $title", // REVERSED
+              "middleName": "",
+              "surname": firstName, // REVERSED
+              "suffixName": "",
               "birthdate": dob,
               "genderCode": gender,
-              "issueDate": "2025-07-05",
+              "issueDate": DateTime.now().subtract(Duration(days: 365)).toIso8601String().substring(0, 10),
               "expiryDate": passportExpiry,
               "hostCountryCode": nationality
             }
@@ -1173,14 +1208,14 @@ class ApiServiceSabre extends GetxService {
             "PersonName": {
               "NameNumber": "$passengerIndex.1"
             },
-            "Text": bookerPhone
+            "Text": formattedPhoneForAPI
           },
           {
             "SSR_Code": "CTCE",
             "PersonName": {
               "NameNumber": "$passengerIndex.1"
             },
-            "Text": formattedEmail
+            "Text": formattedEmailForSSR
           }
         ]);
 
@@ -1196,13 +1231,14 @@ class ApiServiceSabre extends GetxService {
         final dob = infant.dateOfBirthController.text.isEmpty ? '2023-01-01' : infant.dateOfBirthController.text;
         final passportNumber = infant.passportCnicController.text.trim();
         final passportExpiry = infant.passportExpiryController.text.isEmpty ? '2030-12-31' : infant.passportExpiryController.text;
-        final nationality = infant.nationalityController?.text.trim() ?? 'PK';
+        final nationality = infant.nationalityCountry.value?.countryCode ?? 'PK';
+        final gender = infant.genderController.text.startsWith('M') ? 'M' : 'F';
 
-        final formattedEmail = bookerEmail
-            .replaceAll('@', '//')
-            .replaceAll('_', '..')
-            .replaceAll('-', './');
+        // Use booker's contact info for infants
+        final formattedPhoneForAPI = formatPhoneNumber(bookerPhone, '92');
+        final formattedEmailForSSR = formatEmailForSSR(bookerEmail);
 
+        // Contact info for infant
         contactInfos.add({
           "id": "CI-$passengerIndex",
           "emailAddresses": [
@@ -1212,75 +1248,76 @@ class ApiServiceSabre extends GetxService {
           ],
           "phones": [
             {
-              "number": bookerPhone.replaceAll(RegExp(r'\D'), '')
+              "number": formattedPhoneForAPI
             }
           ]
         });
 
+        // Passenger info
         passengers.add({
           "contactInfoRefId": "CI-$passengerIndex",
           "birthdate": dob,
-          "givenName": firstName, // Note: No title for infants in web version
+          "givenName": firstName, // No title for infants in givenName
           "id": "Passenger$passengerIndex",
           "surname": lastName,
           "typeCode": "INF",
-          "passengerRefId": "CI-1", // Reference to first adult
+          "passengerRefId": "CI-1", // References first contact (adult)
           "identityDocuments": [
             {
               "id": "ID-1",
               "documentNumber": passportNumber,
-              "documentTypeCode": "PT",
+              "documentTypeCode": "PT", // Infants use "PT"
               "issuingCountryCode": nationality,
-              "placeOfIssue": "GB",
+              "placeOfIssue": nationality,
               "citizenshipCountryCode": nationality,
               "residenceCountryCode": nationality,
               "titleName": title,
-              "givenName": "$lastName $title",
-              "middleName": "GEORGE",
-              "surname": firstName,
-              "suffixName": "Jr.",
+              "givenName": "$lastName $title", // REVERSED
+              "middleName": "",
+              "surname": firstName, // REVERSED
+              "suffixName": "",
               "birthdate": dob,
-              "genderCode": "M", // Default for infants in web version
-              "issueDate": "2025-07-05",
+              "genderCode": gender,
+              "issueDate": DateTime.now().subtract(Duration(days: 365)).toIso8601String().substring(0, 10),
               "expiryDate": passportExpiry,
               "hostCountryCode": nationality
             }
           ]
         });
 
-        // Format date for infant SSR (matching web version format)
-        final dobFormatted = DateTime.parse(dob);
-        final dobSSR = '${dobFormatted.year.toString().substring(2)}${dobFormatted.month.toString().padLeft(2, '0')}${dobFormatted.day.toString().padLeft(2, '0')}';
-
+        // Secure flight for infant
         secureFlightList.add({
           "SegmentNumber": "A",
           "PersonName": {
             "DateOfBirth": dob,
-            "Gender": "MI", // Infant gender code
-            "NameNumber": "${i + 1}.1", // Different numbering for infants
+            "Gender": "${gender}I", // Add I for infant
+            "NameNumber": "$infantCounter.1",
             "GivenName": "$firstName $title",
             "Surname": lastName
           }
         });
 
+        // INFT SSR for infant
+        final dobFormatted = formatDateForINFT(dob);
         serviceList.add({
           "SSR_Code": "INFT",
           "PersonName": {
-            "NameNumber": "${i + 1}.1"
+            "NameNumber": "$infantCounter.1"
           },
-          "Text": "$lastName/$firstName$title/${dobSSR.toUpperCase()}"
+          "Text": "$lastName/$firstName$title/$dobFormatted"
         });
 
         passengerIndex++;
+        infantCounter++;
       }
 
-      // Create the complete request body matching web structure
+      // Create the complete request body
       final requestBody = {
         "transactionOptions": {
           "requestType": "STATELESS",
           "commitTransaction": true,
           "movePassengerDetails": true,
-          "intialIgnore": true // Keep the typo as in web version
+          "initialIgnore": true
         },
         "contactInfos": contactInfos,
         "createOrders": [
@@ -1320,13 +1357,12 @@ class ApiServiceSabre extends GetxService {
       print('NDC PNR Request Body:');
       printJsonPretty(requestBody);
 
-      // Convert to JSON string manually (like web version)
-      final jsonPayload = jsonEncode(requestBody);
-      print('JSON Payload String:');
-      print(jsonPayload);
-
       // Make the API call
       final token = await getValidToken() ?? await generateToken();
+
+      print("Token:");
+      print(token);
+
       final response = await dio.post(
         '/v1/orders/create',
         options: Options(
@@ -1334,9 +1370,9 @@ class ApiServiceSabre extends GetxService {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer $token',
           },
-          responseType: ResponseType.json, // Ensure JSON response
+          responseType: ResponseType.json,
         ),
-        data: jsonPayload, // Send as JSON string
+        data: jsonEncode(requestBody),
       );
 
       if (response.statusCode == 200) {
@@ -1351,6 +1387,7 @@ class ApiServiceSabre extends GetxService {
           print('NDC Order created successfully:');
           print('Order ID: $orderId');
           print('PNR Locator: $pnrLocator');
+          return response.data;
         } else {
           print('NDC PNR creation response format unexpected');
         }
@@ -1372,6 +1409,7 @@ class ApiServiceSabre extends GetxService {
       print('ItineraryRef ID: $itineraryRefId');
 
       try {
+
         final bookingDetails = await ApiServiceSabre().getBooking(itineraryRefId);
         print('Booking Details: $bookingDetails');
       } catch (e) {

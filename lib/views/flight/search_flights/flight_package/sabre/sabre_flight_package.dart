@@ -24,7 +24,7 @@ class SabrePackageSelectionDialog extends StatelessWidget {
     required this.isAnyFlightRemaining,
   });
 
-  final flightController = Get.find<FlightController>();
+  final flightController = Get.find<SabreFlightController>();
   final flightDateController = Get.find<FlightDateController>();
   final travelersController = Get.find<TravelersController>();
 
@@ -453,7 +453,7 @@ class SabrePackageSelectionDialog extends StatelessWidget {
       isLoading.value = true;
       final apiService = ApiServiceSabre();
       final travelersController = Get.find<TravelersController>();
-      final flightController = Get.find<FlightController>();
+      final flightController = Get.find<SabreFlightController>();
 
       // Extract flight segments and organize them based on the flight scenario
       final List<Map<String, dynamic>> originDestinations = [];
@@ -627,8 +627,12 @@ class SabrePackageSelectionDialog extends StatelessWidget {
         // Handle response based on NDC or standard
         if (flight.isNDC) {
           // Extract pricing information from NDC response
+          final revalidateID = response['id'];
           final responseData = response['response'] as Map<String, dynamic>;
           final offers = responseData['offers'] as List<dynamic>;
+          final offerId = responseData['offers'][0]['id'];
+
+          final offerItemID = offers[0]['offerItems'][0]['id'];
           final firstOffer = offers.first as Map<String, dynamic>;
           final price = firstOffer['totalPrice'] as Map<String, dynamic>;
 
@@ -640,6 +644,8 @@ class SabrePackageSelectionDialog extends StatelessWidget {
             'baseCurrency': price['baseAmount']['curCode'],
             'taxes': price['totalTaxes']['amount'],
             'taxesCurrency': price['totalTaxes']['curCode'],
+            'offerId': offerId,
+            'offerItemId':offerItemID
           };
           // Handle NDC response
           Get.to(() => ReviewTripPage(

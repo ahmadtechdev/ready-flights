@@ -6,7 +6,7 @@ import '../../sabre/sabre_flight_controller.dart';
 
 
 class CurrencyDialog extends StatelessWidget {
-  final FlightController controller;
+  final SabreFlightController controller;
 
   const CurrencyDialog({super.key, required this.controller});
 

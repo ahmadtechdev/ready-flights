@@ -18,7 +18,7 @@ enum FlightScenario { oneWay, returnFlight, multiCity }
 
 class FlightBookingPage extends StatelessWidget {
   final FlightScenario scenario;
-  final FlightController controller = Get.put(FlightController());
+  final SabreFlightController controller = Get.put(SabreFlightController());
   final AirBlueFlightController airBlueController = Get.find<AirBlueFlightController>();
   final PIAFlightController piaController = Get.put(PIAFlightController());
   final AirArabiaFlightController airArabiaController = Get.put(AirArabiaFlightController());
@@ -84,7 +84,7 @@ class FlightBookingPage extends StatelessWidget {
           );
         }),
         actions: [
-          GetX<FlightController>(
+          GetX<SabreFlightController>(
             builder: (controller) => TextButton(
               onPressed: () {
                 showDialog(
@@ -182,7 +182,7 @@ class FlightBookingPage extends StatelessWidget {
   Widget _buildFlightList() {
     final airBlueController = Get.find<AirBlueFlightController>();
     final piaController = Get.put(PIAFlightController());
-    final flightController = Get.find<FlightController>();
+    final flightController = Get.find<SabreFlightController>();
 
     return Expanded(
       child: SingleChildScrollView(

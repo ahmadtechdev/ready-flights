@@ -38,7 +38,7 @@ class _FlightCardState extends State<FlightCard>
   final Rx<Map<String, dynamic>> marginData = Rx<Map<String, dynamic>>({});
   final RxDouble finalPrice = 0.0.obs;
 
-  final flightController = Get.find<FlightController>();
+  final flightController = Get.find<SabreFlightController>();
   @override
   void initState() {
     super.initState();
@@ -245,7 +245,7 @@ class _FlightCardState extends State<FlightCard>
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
 
-                        GetX<FlightController>(
+                        GetX<SabreFlightController>(
                           builder: (controller) => Text(
                             '${controller.selectedCurrency.value} ${finalPrice.value.toStringAsFixed(0)}',
                             style: const TextStyle(
@@ -578,7 +578,7 @@ class _FlightCardState extends State<FlightCard>
                               ),
                             ),
                           ),
-                          GetX<FlightController>(
+                          GetX<SabreFlightController>(
                             builder: (controller) => Text(
                               '${controller.selectedCurrency.value} ${finalPrice.value.toStringAsFixed(0)}',
                               style: const TextStyle(
@@ -869,7 +869,7 @@ class _FlightCardState extends State<FlightCard>
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          carrier=="PK"?"MEAL YES" :getMealInfo(widget.flight.mealCode),
+                          carrier=="OD"? getMealInfo(widget.flight.mealCode):"MEAL YES",
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.green,

@@ -9,11 +9,11 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
-import '../../../../services/api_service_sabre.dart';
-import '../../../../utility/colors.dart';
-import '../airblue/airblue_flight_controller.dart';
-import '../airblue/airblue_flight_model.dart';
-import 'airblue/booking_flight_controller.dart';
+import '../../../../../services/api_service_sabre.dart';
+import '../../../../../utility/colors.dart';
+import '../../airblue/airblue_flight_controller.dart';
+import '../../airblue/airblue_flight_model.dart';
+import 'booking_flight_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 

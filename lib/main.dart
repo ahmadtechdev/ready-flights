@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ready_flights/common/bottom_navbar.dart';
 import 'package:ready_flights/services/api_service_airarabia.dart';
+import 'package:ready_flights/splash.dart';
 import 'package:ready_flights/views/flight/search_flights/airarabia/airarabia_flight_controller.dart';
 import 'package:ready_flights/views/flight/search_flights/airblue/airblue_flight_controller.dart';
 import 'utility/colors.dart';
@@ -60,7 +61,7 @@ class MyApp extends StatelessWidget {
       //     // Get.to(() => BottomNavbar());
       //   },
       // ),
-      home: HomeScreen(),
+      home: Splash(),
     );
   }
 }
