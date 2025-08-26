@@ -24,6 +24,8 @@ class SabreFlightController extends GetxController {
 
   void clearFlights() {
     flights.clear();
+    filteredFlights.clear();
+    availabilityFlights.clear();
     errorMessage.value = '';
   }
 
@@ -373,6 +375,7 @@ extension FlightDateTimeExtension on SabreFlightController {
 
               // Handle regular fare packages
               if (fareInfo != null) {
+
                 packages.add(FlightPackageInfo.fromApiResponse(fareInfo));
               }
               // Handle sold-out packages

@@ -56,9 +56,23 @@ class SabrePackageSelectionDialog extends StatelessWidget {
       ),
     );
   }
-
   Widget _buildFlightInfo() {
-    return FlightCard(flight: flight, showReturnFlight: false, isShowBookButton: false,);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height*0.7,
+          ),
+          child: SingleChildScrollView(
+            child: FlightCard(
+              flight: flight,
+              showReturnFlight: false,
+              isShowBookButton: false,
+            ),
+          ),
+        );
+      },
+    );
   }
 
   String getMealInfo(String mealCode) {
@@ -124,6 +138,8 @@ class SabrePackageSelectionDialog extends StatelessWidget {
   }
 
   Widget _buildVerticalPackageCard(FlightPackageInfo package, int index) {
+
+    print(package.seatsAvailable);
     final headerColor = package.isSoldOut ? Colors.grey : TColors.primary;
     final Rx<Map<String, dynamic>> marginData = Rx<Map<String, dynamic>>({});
     final RxDouble finalPrice = 0.0.obs;
@@ -626,26 +642,64 @@ class SabrePackageSelectionDialog extends StatelessWidget {
           response.containsKey('payloadAttributes')) {
         // Handle response based on NDC or standard
         if (flight.isNDC) {
-          // Extract pricing information from NDC response
           final revalidateID = response['id'];
           final responseData = response['response'] as Map<String, dynamic>;
           final offers = responseData['offers'] as List<dynamic>;
-          final offerId = responseData['offers'][0]['id'];
+          final offerId = offers[0]['id'] as String;
 
-          final offerItemID = offers[0]['offerItems'][0]['id'];
-          final firstOffer = offers.first as Map<String, dynamic>;
-          final price = firstOffer['totalPrice'] as Map<String, dynamic>;
+          final firstOfferItem = offers[0]['offerItems'][0] as Map<String, dynamic>;
+          final passengers = firstOfferItem['passengers'] as List<dynamic>;
+          final firstPassenger = passengers[0] as Map<String, dynamic>;
+          final price = firstPassenger['price'] as Map<String, dynamic>;
 
-          // Create pricing information map
+// Get the offer item ID
+          final offerItemID = firstOfferItem['id'] as String;
+
+// Extract total amount
+          final totalAmount = price['totalAmount']['amount'] as String;
+          final totalCurrency = price['totalAmount']['curCode'] as String;
+
+// Extract base amount - it might be in different locations
+          String baseAmount = '0';
+          String baseCurrency = totalCurrency;
+          if (price.containsKey('baseAmount')) {
+            baseAmount = price['baseAmount']['amount'] as String;
+            baseCurrency = price['baseAmount']['curCode'] as String;
+          } else if (price.containsKey('filingInformation') &&
+              price['filingInformation'] != null &&
+              price['filingInformation'].containsKey('baseAmount')) {
+            baseAmount = price['filingInformation']['baseAmount']['amount'] as String;
+            baseCurrency = price['filingInformation']['baseAmount']['curCode'] as String;
+          }
+
+// Extract taxes - handle different structures
+          String taxesAmount = '0';
+          String taxesCurrency = totalCurrency;
+          if (price.containsKey('taxes')) {
+            final taxes = price['taxes'] as Map<String, dynamic>;
+            taxesAmount = taxes['total']['amount'] as String;
+            taxesCurrency = taxes['total']['curCode'] as String;
+          } else {
+            // Calculate taxes from total - base if needed
+            try {
+              final total = double.parse(totalAmount);
+              final base = double.parse(baseAmount);
+              taxesAmount = (total - base).toStringAsFixed(2);
+            } catch (e) {
+              taxesAmount = '0';
+            }
+          }
+
+// Create pricing information map
           final pricingInformation = {
-            'totalAmount': price['totalAmount']['amount'],
-            'totalCurrency': price['totalAmount']['curCode'],
-            'baseAmount': price['baseAmount']['amount'],
-            'baseCurrency': price['baseAmount']['curCode'],
-            'taxes': price['totalTaxes']['amount'],
-            'taxesCurrency': price['totalTaxes']['curCode'],
+            'totalAmount': totalAmount,
+            'totalCurrency': totalCurrency,
+            'baseAmount': baseAmount,
+            'baseCurrency': baseCurrency,
+            'taxes': taxesAmount,
+            'taxesCurrency': taxesCurrency,
             'offerId': offerId,
-            'offerItemId':offerItemID
+            'offerItemId': offerItemID
           };
           // Handle NDC response
           Get.to(() => ReviewTripPage(
@@ -681,6 +735,7 @@ class SabrePackageSelectionDialog extends StatelessWidget {
         throw Exception('Invalid response format');
       }
     } catch (e) {
+      print(e.toString());
       Get.snackbar(
         'Error',
         e.toString(),

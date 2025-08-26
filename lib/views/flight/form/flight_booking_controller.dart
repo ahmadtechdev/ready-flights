@@ -11,6 +11,7 @@ import '../../../widgets/class_selection_bottom_sheet.dart';
 import '../../../widgets/travelers_selection_bottom_sheet.dart';
 import '../search_flights/airarabia/airarabia_flight_controller.dart';
 import '../search_flights/airblue/airblue_flight_controller.dart';
+import '../search_flights/flydubai/flydubai_controller.dart';
 import '../search_flights/pia/pia_flight_controller.dart';
 import '../search_flights/sabre/sabre_flight_controller.dart';
 import '../search_flights/search_flights.dart';
@@ -109,6 +110,8 @@ class FlightBookingController extends GetxController {
   final ApiServiceAirArabia apiServiceAirArabia = Get.put(
     ApiServiceAirArabia(),
   );
+  final FlydubaiFlightController flydubaiController = Get.put(FlydubaiFlightController());
+
 
   // Getter for formatted origins string
   String get formattedOrigins =>
@@ -354,6 +357,7 @@ class FlightBookingController extends GetxController {
       airBlueFlightController.clearFlights();
       airArabiaController.clearFlights();
       piaFlightController.clearFlights();
+      flydubaiController.clearFlights();
 
       // Prepare parameters
       String origin = '';
@@ -413,6 +417,8 @@ class FlightBookingController extends GetxController {
           cabin: travelClass.value,
         ),
 
+
+
         // // Call Air Arabia API for all trip types except multi-city
         // if (tripType.value != TripType.multiCity)
         //   _callAirArabiaApi(
@@ -426,6 +432,18 @@ class FlightBookingController extends GetxController {
         //     cabin: travelClass.value,
         //   ),
       ];
+
+      // 2. FlyDubai API (via FlyDubai controller) - SINGLE CALL, NO DUPLICATES
+      futures.add(_callFlyDubaiApi(
+        type: tripType.value == TripType.multiCity ? 2 : (tripType.value == TripType.roundTrip ? 1 : 0),
+        origin: origin,
+        destination: destination,
+        depDate: formattedDates,
+        adult: adultCount.value,
+        child: childrenCount.value,
+        infant: infantCount.value,
+        cabin: travelClass.value,
+      ));
 
       // Add PIA API call based on trip type
       // if (tripType.value == TripType.multiCity && cityPairs.isNotEmpty) {
@@ -565,6 +583,55 @@ class FlightBookingController extends GetxController {
       piaFlightController.setErrorMessage('PIA API error: ${e.toString()}');
     }
   }
+
+
+  Future<void> _callFlyDubaiApi({
+    required int type,
+    required String origin,
+    required String destination,
+    required String depDate,
+    required int adult,
+    required int child,
+    required int infant,
+    required String cabin,
+  }) async {
+    try {
+      debugPrint('=== CALLING FLYDUBAI VIA CONTROLLER ===');
+
+      // Clean and validate parameters
+      String actualOrigin = origin.startsWith(',') ? origin.substring(1) : origin;
+      String actualDestination = destination.startsWith(',') ? destination.substring(1) : destination;
+      String actualDepDate = depDate.startsWith(',') ? depDate.substring(1) : depDate;
+
+      // Convert to uppercase for IATA codes
+      actualOrigin = actualOrigin.toUpperCase().trim();
+      actualDestination = actualDestination.toUpperCase().trim();
+
+      debugPrint('Cleaned Parameters:');
+      debugPrint('Origin: $actualOrigin');
+      debugPrint('Destination: $actualDestination');
+      debugPrint('Date: $actualDepDate');
+
+      // Call the controller's search method
+      await flydubaiController.searchFlights(
+        type: type,
+        origin: actualOrigin,
+        destination: actualDestination,
+        depDate: actualDepDate,
+        adult: adult,
+        child: child,
+        infant: infant,
+        cabin: cabin,
+      );
+
+      debugPrint('FlyDubai search completed via controller');
+
+    } catch (e) {
+      debugPrint('FlyDubai API call error: $e');
+      flydubaiController.setErrorMessage('FlyDubai API error: ${e.toString()}');
+    }
+  }// Also add this helper method to ensure proper city code mapping
+
 
   Future<void> _callSabreApi({
     required int type,

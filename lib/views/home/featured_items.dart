@@ -158,8 +158,10 @@ class _FeaturedPartnersState extends State<FeaturedPartners> {
     'assets/img/logos/fly-dubai.png',
     'assets/img/logos/air-arabia.png',
     'assets/img/logos/emirates.png',
-    'assets/img/logos/pia.png',
+    'assets/img/logos/gulf-air.png',
     'assets/img/logos/flyjinnah.png',
+    'assets/img/logos/kuwait-airline.png',
+    'assets/img/logos/srilankan-airline.png',
   ];
 
   @override

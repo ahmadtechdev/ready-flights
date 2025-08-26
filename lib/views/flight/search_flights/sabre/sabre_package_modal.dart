@@ -39,6 +39,7 @@ class FlightPackageInfo {
 
 
   factory FlightPackageInfo.fromApiResponse(Map<String, dynamic> fareInfo) {
+
     try {
       final passengerInfo = fareInfo['passengerInfoList'][0]['passengerInfo'];
       final totalFare = fareInfo['totalFare'];
@@ -57,7 +58,12 @@ class FlightPackageInfo {
           passengerInfo['fareComponents'][0].containsKey('segments') &&
           passengerInfo['fareComponents'][0]['segments'].isNotEmpty) {
 
+
+
         final segments = passengerInfo['fareComponents'][0]['segments'][0]['segment'];
+
+        print("seats check");
+        print(segments['seatsAvailable']);
         cabinCode = segments['cabinCode'] ?? 'Y';
         mealCode = segments['mealCode'] ?? 'N';
         seatsAvailable = segments['seatsAvailable'] ?? 0;

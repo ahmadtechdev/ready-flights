@@ -649,6 +649,14 @@ class AirBlueFlightApiService {
       )
           .toList();
 
+
+      print("adults");
+      print(adults);
+      print("child");
+      print(children);
+      print("infants");
+      print(infants);
+
       // Generate random string for EchoToken
       final randomString = _generateRandomString(32);
 
@@ -769,17 +777,17 @@ class AirBlueFlightApiService {
               }
             }
           }
-          //
-          // print("fare info check");
-          // print(fareInfo);
+
+          print("fare info check");
+          print(fareInfo);
 
           // Fallback to first fare info if no match found
           fareInfo ??= ptc['FareInfo'] is List ? ptc['FareInfo'][0] : ptc['FareInfo'];
 
-          // print("fare info 1 that is old");
-          // print(fareInfo);
-          // print("fare info 1 that is new");
-          // print(selectedFareOption?.fareInfoRawData);
+          print("fare info 1 that is old");
+          print(fareInfo);
+          print("fare info 1 that is new");
+          print(selectedFareOption?.fareInfoRawData);
           fareInfo=selectedFareOption?.fareInfoRawData;
 
           if (fareInfo != null) {
@@ -1032,11 +1040,11 @@ class AirBlueFlightApiService {
         ),
       );
 
-      // printDebugData('PNR RESPONSE', response.data.toString());
+      printDebugData('PNR RESPONSE', response.data.toString());
 
       // Convert XML to JSON
       final jsonResponse = _convertXmlToJson(response.data.toString());
-      // printJsonPretty(jsonResponse);
+      printJsonPretty(jsonResponse);
 
       // Parse the pricing information
       List<AirBluePNRPricing> pnrPricing = [];

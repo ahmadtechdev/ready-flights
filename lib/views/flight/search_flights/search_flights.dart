@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:ready_flights/views/flight/search_flights/flydubai/flydubai_controller.dart';
+import 'package:ready_flights/views/flight/search_flights/search_flight_utils/widgets/flydubai_flight_card.dart';
 import '../../../utility/colors.dart';
 import 'airarabia/airarabia_flight_controller.dart';
 import 'airblue/airblue_flight_controller.dart';
 import 'filters/flight_filter_service.dart';
 import 'pia/pia_flight_controller.dart';
 import 'sabre/sabre_flight_controller.dart';
-import 'search_flight_utils/filter_flight_model.dart';
 import 'search_flight_utils/widgets/airarabia_flight_card.dart';
 import 'search_flight_utils/widgets/airblue_flight_card.dart';
 import 'search_flight_utils/widgets/currency_dialog.dart';
@@ -22,6 +23,7 @@ class FlightBookingPage extends StatelessWidget {
   final AirBlueFlightController airBlueController = Get.find<AirBlueFlightController>();
   final PIAFlightController piaController = Get.put(PIAFlightController());
   final AirArabiaFlightController airArabiaController = Get.put(AirArabiaFlightController());
+  final FlydubaiFlightController flyDubaiController = Get.put(FlydubaiFlightController()); // Add this controller
   final FilterController filterController = Get.put(FilterController());
 
   FlightBookingPage({super.key, required this.scenario}) {
@@ -37,15 +39,18 @@ class FlightBookingPage extends StatelessWidget {
         backgroundColor: TColors.background,
         leading: const BackButton(),
         title: Obx(() {
-          // Get total flight count
+          // Get total flight count including FlyDubai
           final totalFlights = controller.filteredFlights.length +
               airBlueController.flights.length +
               piaController.filteredFlights.length +
-              airArabiaController.flights.length;
+              airArabiaController.flights.length +
+              flyDubaiController.filteredFlights.length; // Add FlyDubai count
+
           final isLoading = controller.isLoading.value ||
               airBlueController.isLoading.value ||
               piaController.isLoading.value ||
-              airArabiaController.isLoading.value;
+              airArabiaController.isLoading.value ||
+              flyDubaiController.isLoading.value; // Add FlyDubai loading state
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,6 +193,27 @@ class FlightBookingPage extends StatelessWidget {
       child: SingleChildScrollView(
         child: Column(
           children: [
+            // Sabre flights section
+            Obx(() {
+              if (flightController.isLoading.value && flightController.filteredFlights.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              return ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: flightController.filteredFlights.length,
+                itemBuilder: (context, index) {
+                  final flight = flightController.filteredFlights[index];
+                  return GestureDetector(
+                    onTap: () => flightController.handleFlightSelection(flight),
+                    child: FlightCard(flight: flight),
+                  );
+                },
+              );
+            }),
 
             // AirBlue flights section
             Obx(() {
@@ -203,17 +229,19 @@ class FlightBookingPage extends StatelessWidget {
                 itemCount: airBlueController.filteredFlights.length,
                 itemBuilder: (context, index) {
                   final flight = airBlueController.filteredFlights[index];
-                  return AirBlueFlightCard(flight: flight);
+                  return GestureDetector(
+                    onTap: () => airBlueController.handleAirBlueFlightSelection(flight),
+                    child: AirBlueFlightCard(flight: flight),
+                  );
                 },
               );
             }),
 
 
 
-
-            // Sabre flights section
+// FlyDubai flights section
             Obx(() {
-              if (flightController.isLoading.value && flightController.filteredFlights.isEmpty) {
+              if (flyDubaiController.isLoading.value && flyDubaiController.filteredFlights.isEmpty) {
                 return const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8.0),
                   child: Center(child: CircularProgressIndicator()),
@@ -222,15 +250,16 @@ class FlightBookingPage extends StatelessWidget {
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: flightController.filteredFlights.length,
+                itemCount: flyDubaiController.filteredFlights.length,
                 itemBuilder: (context, index) {
-                  final flight = flightController.filteredFlights[index];
-                  return FlightCard(flight: flight);
+                  final flight = flyDubaiController.filteredFlights[index];
+                  return GestureDetector(
+                    onTap: () => flyDubaiController.handleFlydubaiFlightSelection(flight),
+                    child: FlyDubaiFlightCard(flight: flight),
+                  );
                 },
               );
             }),
-
-
             // PIA flights section
             Obx(() {
               if (piaController.isLoading.value && piaController.filteredFlights.isEmpty) {
@@ -264,9 +293,9 @@ class FlightBookingPage extends StatelessWidget {
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: airArabiaController.filteredFlights.length, // ✅ Using filteredFlights
+                itemCount: airArabiaController.filteredFlights.length,
                 itemBuilder: (context, index) {
-                  final flight = airArabiaController.filteredFlights[index]; // ✅ Using filteredFlights
+                  final flight = airArabiaController.filteredFlights[index];
                   return GestureDetector(
                     onTap: () => airArabiaController.handleAirArabiaFlightSelection(flight),
                     child: AirArabiaFlightCard(flight: flight),
@@ -275,7 +304,7 @@ class FlightBookingPage extends StatelessWidget {
               );
             }),
 
-            SizedBox(height: 36,)
+            const SizedBox(height: 36),
           ],
         ),
       ),
@@ -301,5 +330,4 @@ class FlightBookingPage extends StatelessWidget {
         ),
       ),
     );
-  }
-}
+  }}
