@@ -254,7 +254,8 @@ class FlightBookingPage extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final flight = flyDubaiController.filteredFlights[index];
                   return GestureDetector(
-                    onTap: () => flyDubaiController.handleFlydubaiFlightSelection(flight),
+                    // onTap: () => flyDubaiController.handleFlydubaiFlightSelection(flight),
+                    onTap: () {},
                     child: FlyDubaiFlightCard(flight: flight),
                   );
                 },

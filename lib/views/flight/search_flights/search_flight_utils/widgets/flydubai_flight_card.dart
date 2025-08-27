@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:ready_flights/views/flight/search_flights/flydubai/flydubai_controller.dart';
 
 import '../../../../../utility/colors.dart';
 import '../../flydubai/flydubai_model.dart';
@@ -9,11 +11,13 @@ import '../../sabre/sabre_flight_models.dart';
 class FlyDubaiFlightCard extends StatefulWidget {
   final FlydubaiFlight flight;
   final bool showReturnFlight;
+  final bool isShowBookButton;
 
   const FlyDubaiFlightCard({
     super.key,
     required this.flight,
     this.showReturnFlight = true,
+    this.isShowBookButton = true,
   });
 
   @override
@@ -25,6 +29,8 @@ class _FlyDubaiFlightCardState extends State<FlyDubaiFlightCard>
   bool isExpanded = false;
   late AnimationController _controller;
   late Animation<double> _expandAnimation;
+  final FlydubaiFlightController flyDubaiController =
+  Get.find<FlydubaiFlightController>();
 
   @override
   void initState() {
@@ -193,34 +199,49 @@ class _FlyDubaiFlightCardState extends State<FlyDubaiFlightCard>
                       ],
                     ),
                     const Spacer(),
-                    // Book Now Button
-                    InkWell(
-                      onTap: () {
-                        setState(() {
-                          isExpanded = !isExpanded;
-                          if (isExpanded) {
-                            _controller.forward();
-                          } else {
-                            _controller.reverse();
-                          }
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text(
-                          'Book Now',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                    // Flight Details Button (replacing 30% OFF)
+                    if(!widget.isShowBookButton)...[
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            'PKR ${widget.flight.price.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: TColors.primary,
+                            ),
                           ),
-                        ),
+                          Container(
+                            width: 60,
+                            // height: 60,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2850B6),
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'Air Blue',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
+                    ]
+
                   ],
                 ),
 
@@ -255,63 +276,75 @@ class _FlyDubaiFlightCardState extends State<FlyDubaiFlightCard>
                     // Flight Path
                     Expanded(
                       flex: 2,
-                      child: Column(
-                        children: [
-                          Text(
-                            getFlightDuration(),
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: TColors.grey,
-                              fontWeight: FontWeight.w500,
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            isExpanded = !isExpanded;
+                            if (isExpanded) {
+                              _controller.forward();
+                            } else {
+                              _controller.reverse();
+                            }
+                          });
+                        },
+                        child: Column(
+                          children: [
+                            Text(
+                              getFlightDuration(),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: TColors.grey,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: TColors.primary,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Container(
+                                    height: 2,
+                                    color: TColors.primary,
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.flight,
+                                  size: 16,
                                   color: TColors.primary,
                                 ),
-                              ),
-                              Expanded(
-                                child: Container(
-                                  height: 2,
-                                  color: TColors.primary,
+                                Expanded(
+                                  child: Container(
+                                    height: 2,
+                                    color: TColors.primary,
+                                  ),
                                 ),
-                              ),
-                              const Icon(
-                                Icons.flight,
-                                size: 16,
-                                color: TColors.primary,
-                              ),
-                              Expanded(
-                                child: Container(
-                                  height: 2,
-                                  color: TColors.primary,
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: TColors.primary,
+                                  ),
                                 ),
-                              ),
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: TColors.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Direct',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: TColors.grey,
+                              ],
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Direct',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: TColors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
 
@@ -340,66 +373,45 @@ class _FlyDubaiFlightCardState extends State<FlyDubaiFlightCard>
                   ],
                 ),
 
-                const SizedBox(height: 16),
-
-                // Bottom Section with Tags and Price
-                Row(
-                  children: [
-                    // Flight Details Toggle
-                    InkWell(
-                      onTap: () {
-                        setState(() {
-                          isExpanded = !isExpanded;
-                          if (isExpanded) {
-                            _controller.forward();
-                          } else {
-                            _controller.reverse();
-                          }
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: TColors.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: TColors.primary.withOpacity(0.3),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text(
-                              'Flight Details',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: TColors.primary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            AnimatedRotation(
-                              duration: const Duration(milliseconds: 300),
-                              turns: isExpanded ? 0.5 : 0,
-                              child: const Icon(
-                                Icons.keyboard_arrow_down,
-                                color: TColors.primary,
-                                size: 16,
-                              ),
-                            ),
-                          ],
-                        ),
+                // Expanded Details Section
+                SizeTransition(
+                  sizeFactor: _expandAnimation,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(16),
                       ),
                     ),
-                    const Spacer(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildFlightSegment(),
+
+
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+        if(widget.isShowBookButton)...[
+                // Bottom Section with Tags and Price
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Flight Details Toggle
+
                     // Price and Airline Badge
                     Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          width: 60,
+                          // height: 60,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF15A29), // FlyDubai brand color
+                            color: const Color(0xFFF15A29),
                             borderRadius: BorderRadius.circular(8),
                             boxShadow: [
                               BoxShadow(
@@ -409,14 +421,16 @@ class _FlyDubaiFlightCardState extends State<FlyDubaiFlightCard>
                               ),
                             ],
                           ),
-                          child: const Text(
-                            'FlyDubai',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                          child: const Center(
+                            child: Text(
+                              'Fly Dubai',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -430,42 +444,70 @@ class _FlyDubaiFlightCardState extends State<FlyDubaiFlightCard>
                         ),
                       ],
                     ),
+                    InkWell(
+                      onTap: () => flyDubaiController.handleFlydubaiFlightSelection(widget.flight),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              TColors.primary,
+                              TColors.primary.withOpacity(0.8),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: TColors.primary.withOpacity(0.3),
+                              spreadRadius: 0,
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              spreadRadius: 0,
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Book Now',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            Icon(
+                              Icons.flight_takeoff,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
                   ],
                 ),
+        ]
               ],
             ),
           ),
 
-          // Expanded Details Section
-          SizeTransition(
-            sizeFactor: _expandAnimation,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(16),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildFlightSegment(),
 
-                  _buildSectionCard(
-                    title: 'Baggage Allowance',
-                    content: formatBaggageInfo(),
-                    icon: Icons.luggage,
-                  ),
-
-                  _buildSectionCard(
-                    title: 'Policy',
-                    content: _buildFareRules(),
-                    icon: Icons.rule,
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );

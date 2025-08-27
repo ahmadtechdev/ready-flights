@@ -243,6 +243,7 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
                   ),
                   AirBlueFlightCard(
                     flight: airBlueController.selectedOutboundFlight ?? widget.flight,
+                      isShowBookButton:false
                   ),
                 ],
               ),
@@ -264,6 +265,7 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
                   ),
                   AirBlueFlightCard(
                     flight: airBlueController.selectedReturnFlight!,
+                      isShowBookButton:false
                   ),
                 ],
               ),
@@ -291,6 +293,7 @@ class AirBlueReviewTripPageState extends State<AirBlueReviewTripPage> {
                       ),
                       AirBlueFlightCard(
                         flight: flight!,
+                          isShowBookButton:false
                       ),
                     ],
                   );

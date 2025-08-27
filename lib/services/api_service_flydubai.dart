@@ -1,6 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dart:developer' as developer;
 
 class ApiServiceFlyDubai {
   // FlyDubai API credentials and constants
@@ -16,8 +16,7 @@ class ApiServiceFlyDubai {
   // Authenticate with FlyDubai API
   Future<bool> authenticate() async {
     try {
-      developer.log('Authenticating with FlyDubai API...');
-
+      print('Authenticating with FlyDubai API...');
       final String bodyString = 'client_id=$clientId&client_secret=$clientSecret&grant_type=password&password=${Uri.encodeComponent(password)}&scope=res&username=$username';
 
       final response = await http.post(
@@ -30,29 +29,29 @@ class ApiServiceFlyDubai {
         body: bodyString,
       );
 
-      developer.log('FlyDubai Auth Response Status: ${response.statusCode}');
-      developer.log('FlyDubai Auth Response Body: ${response.body}');
+      print('FlyDubai Auth Response Status: ${response.statusCode}');
+      print('FlyDubai Auth Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> tokenData = json.decode(response.body);
         if (tokenData.containsKey('access_token')) {
           _accessToken = tokenData['access_token'];
-          developer.log('FlyDubai Authentication successful');
+          print('FlyDubai Authentication successful');
           return true;
         }
       }
 
-      developer.log('FlyDubai Authentication failed');
+      print('FlyDubai Authentication failed');
       return false;
     } catch (e) {
-      developer.log('FlyDubai Authentication error: $e');
+      print('FlyDubai Authentication error: $e');
       return false;
     }
   }
 
   // Search FlyDubai flights
   Future<Map<String, dynamic>> searchFlights({
-    required int type, // 0 = one-way, 1 = round-trip, 2 = multi-city
+    required int type,
     required String origin,
     required String destination,
     required String depDate,
@@ -63,10 +62,10 @@ class ApiServiceFlyDubai {
     List<Map<String, String>>? multiCitySegments,
   }) async {
     try {
-      developer.log('=== FLYDUBAI API SEARCH STARTED ===');
-      developer.log('Trip Type: $type (${_getTripTypeName(type)})');
+      print('=== FLYDUBAI API SEARCH STARTED ===');
+      print('Trip Type: $type (${_getTripTypeName(type)})');
+      print('Raw depDate: "$depDate"');
 
-      // Authenticate first if needed
       if (_accessToken == null) {
         final authSuccess = await authenticate();
         if (!authSuccess) {
@@ -80,10 +79,9 @@ class ApiServiceFlyDubai {
 
       Map<String, dynamic>? searchParams;
 
-      // Handle different trip types
       if (type == 2 && multiCitySegments != null && multiCitySegments.isNotEmpty) {
         // Multi-city search
-        developer.log('Processing multi-city search with ${multiCitySegments.length} segments');
+        print('Processing multi-city search with ${multiCitySegments.length} segments');
         searchParams = _buildMultiCityRequest(
           segments: multiCitySegments,
           passengers: adult + child + infant,
@@ -91,56 +89,82 @@ class ApiServiceFlyDubai {
         );
       } else if (type == 1) {
         // Round-trip search
-        developer.log('Processing round-trip search');
-        final dates = depDate.replaceAll(',', '').split(',');
-        if (dates.length < 2) {
+        print('Processing round-trip search');
+
+        // Parse dates - handle different possible formats
+        List<String> datesList = [];
+
+        if (depDate.contains(',')) {
+          datesList = depDate.split(',').map((d) => d.trim()).where((d) => d.isNotEmpty).toList();
+        } else {
+          // If no comma, might be a single date - this shouldn't happen for round-trip
+          datesList = [depDate.trim()];
+        }
+
+        print("Date parsing - split result: $datesList");
+
+        if (datesList.length < 2) {
           return {
-            'error': 'Round-trip requires both departure and return dates',
+            'error': 'Round-trip requires both departure and return dates. Parsed: $datesList from "$depDate"',
             'flights': [],
             'success': false
           };
         }
 
-        final outboundDate = DateTime.parse(dates[0].trim());
-        final returnDate = DateTime.parse(dates[1].trim());
+        try {
+          final outboundDate = DateTime.parse(datesList[0]);
+          final returnDate = DateTime.parse(datesList[1]);
 
-        searchParams = _buildRoundTripRequest(
-          origin: origin.replaceAll(',', '').trim(),
-          destination: destination.replaceAll(',', '').trim(),
-          outboundDate: outboundDate,
-          returnDate: returnDate,
-          passengers: adult + child + infant,
-          cabin: cabin,
-        );
+          print("Successfully parsed dates - Outbound: $outboundDate, Return: $returnDate");
+
+          searchParams = _buildRoundTripRequest(
+            origin: origin.trim(),
+            destination: destination.trim(),
+            outboundDate: outboundDate,
+            returnDate: returnDate,
+            passengers: adult + child + infant,
+            cabin: cabin,
+          );
+        } catch (e) {
+          return {
+            'error': 'Invalid date format in round-trip request: $e. Dates: $datesList',
+            'flights': [],
+            'success': false
+          };
+        }
       } else {
         // One-way search
-        developer.log('Processing one-way search');
-        final cleanOrigin = origin.replaceAll(',', '').trim();
-        final cleanDestination = destination.replaceAll(',', '').trim();
-        final cleanDepDate = depDate.replaceAll(',', '').trim();
+        print('Processing one-way search');
+        final cleanDepDate = depDate.trim();
 
-        final outboundDate = DateTime.parse(cleanDepDate);
+        try {
+          final outboundDate = DateTime.parse(cleanDepDate);
 
-        searchParams = _buildOneWayRequest(
-          origin: cleanOrigin,
-          destination: cleanDestination,
-          outboundDate: outboundDate,
-          passengers: adult + child + infant,
-          cabin: cabin,
-        );
+          searchParams = _buildOneWayRequest(
+            origin: origin.trim(),
+            destination: destination.trim(),
+            outboundDate: outboundDate,
+            passengers: adult + child + infant,
+            cabin: cabin,
+          );
+        } catch (e) {
+          return {
+            'error': 'Invalid date format for one-way: $e. Date: "$cleanDepDate"',
+            'flights': [],
+            'success': false
+          };
+        }
       }
 
       if (searchParams == null) {
         return {
-          'error': 'Invalid search parameters for FlyDubai',
+          'error': 'Could not build search parameters for FlyDubai',
           'flights': [],
           'success': false
         };
       }
 
-      developer.log('FlyDubai Search Parameters: ${json.encode(searchParams)}');
-
-      // Make the API request
+      // Make API request
       final response = await http.post(
         Uri.parse('$baseUrl/pricing/flightswithfares'),
         headers: {
@@ -152,12 +176,12 @@ class ApiServiceFlyDubai {
         body: json.encode(searchParams),
       );
 
-      developer.log('FlyDubai Search Response Status: ${response.statusCode}');
-      developer.log('FlyDubai Search Response Body: ${response.body}');
+      print('FlyDubai Response Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
-
+        print("++++++++++++++++++Fly Dubai Response ++++++++++++++++++");
+        // printJsonPretty(responseData);
         return {
           'success': true,
           'flights': responseData,
@@ -166,11 +190,10 @@ class ApiServiceFlyDubai {
           'tripType': _getTripTypeName(type),
         };
       } else if (response.statusCode == 401) {
-        // Token expired, try to re-authenticate
+        // Token expired
         _accessToken = null;
         final authSuccess = await authenticate();
         if (authSuccess) {
-          // Retry the search once
           return await searchFlights(
             type: type,
             origin: origin,
@@ -182,22 +205,17 @@ class ApiServiceFlyDubai {
             cabin: cabin,
             multiCitySegments: multiCitySegments,
           );
-        } else {
-          return {
-            'error': 'FlyDubai re-authentication failed',
-            'flights': [],
-            'success': false
-          };
         }
-      } else {
-        return {
-          'error': 'FlyDubai API returned status: ${response.statusCode}',
-          'flights': [],
-          'success': false
-        };
       }
+
+      return {
+        'error': 'FlyDubai API returned status: ${response.statusCode}',
+        'flights': [],
+        'success': false
+      };
+
     } catch (e) {
-      developer.log('FlyDubai API search error: $e');
+      print('FlyDubai API search error: $e');
       return {
         'error': 'FlyDubai search failed: $e',
         'flights': [],
@@ -205,7 +223,6 @@ class ApiServiceFlyDubai {
       };
     }
   }
-
   // Build one-way search request
   Map<String, dynamic> _buildOneWayRequest({
     required String origin,
@@ -214,7 +231,7 @@ class ApiServiceFlyDubai {
     required int passengers,
     required String cabin,
   }) {
-    developer.log('Building one-way request: $origin -> $destination on ${outboundDate.toIso8601String()}');
+    print('Building one-way request: $origin -> $destination on ${outboundDate.toIso8601String()}');
 
     final fareQuoteDetail = {
       "Origin": origin,
@@ -273,7 +290,17 @@ class ApiServiceFlyDubai {
     required int passengers,
     required String cabin,
   }) {
-    developer.log('Building round-trip request: $origin -> $destination on ${outboundDate.toIso8601String()}, return on ${returnDate.toIso8601String()}');
+    print('Building round-trip request: $origin -> $destination on ${outboundDate.toIso8601String()}, return on ${returnDate.toIso8601String()}');
+
+    // PASSENGER ARRAY BUILDING - Similar to PHP version
+    String passengerArray = '';
+    if (passengers > 0) {
+      passengerArray = '''
+    {
+      "PassengerTypeID": 1,
+      "TotalSeatsRequired": "$passengers"
+    }''';
+    }
 
     final fareQuoteDetails = [
       {
@@ -288,7 +315,10 @@ class ApiServiceFlyDubai {
         "DateOfDepartureEnd": "${outboundDate.toIso8601String().substring(0, 10)}T23:59:59",
         "FareQuoteRequestInfos": {
           "FareQuoteRequestInfo": [
-            {"PassengerTypeID": 1, "TotalSeatsRequired": passengers.toString()}
+            {
+              "PassengerTypeID": 1,
+              "TotalSeatsRequired": passengers.toString()
+            }
           ]
         },
         "FareTypeCategory": "1"
@@ -305,7 +335,10 @@ class ApiServiceFlyDubai {
         "DateOfDepartureEnd": "${returnDate.toIso8601String().substring(0, 10)}T23:59:59",
         "FareQuoteRequestInfos": {
           "FareQuoteRequestInfo": [
-            {"PassengerTypeID": 1, "TotalSeatsRequired": passengers.toString()}
+            {
+              "PassengerTypeID": 1,
+              "TotalSeatsRequired": passengers.toString()
+            }
           ]
         },
         "FareTypeCategory": "1"
@@ -341,20 +374,19 @@ class ApiServiceFlyDubai {
       }
     };
   }
-
   // Build multi-city search request
   Map<String, dynamic> _buildMultiCityRequest({
     required List<Map<String, String>> segments,
     required int passengers,
     required String cabin,
   }) {
-    developer.log('Building multi-city request with ${segments.length} segments');
+    print('Building multi-city request with ${segments.length} segments');
 
     final List<Map<String, dynamic>> fareQuoteDetails = [];
 
     for (var segment in segments) {
       final departureDate = DateTime.parse(segment['date']!);
-      developer.log('Adding segment: ${segment['from']} -> ${segment['to']} on ${segment['date']}');
+      print('Adding segment: ${segment['from']} -> ${segment['to']} on ${segment['date']}');
 
       fareQuoteDetails.add({
         "Origin": segment['from'],
@@ -408,17 +440,21 @@ class ApiServiceFlyDubai {
   // Helper method to get trip type name
   String _getTripTypeName(int type) {
     switch (type) {
-      case 0: return 'One-Way';
-      case 1: return 'Round-Trip';
-      case 2: return 'Multi-City';
-      default: return 'Unknown';
+      case 0:
+        return 'One-Way';
+      case 1:
+        return 'Round-Trip';
+      case 2:
+        return 'Multi-City';
+      default:
+        return 'Unknown';
     }
   }
 
   // Test API connection
   Future<Map<String, dynamic>> testConnection() async {
     try {
-      developer.log('=== TESTING FLYDUBAI API CONNECTION ===');
+      print('=== TESTING FLYDUBAI API CONNECTION ===');
 
       final authSuccess = await authenticate();
       if (!authSuccess) {
@@ -446,14 +482,27 @@ class ApiServiceFlyDubai {
         'error': testResult['error'],
         'details': 'FlyDubai API test completed'
       };
-
     } catch (e) {
-      developer.log('FlyDubai API test failed: $e');
+      print('FlyDubai API test failed: $e');
       return {
         'success': false,
         'error': 'Test failed',
         'details': e.toString()
       };
+    }
+  }
+
+  /// Prints JSON nicely with chunking
+  void printJsonPretty(dynamic jsonData) {
+    const int chunkSize = 1000;
+    final jsonString = const JsonEncoder.withIndent(' ').convert(jsonData);
+
+    for (int i = 0; i < jsonString.length; i += chunkSize) {
+      final chunk = jsonString.substring(
+        i,
+        i + chunkSize < jsonString.length ? i + chunkSize : jsonString.length,
+      );
+      print(chunk);
     }
   }
 }

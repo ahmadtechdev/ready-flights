@@ -1,5 +1,6 @@
 // controllers/flydubai_flight_controller.dart
 
+import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:ready_flights/views/flight/search_flights/flydubai/flydubai_model.dart';
 import 'dart:developer' as developer;
@@ -54,6 +55,23 @@ class FlydubaiFlightController extends GetxController {
     selectedOutboundFareOption = null;
     selectedReturnFlight = null;
     selectedReturnFareOption = null;
+  }
+
+  void loadFlights(Map<String, dynamic> result) {
+    try {
+      debugPrint('=== LOADING FLYDUBAI FLIGHTS ===');
+
+      if (result.containsKey('flights')) {
+        parseApiResponse(result['flights']);
+        debugPrint('FlyDubai flights loaded from API result');
+      } else {
+        setErrorMessage('No flights data in result');
+        debugPrint('No flights key found in result: ${result.keys}');
+      }
+    } catch (e) {
+      debugPrint('Error loading FlyDubai flights: $e');
+      setErrorMessage('Failed to load flights: $e');
+    }
   }
 
   void setErrorMessage(String message) {

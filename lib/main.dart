@@ -5,6 +5,7 @@ import 'package:ready_flights/services/api_service_airarabia.dart';
 import 'package:ready_flights/splash.dart';
 import 'package:ready_flights/views/flight/search_flights/airarabia/airarabia_flight_controller.dart';
 import 'package:ready_flights/views/flight/search_flights/airblue/airblue_flight_controller.dart';
+import 'package:ready_flights/views/flight/search_flights/flydubai/flydubai_controller.dart';
 import 'utility/colors.dart';
 import 'views/flight/form/controllers/flight_date_controller.dart';
 import 'views/home/home_screen.dart';
@@ -33,6 +34,7 @@ class MyApp extends StatelessWidget {
     Get.lazyPut(() => AirArabiaFlightController(), fenix: true);
     Get.lazyPut(() => ApiServiceAirArabia(), fenix: true);
     Get.lazyPut(() => AirBlueFlightController(), fenix: true);
+    Get.lazyPut(() => FlydubaiFlightController(), fenix: true);
     Get.put(AuthController());
 
     return GetMaterialApp(

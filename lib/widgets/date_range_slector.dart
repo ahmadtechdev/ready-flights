@@ -42,12 +42,15 @@ class CustomDateRangeSelector extends StatelessWidget {
                       firstDate: DateTime.now(),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
                       initialDateRange: dateRange,
+                      saveText: "Apply",
                       builder: (context, child) {
                         return Theme(
                           data: Theme.of(context).copyWith(
                             colorScheme: const ColorScheme.light(
                               primary: TColors.primary,
                               onPrimary: TColors.background,
+                              secondary: TColors.primary,
+                              onSecondary: TColors.background,
                               surface: TColors.background,
                               onSurface: TColors.text,
                             ),

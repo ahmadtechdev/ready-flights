@@ -222,6 +222,7 @@ class ReviewTripPageState extends State<ReviewTripPage> {
             FlightCard(
               flight: widget.flight,
               showReturnFlight: widget.isMulti,
+                isShowBookButton:false
             ),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),

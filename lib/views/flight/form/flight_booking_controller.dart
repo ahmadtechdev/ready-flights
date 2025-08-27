@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../../services/api_service_airarabia.dart';
+import '../../../services/api_service_flydubai.dart';
 import '../../../services/api_service_sabre.dart';
 import '../../../services/api_service_pia.dart';
 import '../../../widgets/city_selection_bottom_sheet.dart';
@@ -596,43 +597,80 @@ class FlightBookingController extends GetxController {
     required String cabin,
   }) async {
     try {
-      debugPrint('=== CALLING FLYDUBAI VIA CONTROLLER ===');
+      debugPrint('=== CALLING FLYDUBAI VIA API SERVICE ===');
 
-      // Clean and validate parameters
-      String actualOrigin = origin.startsWith(',') ? origin.substring(1) : origin;
-      String actualDestination = destination.startsWith(',') ? destination.substring(1) : destination;
-      String actualDepDate = depDate.startsWith(',') ? depDate.substring(1) : depDate;
-
-      // Convert to uppercase for IATA codes
-      actualOrigin = actualOrigin.toUpperCase().trim();
-      actualDestination = actualDestination.toUpperCase().trim();
+      // Clean parameters
+      String actualOrigin = origin.replaceAll(',', '').trim().toUpperCase();
+      String actualDestination = destination.replaceAll(',', '').trim().toUpperCase();
+      String cleanDepDate = depDate.replaceAll(',', '').trim();
 
       debugPrint('Cleaned Parameters:');
       debugPrint('Origin: $actualOrigin');
       debugPrint('Destination: $actualDestination');
-      debugPrint('Date: $actualDepDate');
+      debugPrint('Date: $cleanDepDate');
+      debugPrint('Type: $type (${type == 0 ? "One-way" : type == 1 ? "Round-trip" : "Multi-city"})');
 
-      // Call the controller's search method
-      await flydubaiController.searchFlights(
+      // Format dates properly based on trip type
+      String formattedDates = '';
+      List<Map<String, String>>? multiCitySegments;
+
+      if (type == 2) {
+        // Multi-city: prepare segments
+        multiCitySegments = cityPairs.map((pair) => {
+          'from': pair.fromCity.value,
+          'to': pair.toCity.value,
+          'date': _formatDateForAPI(pair.departureDateTime.value),
+        }).toList();
+
+        // Create comma-separated dates for multi-city
+        formattedDates = cityPairs.map((pair) =>
+            _formatDateForAPI(pair.departureDateTime.value)
+        ).join(',');
+
+      } else if (type == 1) {
+        // Round-trip: format both departure and return dates
+        formattedDates = '${_formatDateForAPI(departureDateTimeValue.value)},${_formatDateForAPI(returnDateTimeValue.value)}';
+      } else {
+        // One-way: just departure date
+        formattedDates = _formatDateForAPI(departureDateTimeValue.value);
+      }
+
+      debugPrint('Formatted dates: $formattedDates');
+
+      // Create API service instance
+      final apiService = ApiServiceFlyDubai();
+
+      // Call the API service
+      final result = await apiService.searchFlights(
         type: type,
         origin: actualOrigin,
         destination: actualDestination,
-        depDate: actualDepDate,
+        depDate: formattedDates,
         adult: adult,
         child: child,
         infant: infant,
         cabin: cabin,
+        multiCitySegments: multiCitySegments,
       );
 
-      debugPrint('FlyDubai search completed via controller');
+      debugPrint('FlyDubai API result keys: ${result.keys}');
 
-    } catch (e) {
+      // Process result
+      if (result['success'] == true && result.containsKey('flights')) {
+        flydubaiController.loadFlights(result);
+        debugPrint('FlyDubai flights loaded successfully');
+      } else {
+        final error = result['error'] ?? 'Unknown FlyDubai API error';
+        flydubaiController.setErrorMessage(error);
+        debugPrint('FlyDubai API Error: $error');
+      }
+
+    } catch (e, stackTrace) {
       debugPrint('FlyDubai API call error: $e');
+      debugPrint('Stack trace: $stackTrace');
       flydubaiController.setErrorMessage('FlyDubai API error: ${e.toString()}');
     }
-  }// Also add this helper method to ensure proper city code mapping
-
-
+  }
   Future<void> _callSabreApi({
     required int type,
     required String origin,
