@@ -7,6 +7,7 @@ import 'package:ready_flights/views/flight/search_flights/flydubai/flydubai_mode
 import '../../../../../services/api_service_sabre.dart';
 import '../../../../../utility/colors.dart';
 import '../../../form/flight_booking_controller.dart';
+import '../../flydubai/flydubai_return_flight.dart';
 import '../../review_flight/flydubai_review_flight.dart';
 import '../../search_flight_utils/widgets/flydubai_flight_card.dart';
 
@@ -45,8 +46,8 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
         ),
         title: Text(
           isReturnFlight
-              ? 'Select Return Flight'
-              : 'Select Flight',
+              ? 'Select Return Flight Package'
+              : 'Select Flight Package',
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
@@ -108,7 +109,7 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
             Icon(Icons.warning_amber_rounded, size: 48, color: Colors.amber),
             SizedBox(height: 16),
             Text(
-              'No flights available for this flight',
+              'No packages available for this flight',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
             SizedBox(height: 8),
@@ -127,7 +128,7 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
         const Padding(
           padding: EdgeInsets.only(left: 16, top: 8, bottom: 16),
           child: Text(
-            'Available',
+            'Available Packages',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -358,9 +359,9 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
 
   String _getButtonText() {
     if (isReturnFlight) {
-      return 'Select Return Flight';
+      return 'Complete Selection';
     } else {
-      return 'Select';
+      return 'Select Package';
     }
   }
 
@@ -527,8 +528,10 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
 
         // Store the selected flight and package
         if (isReturnFlight) {
+          flyDubaiController.selectedReturnFlight = flight;
           flyDubaiController.selectedReturnFareOption = selectedFareOption;
         } else {
+          flyDubaiController.selectedOutboundFlight = flight;
           flyDubaiController.selectedOutboundFareOption = selectedFareOption;
         }
 
@@ -549,12 +552,22 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
           isReturn: isReturnFlight,
         ));
       } else {
-        // For round trip, show return flights
+        // For round trip, show return flights after selecting outbound package
         Get.back(); // Close the package selection dialog
 
         // Store the selected outbound flight and package
         flyDubaiController.selectedOutboundFlight = flight;
         flyDubaiController.selectedOutboundFareOption = selectedFareOption;
+
+        // Show success message
+        Get.snackbar(
+          'Outbound Selected',
+          'Outbound flight package selected. Now select your return flight.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 2),
+        );
 
         // Show return flights
         _showReturnFlights();
@@ -571,6 +584,28 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  void _showReturnFlights() {
+    final returnFlights = flyDubaiController.getReturnFlights();
+
+    if (returnFlights.isEmpty) {
+      Get.snackbar(
+        'No Return Flights',
+        'No return flights found for your search criteria.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+      return;
+    }
+
+    // Navigate to return flights page
+    Get.to(
+          () => FlyDubaiReturnFlightsPage(returnFlights: returnFlights),
+      transition: Transition.rightToLeft,
+    );
   }
 
   void _showFeeDetailsDialog(String title, List<Map<String, dynamic>> details) {
@@ -767,18 +802,5 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
     }
   }
 
-  void _showReturnFlights() {
-    // This would need to be implemented based on your return flights logic
-    // For now, showing a placeholder
-    Get.snackbar(
-      'Return Flights',
-      'Searching for return flights...',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: TColors.primary,
-      colorText: Colors.white,
-    );
 
-    // Navigate to return flights page - you'll need to implement this
-    // Get.to(() => FlyDubaiReturnFlightsPage(returnFlights: returnFlights));
-  }
 }

@@ -44,7 +44,7 @@ class FlightBookingPage extends StatelessWidget {
               airBlueController.flights.length +
               piaController.filteredFlights.length +
               airArabiaController.flights.length +
-              flyDubaiController.filteredFlights.length; // Add FlyDubai count
+              flyDubaiController.filteredOutboundFlights.length; // Add FlyDubai count
 
           final isLoading = controller.isLoading.value ||
               airBlueController.isLoading.value ||
@@ -193,28 +193,6 @@ class FlightBookingPage extends StatelessWidget {
       child: SingleChildScrollView(
         child: Column(
           children: [
-            // Sabre flights section
-            Obx(() {
-              if (flightController.isLoading.value && flightController.filteredFlights.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-              return ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: flightController.filteredFlights.length,
-                itemBuilder: (context, index) {
-                  final flight = flightController.filteredFlights[index];
-                  return GestureDetector(
-                    onTap: () => flightController.handleFlightSelection(flight),
-                    child: FlightCard(flight: flight),
-                  );
-                },
-              );
-            }),
-
             // AirBlue flights section
             Obx(() {
               if (airBlueController.isLoading.value && airBlueController.filteredFlights.isEmpty) {
@@ -241,7 +219,7 @@ class FlightBookingPage extends StatelessWidget {
 
 // FlyDubai flights section
             Obx(() {
-              if (flyDubaiController.isLoading.value && flyDubaiController.filteredFlights.isEmpty) {
+              if (flyDubaiController.isLoading.value && flyDubaiController.filteredOutboundFlights.isEmpty) {
                 return const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8.0),
                   child: Center(child: CircularProgressIndicator()),
@@ -250,17 +228,40 @@ class FlightBookingPage extends StatelessWidget {
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: flyDubaiController.filteredFlights.length,
+                itemCount: flyDubaiController.filteredOutboundFlights.length,
                 itemBuilder: (context, index) {
-                  final flight = flyDubaiController.filteredFlights[index];
+                  final flight = flyDubaiController.filteredOutboundFlights[index];
                   return GestureDetector(
                     // onTap: () => flyDubaiController.handleFlydubaiFlightSelection(flight),
                     onTap: () {},
-                    child: FlyDubaiFlightCard(flight: flight),
+                    child: FlyDubaiFlightCard(flight: flight, showReturnFlight: false,),
                   );
                 },
               );
             }),
+            // Sabre flights section
+            Obx(() {
+              if (flightController.isLoading.value && flightController.filteredFlights.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              return ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: flightController.filteredFlights.length,
+                itemBuilder: (context, index) {
+                  final flight = flightController.filteredFlights[index];
+                  return GestureDetector(
+                    onTap: () => flightController.handleFlightSelection(flight),
+                    child: FlightCard(flight: flight),
+                  );
+                },
+              );
+            }),
+
+
             // PIA flights section
             Obx(() {
               if (piaController.isLoading.value && piaController.filteredFlights.isEmpty) {

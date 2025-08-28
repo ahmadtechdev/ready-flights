@@ -657,7 +657,7 @@ class FlightBookingController extends GetxController {
 
       // Process result
       if (result['success'] == true && result.containsKey('flights')) {
-        flydubaiController.loadFlights(result);
+        flydubaiController.loadFlights(result, fromCity.value, toCity.value, tripType.value == TripType.roundTrip ? 1 : 0);
         debugPrint('FlyDubai flights loaded successfully');
       } else {
         final error = result['error'] ?? 'Unknown FlyDubai API error';

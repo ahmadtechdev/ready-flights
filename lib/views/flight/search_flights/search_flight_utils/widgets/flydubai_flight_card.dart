@@ -16,7 +16,7 @@ class FlyDubaiFlightCard extends StatefulWidget {
   const FlyDubaiFlightCard({
     super.key,
     required this.flight,
-    this.showReturnFlight = true,
+    this.showReturnFlight = false,
     this.isShowBookButton = true,
   });
 
@@ -445,7 +445,7 @@ class _FlyDubaiFlightCardState extends State<FlyDubaiFlightCard>
                       ],
                     ),
                     InkWell(
-                      onTap: () => flyDubaiController.handleFlydubaiFlightSelection(widget.flight),
+                      onTap: () => flyDubaiController.handleFlydubaiFlightSelection(widget.flight, isReturnFlight: widget.showReturnFlight),
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
