@@ -66,7 +66,7 @@ class _GuestsFieldState extends State<GuestsField> {
                     backgroundColor: TColors.primary,
                     minimumSize: const Size.fromHeight(48),
                   ),
-                  child: const Text('Done', style: TextStyle(color: Colors.white)),
+                  child: const Text('Apply', style: TextStyle(color: Colors.white)),
                 ),
               ],
             ),

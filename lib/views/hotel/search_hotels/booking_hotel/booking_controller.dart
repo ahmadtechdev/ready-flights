@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:country_picker/country_picker.dart';
 import '../../../../services/api_service_hotel.dart';
 import '../../../users/login/login_api_service/login_api.dart';
 import '../../hotel/guests/guests_controller.dart';
@@ -48,11 +49,83 @@ class RoomGuests {
 }
 
 class BookingController extends GetxController {
-  // Room guest information
-  final RxList<RoomGuests> roomGuests = <RoomGuests>[].obs;
-  SearchHotelController searchHotelController =
-      Get.find<SearchHotelController>();
-  HotelDateController hotelDateController = Get.find<HotelDateController>();
+  String? getValidationError() {
+  // Check terms and conditions first
+  // if (!acceptedTerms.value) {
+  //   return "Please accept the terms and conditions";
+  // }
+
+  // Check booker information
+  if (titleController.text.isEmpty) {
+    return "Please select booker title";
+  }
+  if (firstNameController.text.isEmpty) {
+    return "Please enter booker first name";
+  }
+  if (lastNameController.text.isEmpty) {
+    return "Please enter booker last name";
+  }
+  if (emailController.text.isEmpty) {
+    return "Please enter email address";
+  }
+  if (!isEmailValid(emailController.text)) {
+    return "Please enter a valid email address";
+  }
+  if (phoneController.text.isEmpty) {
+    return "Please enter phone number";
+  }
+  if (!isPhoneValid(phoneController.text)) {
+    return "Please enter a valid phone number";
+  }
+  if (addressController.text.isEmpty) {
+    return "Please enter address";
+  }
+  if (cityController.text.isEmpty) {
+    return "Please enter city";
+  }
+
+  // Check guest information for each room
+  for (int roomIndex = 0; roomIndex < roomGuests.length; roomIndex++) {
+    var room = roomGuests[roomIndex];
+    
+    // Check adults
+    for (int adultIndex = 0; adultIndex < room.adults.length; adultIndex++) {
+      var adult = room.adults[adultIndex];
+      if (adult.titleController.text.isEmpty) {
+        return "Please select title for Adult ${adultIndex + 1} in Room ${roomIndex + 1}";
+      }
+      if (adult.firstNameController.text.isEmpty) {
+        return "Please enter first name for Adult ${adultIndex + 1} in Room ${roomIndex + 1}";
+      }
+      if (adult.lastNameController.text.isEmpty) {
+        return "Please enter last name for Adult ${adultIndex + 1} in Room ${roomIndex + 1}";
+      }
+    }
+    
+    // Check children
+    for (int childIndex = 0; childIndex < room.children.length; childIndex++) {
+      var child = room.children[childIndex];
+      if (child.titleController.text.isEmpty) {
+        return "Please select title for Child ${childIndex + 1} in Room ${roomIndex + 1}";
+      }
+      if (child.firstNameController.text.isEmpty) {
+        return "Please enter first name for Child ${childIndex + 1} in Room ${roomIndex + 1}";
+      }
+      if (child.lastNameController.text.isEmpty) {
+        return "Please enter last name for Child ${childIndex + 1} in Room ${roomIndex + 1}";
+      }
+    }
+  }
+
+  // If all validations pass, return null
+  return null;
+}
+
+// Room guest information
+final RxList<RoomGuests> roomGuests = <RoomGuests>[].obs;
+SearchHotelController searchHotelController =
+    Get.find<SearchHotelController>();
+HotelDateController hotelDateController = Get.find<HotelDateController>();
   GuestsController guestsController = Get.find<GuestsController>();
 
   ApiServiceHotel apiService = ApiServiceHotel();
@@ -67,6 +140,9 @@ class BookingController extends GetxController {
   final addressController = TextEditingController();
   final cityController = TextEditingController();
   final specialRequestsController = TextEditingController();
+
+  // Country picker for phone
+  final Rx<Country> selectedCountry = Country.parse('PK').obs; // Default to Pakistan
 
   // Special Requests Checkboxes
   final isGroundFloor = false.obs;
@@ -122,6 +198,11 @@ class BookingController extends GetxController {
     }
   }
 
+  // Get full phone number with country code
+  String getFullPhoneNumber() {
+    return '+${selectedCountry.value.phoneCode}${phoneController.text}';
+  }
+
   // Validation methods
   bool isEmailValid(String email) {
     return GetUtils.isEmail(email);
@@ -132,7 +213,8 @@ class BookingController extends GetxController {
   }
 
   bool validateBookerInfo() {
-    return firstNameController.text.isNotEmpty &&
+    return titleController.text.isNotEmpty &&
+        firstNameController.text.isNotEmpty &&
         lastNameController.text.isNotEmpty &&
         emailController.text.isNotEmpty &&
         isEmailValid(emailController.text) &&
@@ -170,6 +252,9 @@ class BookingController extends GetxController {
     addressController.clear();
     cityController.clear();
     specialRequestsController.clear();
+
+    // Reset country picker
+    selectedCountry.value = Country.parse('PK'); // Reset to Pakistan
 
     // Reset special requests
     isGroundFloor.value = false;
@@ -271,9 +356,6 @@ class BookingController extends GetxController {
         }
 
         // Get the policy details for the room
-        // Get the policy details for the room
-        // Get the policy details for the room
-        // Get the policy details for the room
         final policyDetails = selectRoomController.getPolicyDetailsForRoom(i);
         String pEndDate = "";
         String pEndTime = "";
@@ -333,12 +415,12 @@ class BookingController extends GetxController {
       if (isTwinBed.value) specialRequests.add("Twin Bed");
       if (isSmoking.value) specialRequests.add("Smoking");
 
-      // Create request body with null safety
+      // Create request body with null safety - using full phone number with country code
       final Map<String, dynamic> requestBody = {
         "bookeremail": emailController.text.trim(),
         "bookerfirst": firstNameController.text.trim(),
         "bookerlast": lastNameController.text.trim(),
-        "bookertel": phoneController.text.trim(),
+        "bookertel": getFullPhoneNumber(), // Using full phone number with country code
         "bookeraddress": addressController.text.trim(),
         "bookercompany": "",
         "bookercountry": "",
@@ -398,6 +480,4 @@ class BookingController extends GetxController {
       return "";
     }
   }
-
-  // Rest of your code remains the same...
 }

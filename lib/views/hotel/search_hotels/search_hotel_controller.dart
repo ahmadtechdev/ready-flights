@@ -213,6 +213,8 @@ class SearchHotelController extends GetxController {
 
   var roomsdata = [].obs;
   var ratingstar = 0.obs;
+  var hotelid = 0.obs;
+
 
   var hotelName = ''.obs;
   var image = ''.obs;
@@ -222,6 +224,8 @@ class SearchHotelController extends GetxController {
   var hotelCity = ''.obs;
   var lat = ''.obs;
   var lon = ''.obs;
+  var hotelImage = ''.obs;
+  var hotelAddress = ''.obs;
 
   // Add this property to store selected rooms data
   final RxList<Map<String, dynamic>> selectedRoomsData =

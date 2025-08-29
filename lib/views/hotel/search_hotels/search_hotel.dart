@@ -5,6 +5,9 @@ import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ready_flights/utility/colors.dart';
 import 'package:ready_flights/views/hotel/hotel/hotel_date_controller.dart';
+import 'dart:math';
+import 'dart:ui' as ui;
+import 'dart:typed_data';
 
 import '../../../services/api_service_hotel.dart';
 import 'search_hotel_controller.dart';
@@ -144,11 +147,19 @@ class _HotelScreenState extends State<HotelScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: TColors.primary,
+        title: const Text(
+          "",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 24,
+          ),
+        ),
         leading: IconButton(
-          onPressed: () {
-            Get.back();
-          },
-          icon: Icon(Icons.arrow_back, color: TColors.primary),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Get.back(),
         ),
       ),
       body: Column(
@@ -578,7 +589,9 @@ class HotelCard extends StatelessWidget {
                 controller.hotelCity.value = hotel['hotelCity'];
                 controller.lat.value = hotel['latitude'];
                 controller.lon.value = hotel['longitude'];
-
+                controller.hotelAddress.value=hotel['address']??"";
+                // controller.hotelid.value=(hotel['code'] as double).toInt()??0;
+                
                 controller.roomsdata.clear();
 
                 ApiServiceHotel().fetchRoomDetails(
@@ -701,19 +714,10 @@ class HotelCard extends StatelessWidget {
         },
       );
     }
-  } // Alternative: Print all hotel image URLs at once
-
-  void printAllHotelImageUrls(List<Map<String, dynamic>> hotels) {
-    print('=== All Hotel Image URLs ===');
-    for (int i = 0; i < hotels.length; i++) {
-      String imageUrl = hotels[i]['image'] ?? '';
-      print('Hotel $i: $imageUrl');
-    }
-    print('============================');
   }
 }
 
-class MapScreen extends StatelessWidget {
+class MapScreen extends StatefulWidget {
   final double latitude;
   final double longitude;
   final String hotelName;
@@ -726,31 +730,607 @@ class MapScreen extends StatelessWidget {
   });
 
   @override
+  State<MapScreen> createState() => _MapScreenState();
+}
+
+class _MapScreenState extends State<MapScreen> {
+  GoogleMapController? mapController;
+  Set<Marker> markers = {};
+  final SearchHotelController controller = Get.find<SearchHotelController>();
+  final HotelDateController dateController = Get.find<HotelDateController>();
+
+  @override
+  void initState() {
+    super.initState();
+    _createMarkers();
+  }
+
+  Future<void> _createMarkers() async {
+    markers.clear();
+    
+    // Add the selected hotel marker with price
+    final selectedHotelPrice = _getSelectedHotelPrice();
+    final selectedPricePerNight = selectedHotelPrice != null 
+        ? (selectedHotelPrice / dateController.nights.value).round()
+        : 0;
+    
+    final selectedMarkerIcon = await _createPriceMarker(
+      'PKR $selectedPricePerNight', 
+      true, // isSelected
+    );
+    
+    markers.add(
+      Marker(
+        markerId: MarkerId('selected_${widget.hotelName}'),
+        position: LatLng(widget.latitude, widget.longitude),
+        icon: selectedMarkerIcon,
+        onTap: () {
+          _showHotelDetails(_getSelectedHotelData(), 0.0, isSelected: true);
+        },
+      ),
+    );
+
+    // Add nearby hotels markers with prices
+    for (var hotel in controller.originalHotels) {
+      double lat = double.tryParse(hotel['latitude']?.toString() ?? '') ?? 0.0;
+      double lon = double.tryParse(hotel['longitude']?.toString() ?? '') ?? 0.0;
+      String name = hotel['name'] ?? 'Unknown Hotel';
+      
+      // Skip if it's the same hotel or coordinates are invalid
+      if (name == widget.hotelName || (lat == 0.0 && lon == 0.0)) continue;
+      
+      // Calculate distance to filter nearby hotels (within ~50km radius)
+      double distance = _calculateDistance(widget.latitude, widget.longitude, lat, lon);
+      
+      if (distance <= 50) { // Show hotels within 50km
+        double hotelPrice = double.tryParse(
+          hotel['price'].toString().replaceAll(',', '').trim(),
+        ) ?? 0.0;
+        
+        int pricePerNight = hotelPrice > 0 
+            ? (hotelPrice / dateController.nights.value).round()
+            : 0;
+        
+        final nearbyMarkerIcon = await _createPriceMarker(
+          pricePerNight > 0 ? 'PKR $pricePerNight' : 'N/A', 
+          false, // isSelected
+        );
+        
+        markers.add(
+          Marker(
+            markerId: MarkerId('nearby_$name'),
+            position: LatLng(lat, lon),
+            icon: nearbyMarkerIcon,
+            onTap: () {
+              _showHotelDetails(hotel, distance);
+            },
+          ),
+        );
+      }
+    }
+    
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<BitmapDescriptor> _createPriceMarker(String price, bool isSelected) async {
+    final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(pictureRecorder);
+    final Paint paint = Paint()..color = isSelected ? Colors.red : TColors.primary;
+    final Paint borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    
+    const double width = 150;
+    const double height = 60;
+    const double borderRadius = 22;
+    
+    // Draw background with rounded rectangle
+    final RRect rect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, width, height),
+      const Radius.circular(borderRadius),
+    );
+    
+    canvas.drawRRect(rect, paint);
+    canvas.drawRRect(rect, borderPaint);
+    
+    // Draw text
+    final textStyle = ui.TextStyle(
+      color: Colors.white,
+      fontSize: 16,
+      fontWeight: FontWeight.bold,
+    );
+    final paragraphStyle = ui.ParagraphStyle(
+      textAlign: TextAlign.center,
+    );
+    final paragraphBuilder = ui.ParagraphBuilder(paragraphStyle)
+      ..pushStyle(textStyle)
+      ..addText(price);
+    final paragraph = paragraphBuilder.build();
+    paragraph.layout(const ui.ParagraphConstraints(width: width));
+    
+    canvas.drawParagraph(paragraph, Offset(0, (height - paragraph.height) / 2));
+    
+    final ui.Picture picture = pictureRecorder.endRecording();
+    final ui.Image image = await picture.toImage(width.toInt(), height.toInt());
+    final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    final Uint8List uint8List = byteData!.buffer.asUint8List();
+    
+    return BitmapDescriptor.fromBytes(uint8List);
+  }
+
+  double? _getSelectedHotelPrice() {
+    for (var hotel in controller.originalHotels) {
+      if (hotel['name'] == widget.hotelName) {
+        return double.tryParse(
+          hotel['price'].toString().replaceAll(',', '').trim(),
+        );
+      }
+    }
+    return null;
+  }
+
+  Map<String, dynamic> _getSelectedHotelData() {
+    for (var hotel in controller.originalHotels) {
+      if (hotel['name'] == widget.hotelName) {
+        return hotel;
+      }
+    }
+    return {
+      'name': widget.hotelName,
+      'address': 'Address not available',
+      'rating': 3.0,
+      'price': _getSelectedHotelPrice() ?? 0.0,
+    };
+  }
+
+  // Calculate distance between two coordinates using Haversine formula
+  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+    const double earthRadius = 6371; // Earth's radius in kilometers
+    
+    double dLat = _toRadians(lat2 - lat1);
+    double dLon = _toRadians(lon2 - lon1);
+    
+    double a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_toRadians(lat1)) * cos(_toRadians(lat2)) * sin(dLon / 2) * sin(dLon / 2);
+    
+    double c = 2 * asin(sqrt(a));
+    
+    return earthRadius * c;
+  }
+
+  double _toRadians(double degrees) {
+    return degrees * pi / 180;
+  }
+
+ void _showHotelDetails(Map hotel, double distance, {bool isSelected = false}) {
+  double hotelPrice = double.tryParse(
+    hotel['price'].toString().replaceAll(',', '').trim(),
+  ) ?? 0.0;
+  
+  int pricePerNight = hotelPrice > 0 
+      ? (hotelPrice / dateController.nights.value).round()
+      : 0;
+  
+  showModalBottomSheet(
+    context: context,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (context) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Hotel Image and Name Row
+            Row(
+              children: [
+                // Hotel Image on left side
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: _buildSmallHotelImage(hotel),
+                ),
+                const SizedBox(width: 12),
+                // Hotel details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        hotel['name'] ?? 'Unknown Hotel',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        hotel['address'] ?? 'Address not available',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (!isSelected && distance > 0) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          '${distance.toStringAsFixed(1)} km away',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                if (isSelected)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'Selected',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            // Rating and Price Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Rating
+                Row(
+                  children: [
+                    RatingBarIndicator(
+                      rating: (hotel['rating'] ?? 3.0).toDouble(),
+                      itemBuilder: (context, index) => const Icon(
+                        Icons.star,
+                        color: Colors.orange,
+                      ),
+                      itemCount: 5,
+                      itemSize: 16.0,
+                      direction: Axis.horizontal,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${(hotel['rating'] ?? 3.0).toDouble()}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                
+                // Price with larger text
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'PKR $pricePerNight',
+                      style: TextStyle(
+                        fontSize: 22, // Increased font size
+                        color: TColors.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Text(
+                      'per night',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            
+            // View Details Button (if not selected hotel)
+          //   if (!isSelected) ...[
+          //     const SizedBox(height: 16),
+          //     SizedBox(
+          //       width: double.infinity,
+          //       child: ElevatedButton(
+          //         onPressed: () {
+          //           Get.back(); // Close the bottom sheet
+          //           // Navigate back to hotel list and scroll to this hotel
+          //           // You can implement this functionality as needed
+          //         },
+          //         style: ElevatedButton.styleFrom(
+          //           backgroundColor: TColors.primary,
+          //           foregroundColor: Colors.white,
+          //           shape: RoundedRectangleBorder(
+          //             borderRadius: BorderRadius.circular(12),
+          //           ),
+          //           padding: const EdgeInsets.symmetric(vertical: 12),
+          //         ),
+          //         child: const Text(
+          //           'View Details',
+          //           style: TextStyle(
+          //             fontSize: 16,
+          //             fontWeight: FontWeight.bold,
+          //           ),
+          //         ),
+          //       ),
+          //     ),
+          //   ],
+          // 
+          ],
+        ),
+      );
+    },
+  );
+}
+
+// Helper method to build small hotel image
+Widget _buildSmallHotelImage(Map hotel) {
+  String imageUrl = hotel['image'] ?? '';
+  
+  Widget imageWidget;
+  
+  // Check if the image is a full URL (starts with http/https)
+  if (imageUrl.startsWith('http')) {
+    imageWidget = CachedNetworkImage(
+      imageUrl: imageUrl,
+      width: 60,
+      height: 60,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => Container(
+        width: 60,
+        height: 60,
+        color: Colors.grey[300],
+        child: const Center(
+          child: CircularProgressIndicator(
+            color: TColors.primary,
+            strokeWidth: 2,
+          ),
+        ),
+      ),
+      errorWidget: (context, url, error) => Image.asset(
+        'assets/img/cardbg/broken-image.png',
+        width: 60,
+        height: 60,
+        fit: BoxFit.cover,
+      ),
+    );
+  }
+  // Check if the image is a relative path starting with '/'
+  else if (imageUrl.startsWith('/')) {
+    String fullImageUrl = 'https://static.giinfotech.ae/medianew$imageUrl';
+    imageWidget = CachedNetworkImage(
+      imageUrl: fullImageUrl,
+      width: 60,
+      height: 60,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => Container(
+        width: 60,
+        height: 60,
+        color: Colors.grey[300],
+        child: const Center(
+          child: CircularProgressIndicator(
+            color: TColors.primary,
+            strokeWidth: 2,
+          ),
+        ),
+      ),
+      errorWidget: (context, url, error) => Image.asset(
+        'assets/img/cardbg/broken-image.png',
+        width: 60,
+        height: 60,
+        fit: BoxFit.cover,
+      ),
+    );
+  }
+  // If imageUrl is empty or doesn't match above conditions, use default asset
+  else {
+    String assetPath = imageUrl.isEmpty ? 'assets/images/hotel1.jpg' : imageUrl;
+    imageWidget = Image.asset(
+      assetPath,
+      width: 60,
+      height: 60,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => Image.asset(
+        'assets/img/cardbg/broken-image.png',
+        width: 60,
+        height: 60,
+        fit: BoxFit.cover,
+      ),
+    );
+  }
+  
+  return imageWidget;
+} @override
   Widget build(BuildContext context) {
     final CameraPosition initialPosition = CameraPosition(
-      target: LatLng(latitude, longitude),
-      zoom: 15,
+      target: LatLng(widget.latitude, widget.longitude),
+      zoom: 16, // Adjusted zoom to show more area with price markers
     );
 
     return Scaffold(
       appBar: AppBar(
+        title: Text(
+          'Hotel Location & Prices',
+          style: TextStyle(color: TColors.primary),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 1,
         leading: IconButton(
-          onPressed: () {
-            Get.back();
-          },
+          onPressed: () => Get.back(),
           icon: Icon(Icons.arrow_back, color: TColors.primary),
         ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              _showLegend();
+            },
+            icon: Icon(Icons.info_outline, color: TColors.primary),
+          ),
+          // IconButton(
+          //   onPressed: () {
+          //     _togglePriceDisplay();
+          //   },
+          //   icon: Icon(Icons.monetization_on, color: TColors.primary),
+          // ),
+        ],
       ),
       body: GoogleMap(
         initialCameraPosition: initialPosition,
-        markers: {
-          Marker(
-            markerId: MarkerId(hotelName),
-            position: LatLng(latitude, longitude),
-            infoWindow: InfoWindow(title: hotelName),
-          ),
+        markers: markers,
+        onMapCreated: (GoogleMapController controller) {
+          mapController = controller;
         },
+        myLocationEnabled: true,
+        myLocationButtonEnabled: true,
+        zoomControlsEnabled: true,
       ),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            heroTag: "refresh",
+            onPressed: () {
+              _createMarkers();
+            },
+            backgroundColor: TColors.primary,
+            mini: true,
+            child: const Icon(Icons.refresh, color: Colors.white),
+          ),
+          const SizedBox(height: 10),
+          FloatingActionButton(
+            heroTag: "zoom_out",
+            onPressed: () {
+              if (markers.isNotEmpty) {
+                _fitAllMarkers();
+              }
+            },
+            backgroundColor: TColors.primary,
+            child: const Icon(Icons.zoom_out_map, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLegend() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Map Legend'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text('Selected Hotel'),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: TColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text('Nearby Hotels'),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Price Information:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              const Text('• Prices shown are per night'),
+              const Text('• Tap markers for hotel details'),
+              const Text('• Hotels within 50km radius shown'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(),
+              child: Text('OK', style: TextStyle(color: TColors.primary)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _togglePriceDisplay() {
+    // This function could be used to toggle between different price display modes
+    // For now, it refreshes the markers
+    _createMarkers();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Prices updated!'),
+        backgroundColor: TColors.primary,
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
+  void _fitAllMarkers() {
+    if (mapController == null || markers.isEmpty) return;
+
+    LatLngBounds bounds = _createBounds(markers.map((marker) => marker.position).toList());
+    
+    mapController!.animateCamera(
+      CameraUpdate.newLatLngBounds(bounds, 100), // Increased padding for price markers
+    );
+  }
+
+  LatLngBounds _createBounds(List<LatLng> positions) {
+    double minLat = positions.first.latitude;
+    double maxLat = positions.first.latitude;
+    double minLng = positions.first.longitude;
+    double maxLng = positions.first.longitude;
+
+    for (LatLng position in positions) {
+      minLat = min(minLat, position.latitude);
+      maxLat = max(maxLat, position.latitude);
+      minLng = min(minLng, position.longitude);
+      maxLng = max(maxLng, position.longitude);
+    }
+
+    return LatLngBounds(
+      southwest: LatLng(minLat, minLng),
+      northeast: LatLng(maxLat, maxLng),
     );
   }
 }

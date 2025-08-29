@@ -51,7 +51,7 @@ class CityController extends GetxController {
     super.onInit();
     _debounceWorker = debounce(
       searchQuery,
-      (value) => _searchCities(value),
+          (value) => _searchCities(value),
       time: const Duration(milliseconds: 500),
     );
   }
@@ -66,31 +66,59 @@ class CityController extends GetxController {
     searchQuery.value = query;
   }
 
+  // New method to fetch default cities
+  Future<void> fetchDefaultCities() async {
+    isLoading.value = true;
+    cities.value = [];
+
+    try {
+
+      // Fetch cities with a common keyword or empty to get default cities
+      final response = await _apiService.fetchCities(''); // or use a default keyword like 'a'
+
+      if (response != null && response.isNotEmpty) {
+        final cityList = response.map<CityData>((cityJson) {
+          if (cityJson is Map<String, dynamic>) {
+            return CityData.fromJson(cityJson);
+          } else {
+            throw FormatException("Invalid city data format");
+          }
+        }).toList();
+
+        cities.value = cityList;
+      }
+    } catch (e) {
+      print("Error fetching default cities: $e");
+      cities.clear();
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   Future<void> _searchCities(String query) async {
     if (query.isEmpty) {
-      cities.clear();
+      // Instead of clearing, fetch default cities
+      await fetchDefaultCities();
       return;
     }
 
     isLoading.value = true;
-    cities.clear();
 
     try {
       final response = await _apiService.fetchCities(query);
-      print("API Response: $response"); // Debug print
+      print("API Response: $response");
 
       if (response != null && response.isNotEmpty) {
         try {
-          final cityList =
-              response.map<CityData>((cityJson) {
-                print("Processing city item: $cityJson");
-                if (cityJson is Map<String, dynamic>) {
-                  return CityData.fromJson(cityJson);
-                } else {
-                  print("Invalid city item format: $cityJson");
-                  throw FormatException("Invalid city data format");
-                }
-              }).toList();
+          final cityList = response.map<CityData>((cityJson) {
+            print("Processing city item: $cityJson");
+            if (cityJson is Map<String, dynamic>) {
+              return CityData.fromJson(cityJson);
+            } else {
+              print("Invalid city item format: $cityJson");
+              throw FormatException("Invalid city data format");
+            }
+          }).toList();
 
           cities.value = cityList;
         } catch (parseError) {
@@ -106,12 +134,12 @@ class CityController extends GetxController {
         cities.clear();
         Get.snackbar(
           'Info',
-          'No cities found for your model_controllers',
+          'No cities found for your search',
           snackPosition: SnackPosition.BOTTOM,
         );
       }
     } catch (e) {
-      print("Error in city model_controllers: $e");
+      print("Error in city search: $e");
       cities.clear();
       Get.snackbar(
         'Error',
@@ -122,9 +150,7 @@ class CityController extends GetxController {
       isLoading.value = false;
     }
   }
-}
-
-class CustomTextField extends StatelessWidget {
+}class CustomTextField extends StatelessWidget {
   final String hintText;
   final IconData icon;
   final TextEditingController controller;
@@ -148,6 +174,7 @@ class CustomTextField extends StatelessWidget {
       onTap: () => _showCitySuggestions(context, cityController),
       child: AbsorbPointer(
         child: TextField(
+
           controller: controller,
           decoration: InputDecoration(
             prefixIcon: Icon(icon),
@@ -161,10 +188,11 @@ class CustomTextField extends StatelessWidget {
   }
 
   void _showCitySuggestions(
-    BuildContext context,
-    CityController cityController,
-  ) {
-    cityController.cities.clear();
+      BuildContext context,
+      CityController cityController,
+      ) {
+    // Initialize with default cities instead of clearing
+    cityController.fetchDefaultCities();
     cityController.searchQuery.value = '';
 
     showModalBottomSheet(
@@ -175,7 +203,7 @@ class CustomTextField extends StatelessWidget {
       ),
       builder: (context) {
         return Container(
-          height: MediaQuery.of(context).size.height * 0.7,
+          height: MediaQuery.of(context).size.height * 0.9,
           padding: const EdgeInsets.all(16.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -214,12 +242,15 @@ class CustomTextField extends StatelessWidget {
                         !cityController.isLoading.value) {
                       return const Center(
                         child: Text(
-                          'No cities found. Try a different model_controllers term.',
+                          'No cities found. Try a different search term.',
                         ),
                       );
                     }
+                    if (cityController.isLoading.value) {
+                      return const SizedBox.shrink(); // Loading indicator is shown above
+                    }
                     return const Center(
-                      child: Text('Start typing to model_controllers for cities'),
+                      child: Text('Loading cities...'),
                     );
                   }
 
@@ -247,5 +278,4 @@ class CustomTextField extends StatelessWidget {
         );
       },
     );
-  }
-}
+  }}

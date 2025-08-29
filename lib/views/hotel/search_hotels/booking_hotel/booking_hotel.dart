@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:country_picker/country_picker.dart';
+import 'package:ready_flights/views/hotel/search_hotels/booking_hotel/widget/payment_method.dart';
+import 'package:ready_flights/views/hotel/search_hotels/select_room/controller/select_room_controller.dart';
 import '../../../../utility/colors.dart';
 import '../../../../widgets/snackbar.dart';
 import '../../hotel/guests/guests_controller.dart';
@@ -150,53 +153,47 @@ class BookingHotelScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                flex: 2,
-                child: _buildDropdown(
-                  controller: guestInfo.titleController,
-                  hint: 'Title',
-                  items: isAdult ? ['Mr.', 'Mrs.', 'Ms.'] : ['Mstr.', 'Miss.'],
+          Text(
+                isAdult ? "Adult ${index + 1}" : "Child ${index + 1}",
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: TColors.primary,
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  isAdult ? "Adult ${index + 1}" : "Child ${index + 1}",
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: TColors.primary,
-                  ),
-                ),
-              ),
-            ],
+          const SizedBox(height: 10),
+
+          // Guest Type Header and Title Dropdown
+          Container(
+            child: _buildDropdown(
+              controller: guestInfo.titleController,
+              hint: 'Title',
+              items: isAdult ? ['Mr.', 'Mrs.', 'Ms.'] : ['Mstr.', 'Miss.'],
+            ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildTextField(
-                  controller: guestInfo.firstNameController,
-                  hint: 'First Name',
-                  prefixIcon: Icons.person_outline,
-                  iconColor: TColors.primary,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildTextField(
-                  controller: guestInfo.lastNameController,
-                  hint: 'Last Name',
-                  prefixIcon: Icons.person_outline,
-                  iconColor: TColors.primary,
-                ),
-              ),
-            ],
+          const SizedBox(height: 12
+          
+          
+          
+          
+        
+          ),
+          
+          // First Name Field (Separate Row)
+          _buildTextField(
+            controller: guestInfo.firstNameController,
+            hint: 'First Name',
+            prefixIcon: Icons.person_outline,
+            iconColor: TColors.primary,
+          ),
+          const SizedBox(height: 12),
+          
+          // Last Name Field (Separate Row)
+          _buildTextField(
+            controller: guestInfo.lastNameController,
+            hint: 'Last Name',
+            prefixIcon: Icons.person_outline,
+            iconColor: TColors.primary,
           ),
         ],
       ),
@@ -222,41 +219,34 @@ class BookingHotelScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  flex: 1,
-                  child: _buildDropdown(
-                    controller: bookingController.titleController,
-                    hint: 'Title',
-                    items: ['Mr.', 'Mrs.', 'Ms.'],
-                  ),
-                ),
-              ],
+            
+            // Title Dropdown
+            _buildDropdown(
+              controller: bookingController.titleController,
+              hint: 'Title',
+              items: ['Mr.', 'Mrs.', 'Ms.'],
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTextField(
-                    controller: bookingController.firstNameController,
-                    hint: 'First Name',
-                    prefixIcon: Icons.person_outline,
-                    iconColor: TColors.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildTextField(
-                    controller: bookingController.lastNameController,
-                    hint: 'Last Name',
-                    prefixIcon: Icons.person_outline,
-                    iconColor: TColors.primary,
-                  ),
-                ),
-              ],
+            
+            // First Name Field (Separate Row)
+            _buildTextField(
+              controller: bookingController.firstNameController,
+              hint: 'First Name',
+              prefixIcon: Icons.person_outline,
+              iconColor: TColors.primary,
             ),
             const SizedBox(height: 16),
+            
+            // Last Name Field (Separate Row)
+            _buildTextField(
+              controller: bookingController.lastNameController,
+              hint: 'Last Name',
+              prefixIcon: Icons.person_outline,
+              iconColor: TColors.primary,
+            ),
+            const SizedBox(height: 16),
+            
+            // Email Field
             _buildTextField(
               controller: bookingController.emailController,
               hint: 'Email',
@@ -265,39 +255,148 @@ class BookingHotelScreen extends StatelessWidget {
               keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 16),
+            
+            // Phone Field with Country Picker
+            _buildPhoneFieldWithCountryPicker(),
+            const SizedBox(height: 16),
+            
+            // Address Field (Separate Row)
             _buildTextField(
-              controller: bookingController.phoneController,
-              hint: 'Phone Number',
-              prefixIcon: Icons.phone_outlined,
+              controller: bookingController.addressController,
+              hint: 'Address Line',
+              prefixIcon: Icons.location_on_outlined,
               iconColor: TColors.primary,
-              keyboardType: TextInputType.phone,
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTextField(
-                    controller: bookingController.addressController,
-                    hint: 'Address Line',
-                    prefixIcon: Icons.location_on_outlined,
-                    iconColor: TColors.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildTextField(
-                    controller: bookingController.cityController,
-                    hint: 'City',
-                    prefixIcon: Icons.location_city_outlined,
-                    iconColor: TColors.primary,
-                  ),
-                ),
-              ],
+            
+            // City Field (Separate Row)
+            _buildTextField(
+              controller: bookingController.cityController,
+              hint: 'City',
+              prefixIcon: Icons.location_city_outlined,
+              iconColor: TColors.primary,
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildPhoneFieldWithCountryPicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Phone Number',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey[700],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: Row(
+            children: [
+              // Country Code Picker
+              Obx(() {
+                return InkWell(
+                  onTap: () {
+                    showCountryPicker(
+                      context: Get.context!,
+                      showPhoneCode: true,
+                      searchAutofocus: true,
+                      showSearch: true,
+                      exclude: <String>['KN', 'MF'], // Optional: exclude specific countries
+                      favorite: <String>['PK', 'US', 'GB', 'IN', 'SA', 'AE'], // Optional: show favorite countries at top
+                      countryListTheme: CountryListThemeData(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(40.0),
+                          topRight: Radius.circular(40.0),
+                        ),
+                        inputDecoration: InputDecoration(
+                          labelText: 'Search',
+                          hintText: 'Start typing to search',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(
+                              color: const Color(0xFF8C98A8).withOpacity(0.2),
+                            ),
+                          ),
+                        ),
+                        searchTextStyle: const TextStyle(
+                          color: Colors.blue,
+                          fontSize: 18,
+                        ),
+                      ),
+                      onSelect: (Country country) {
+                        bookingController.selectedCountry.value = country;
+                      },
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        right: BorderSide(color: Colors.grey[300]!),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          bookingController.selectedCountry.value.flagEmoji,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '+${bookingController.selectedCountry.value.phoneCode}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const Icon(Icons.arrow_drop_down, size: 20),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+              // Phone Number Field
+              Expanded(
+                child: TextField(
+                  controller: bookingController.phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    hintText: 'Phone Number',
+                    hintStyle: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showCountryPicker() {
+    // This method is no longer needed as we're using the country_picker package
+    // The showCountryPicker method is called directly in the onTap of the country picker button
   }
 
   Widget _buildSpecialRequestsCard() {
@@ -437,10 +536,9 @@ class BookingHotelScreen extends StatelessWidget {
           hint,
           style: TextStyle(color: Colors.grey[600], fontSize: 14),
         ),
-        items:
-            items.map((String value) {
-              return DropdownMenuItem<String>(value: value, child: Text(value));
-            }).toList(),
+        items: items.map((String value) {
+          return DropdownMenuItem<String>(value: value, child: Text(value));
+        }).toList(),
         onChanged: (value) {
           if (value != null) {
             controller.text = value;
@@ -492,45 +590,65 @@ class BookingHotelScreen extends StatelessWidget {
     );
   }
 
-  // In booking_hotel.dart
-  void _handleSubmit() async {
-    try {
-      bookingController.isLoading.value = true;
+ void _handleSubmit() async {
+  try {
+    bookingController.isLoading.value = true;
 
-      if (!bookingController.validateAll()) {
-        CustomSnackBar(
-          message: "Please fill all required fields correctly",
-          backgroundColor: Colors.red,
-        ).show();
-        return;
-      }
-
-      final bool success = await bookingController.saveHotelBookingToDB();
-
-      if (success) {
-        Get.to(() => HotelVoucherScreen());
-        CustomSnackBar(
-          message: "Booking Confirmed Successfully!",
-          backgroundColor: Colors.green,
-        ).show();
-        // bookingController.resetForm();
-      } else {
-        CustomSnackBar(
-          message: "Booking failed. Please try again.",
-          backgroundColor: Colors.red,
-        ).show();
-      }
-    } catch (e) {
+    String? validationError = bookingController.getValidationError();
+    if (validationError != null) {
       CustomSnackBar(
-        message: "An error occurred. Please try again.",
+        message: validationError,
         backgroundColor: Colors.red,
       ).show();
-    } finally {
-      bookingController.isLoading.value = false;
+      return;
     }
-  }
 
-  Widget _buildBadge(String text) {
+    final bool success = await bookingController.saveHotelBookingToDB();
+
+    if (success) {
+      // Get the selected rooms from SelectRoomController
+      final SelectRoomController selectRoomController = Get.find<SelectRoomController>();
+      selectRoomController.debugPrintRoomData();
+      
+      // Create a map of selected room data
+      Map<int, Map<String, dynamic>> selectedRoomsData = {};
+      
+      for (int i = 0; i < selectRoomController.roomNames.length; i++) {
+        if (selectRoomController.roomNames.containsKey(i)) {
+          selectedRoomsData[i] = {
+            'roomName': selectRoomController.getRoomName(i),
+            'meal': selectRoomController.getRoomMeal(i),
+            'rateType': selectRoomController.getRateType(i),
+            'price': selectRoomController.getRoomPrice(i),
+          };
+        }
+      }
+
+      Get.to(() => const HotelPaymentScreen(), 
+        arguments: {
+          'selectedRooms': selectedRoomsData,
+        }
+      );
+      
+      CustomSnackBar(
+        message: "Booking Confirmed Successfully!",
+        backgroundColor: Colors.green,
+      ).show();
+    } else {
+      CustomSnackBar(
+        message: "Booking failed. Please try again.",
+        backgroundColor: Colors.red,
+      ).show();
+    }
+  } catch (e) {
+    CustomSnackBar(
+      message: "An error occurred. Please try again.",
+      backgroundColor: Colors.red,
+    ).show();
+  } finally {
+    bookingController.isLoading.value = false;
+  }
+} Widget _buildBadge(String text) {
     final isRefundable = text.toLowerCase() == 'refundable';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

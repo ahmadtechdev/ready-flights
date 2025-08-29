@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
 
 class Room {
-  RxInt adults = 1.obs;
+  RxInt adults = 2.obs;
   RxInt children = 0.obs;
   RxList<int> childrenAges = RxList<int>([]);
 

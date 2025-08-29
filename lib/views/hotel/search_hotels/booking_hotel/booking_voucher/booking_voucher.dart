@@ -1,15 +1,17 @@
 import 'dart:async';
+import 'dart:typed_data';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'dart:typed_data';
-import 'package:flutter/services.dart';
+import 'package:printing/printing.dart';
+import 'package:ready_flights/views/hotel/search_hotels/select_room/controller/select_room_controller.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../../../utility/colors.dart';
@@ -18,712 +20,891 @@ import '../../../hotel/hotel_date_controller.dart';
 import '../../search_hotel_controller.dart';
 import '../booking_controller.dart';
 
-class HotelVoucherScreen extends StatelessWidget {
-  final SearchHotelController searchHotelController =
-      Get.find<SearchHotelController>();
-  final HotelDateController hotelDateController =
-      Get.find<HotelDateController>();
+class HotelBookingThankYouScreen extends StatelessWidget {
+  final SearchHotelController searchHotelController = Get.find<SearchHotelController>();
+  final HotelDateController hotelDateController = Get.find<HotelDateController>();
   final GuestsController guestsController = Get.find<GuestsController>();
-  final BookingController bookingController = Get.put(BookingController());
+  final BookingController bookingController = Get.find<BookingController>();
+  final SelectRoomController selectRoomController = Get.find<SelectRoomController>();
+  final Map<int, dynamic> selectedRooms = {};
 
-  HotelVoucherScreen({Key? key}) : super(key: key);
+  HotelBookingThankYouScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+   
+    for (int i = 0; i < bookingController.roomGuests.length; i++) {
+    print('Room $i - Name: ${selectRoomController.getRoomName(i)}, Meal: ${selectRoomController.getRoomMeal(i)}');
+  }
+    final arguments = Get.arguments;
+    if (arguments != null && arguments['selectedRooms'] != null) {
+      selectedRooms.addAll(arguments['selectedRooms']);
+    }
     return Scaffold(
+      backgroundColor: TColors.background,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: const Color(0xFFFFAB00),
+        backgroundColor: TColors.primary,
         title: const Text(
-          "Booking Voucher",
+          "Booking Confirmed",
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w600,
-            fontSize: 24,
+            fontSize: 20,
           ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () => Get.back(),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.download, color: Colors.white),
-            onPressed: () {
-              _printVoucher(context);
-            },
+            onPressed: () => _generatePDF(context),
           ),
         ],
       ),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(children: [_buildVoucherCard(context)]),
+        child: Column(
+          children: [
+            _buildSuccessHeader(),
+            const SizedBox(height: 20),
+            _buildBookingDetailsCard(),
+            const SizedBox(height: 16),
+            _buildHotelDetailsCard(),
+            const SizedBox(height: 16),
+            ..._buildRoomDetailsCards(), // Changed to build multiple room cards
+            const SizedBox(height: 16),
+            // _buildBookerDetailsCard(),
+            const SizedBox(height: 16),
+            _buildActionButtons(),
+            const SizedBox(height: 20),
+          ],
         ),
       ),
     );
   }
 
-  // Function to get a static map image
-  Future<Uint8List?> getStaticMapImage(
-    double latitude,
-    double longitude,
-    String apiKey,
-  ) async {
-    try {
-      final url =
-          'https://maps.googleapis.com/maps/api/staticmap?center=$latitude,$longitude'
-          '&zoom=14&size=600x300&maptype=roadmap'
-          '&markers=color:red%7C$latitude,$longitude'
-          '&key=$apiKey';
-
-      final response = await http
-          .get(Uri.parse(url))
-          .timeout(
-            const Duration(seconds: 10),
-            onTimeout: () => throw TimeoutException('Request timed out'),
-          );
-
-      if (response.statusCode == 200) {
-        return response.bodyBytes;
-      } else {
-        print('Error fetching map: Status ${response.statusCode}');
-        return null;
-      }
-    } catch (e) {
-      print('Exception fetching map image: $e');
-      return null;
-    }
-  }
-
-  // Use this in your PDF generation
-  Future<pw.Widget> buildMapWidgetWithFallback(
-    double latitude,
-    double longitude,
-    String hotelName,
-  ) async {
-    try {
-      // First try the API approach
-      final apiKey = 'AIzaSyC41LiUPWVsRuRVG5LDSYl48PFZ3zX0tOc';
-      final mapImageBytes = await getStaticMapImage(
-        latitude,
-        longitude,
-        apiKey,
-      );
-
-      if (mapImageBytes != null) {
-        return pw.Container(
-          height: 120,
-          width: double.infinity,
-          decoration: pw.BoxDecoration(
-            borderRadius: pw.BorderRadius.circular(8),
-            border: pw.Border.all(color: PdfColors.grey300),
-          ),
-          child: pw.ClipRRect(
-            child: pw.Image(
-              pw.MemoryImage(mapImageBytes),
-              fit: pw.BoxFit.cover,
-            ),
-          ),
-        );
-      } else {
-        // If API fails, use a pre-bundled placeholder map image from assets
-        final ByteData placeholderData = await rootBundle.load(
-          'assets/img/map.png',
-        );
-        final Uint8List placeholderBytes = placeholderData.buffer.asUint8List();
-
-        return pw.Container(
-          height: 120,
-          width: double.infinity,
-          decoration: pw.BoxDecoration(
-            borderRadius: pw.BorderRadius.circular(8),
-            border: pw.Border.all(color: PdfColors.grey300),
-          ),
-          child: pw.Stack(
-            children: [
-              pw.ClipRRect(
-                child: pw.Image(
-                  pw.MemoryImage(placeholderBytes),
-                  fit: pw.BoxFit.cover,
-                ),
-              ),
-              pw.Positioned(
-                bottom: 4,
-                right: 4,
-                child: pw.Container(
-                  padding: const pw.EdgeInsets.all(4),
-                  color: PdfColors.white,
-                  child: pw.Text(
-                    'Lat: $latitude, Long: $longitude',
-                    style: const pw.TextStyle(fontSize: 8),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error in buildMapWidgetWithFallback: $e');
-      // Last resort text-only fallback
-      return pw.Container(
-        height: 120,
-        width: double.infinity,
-        decoration: pw.BoxDecoration(
-          borderRadius: pw.BorderRadius.circular(8),
-          border: pw.Border.all(color: PdfColors.grey300),
+  Widget _buildSuccessHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        border: Border(
+          bottom: BorderSide(color: Colors.green.shade200, width: 1),
         ),
-        child: pw.Column(
-          mainAxisAlignment: pw.MainAxisAlignment.center,
-          children: [
-            pw.Text(
-              'Map unavailable',
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-              textAlign: pw.TextAlign.center,
-            ),
-            pw.SizedBox(height: 4),
-            pw.Text(hotelName, textAlign: pw.TextAlign.center),
-            pw.SizedBox(height: 4),
-            pw.Text(
-              'Latitude: $latitude, Longitude: $longitude',
-              textAlign: pw.TextAlign.center,
-              style: const pw.TextStyle(fontSize: 10),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-
-  pw.Widget _buildPdfBulletPoint(String text) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 4),
-      child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
+      ),
+      child: Column(
         children: [
-          pw.Text('• ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-          pw.Expanded(
-            child: pw.Text(text, style: const pw.TextStyle(fontSize: 10)),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              color: Colors.green,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.check,
+              color: Colors.white,
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Dear ${bookingController.firstNameController.text} ${bookingController.lastNameController.text},',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: TColors.text,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Your booking has been submitted successfully!',
+            style: TextStyle(
+              fontSize: 16,
+              color: TColors.text,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Thanks for choosing readyflight.pk. We have received your hotel booking and it will be confirmed with hotel shortly after confirmation of payment from your side.',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'You can also call us at our customer support no: +92 3219667909',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade600,
+            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
 
-  Future<void> _printVoucher(BuildContext context) async {
-    try {
-      // Get latitude, longitude, and hotel name
-      final latitude =
-          double.tryParse(searchHotelController.lat.value) ?? 24.4672;
-      final longitude =
-          double.tryParse(searchHotelController.lon.value) ?? 39.6170;
-      final hotelName =
-          searchHotelController.hotelName.value.isNotEmpty
-              ? searchHotelController.hotelName.value
-              : 'Leader Al Muna Kareem Hotel';
+  Widget _buildBookingDetailsCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: TColors.primary.withOpacity(0.1),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.assignment, color: TColors.primary),
+                const SizedBox(width: 8),
+                const Text(
+                  'Booking Details',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: TColors.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _buildDetailRow('Order Number', bookingController.booking_num.value.toString()),
+                const SizedBox(height: 12),
+                _buildDetailRow('Booking Status', 'On Request'),
+                const SizedBox(height: 12),
+                _buildDetailRow('Total', selectRoomController.totalPrice.value.toStringAsFixed(0)),
+                const SizedBox(height: 12),
+                _buildDetailRow('Payment Status', 'PENDING'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-      // Call generatePdf with latitude, longitude, and hotelName
-      final pdf = await generatePdf(latitude, longitude, hotelName);
-      await Printing.layoutPdf(
-        onLayout: (PdfPageFormat format) async => pdf,
-        name: 'Hotel_Voucher_${bookingController.booking_num.value}',
+  Widget _buildHotelDetailsCard() {
+    final hotelName = searchHotelController.hotelName.value.isNotEmpty
+        ? searchHotelController.hotelName.value
+        : 'Smana Hotel Al Raffa';
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: TColors.third.withOpacity(0.1),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.hotel, color: TColors.third),
+                const SizedBox(width: 8),
+                const Text(
+                  'Hotel details',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: TColors.text,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: _buildHotelImage(),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.star, color: Colors.amber, size: 16),
+                          Icon(Icons.star, color: Colors.amber, size: 16),
+                          Icon(Icons.star, color: Colors.amber, size: 16),
+                          const SizedBox(width: 4),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        hotelName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: TColors.text,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Al Raffa Road, Dubai, UNITED ARAB EMIRATES',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(color: Colors.grey.shade300, height: 1),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Check in',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          DateFormat('E dd MMM yyyy')
+                              .format(hotelDateController.checkInDate.value),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: TColors.text,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Check out',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          DateFormat('E dd MMM yyyy')
+                              .format(hotelDateController.checkOutDate.value),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: TColors.text,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: TColors.background2,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.access_time, color: TColors.text, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Total length of stay: ${hotelDateController.nights.value} nights',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: TColors.text,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // New method to build multiple room detail cards
+  List<Widget> _buildRoomDetailsCards() {
+    List<Widget> roomCards = [];
+    
+    for (int roomIndex = 0; roomIndex < bookingController.roomGuests.length; roomIndex++) {
+      roomCards.add(_buildSingleRoomDetailsCard(roomIndex));
+      if (roomIndex < bookingController.roomGuests.length - 1) {
+        roomCards.add(const SizedBox(height: 16));
+      }
+    }
+    
+    return roomCards;
+  }
+
+ Widget _buildSingleRoomDetailsCard(int roomIndex) {
+  final room = bookingController.roomGuests[roomIndex];
+    final roomNumber = roomIndex + 1;
+    
+    String roomType = 'STANDARD KING ROOM • 1 KING BED • NON SMOKING';
+    String boardBasis = 'Bed and Breakfast';
+    
+    // Use the passed room data if available
+    if (selectedRooms.containsKey(roomIndex)) {
+      final roomData = selectedRooms[roomIndex];
+      roomType = roomData['roomName'] ?? roomType;
+      boardBasis = roomData['meal'] ?? boardBasis;
+    } else {
+      // Fallback to controller data
+      roomType = selectRoomController.getRoomName(roomIndex);
+      boardBasis = selectRoomController.getRoomMeal(roomIndex);
+    }
+
+  return Container(
+    margin: const EdgeInsets.symmetric(horizontal: 16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.grey.shade200,
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: TColors.secondary.withOpacity(0.1),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(12),
+              topRight: Radius.circular(12),
+            ),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.bed, color: TColors.secondary),
+              const SizedBox(width: 8),
+              Text(
+                'Room $roomNumber Details',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: TColors.text,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              _buildDetailRow('Room Type', roomType),
+              const SizedBox(height: 12),
+              _buildDetailRow('Board Bases', boardBasis),
+              const SizedBox(height: 12),
+              _buildDetailRow(
+                'Guests', 
+                '${room.adults.length} Adults, ${room.children.length} Children'
+              ),
+              const SizedBox(height: 16),
+              ..._buildGuestListForRoom(roomIndex),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+} List<Widget> _buildGuestListForRoom(int roomIndex) {
+    List<Widget> guestWidgets = [];
+    final room = bookingController.roomGuests[roomIndex];
+    int guestCounter = 1;
+    
+    // Add adults
+    for (int adultIndex = 0; adultIndex < room.adults.length; adultIndex++) {
+      final adult = room.adults[adultIndex];
+      guestWidgets.add(
+        _buildDetailRow(
+          'Guest $guestCounter', 
+          'Adult ${adult.titleController.text} ${adult.firstNameController.text} ${adult.lastNameController.text}'
+        )
       );
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Printing failed: $e')));
+      guestCounter++;
+      if (adultIndex < room.adults.length - 1 || room.children.isNotEmpty) {
+        guestWidgets.add(const SizedBox(height: 8));
+      }
+    }
+    
+    // Add children
+    for (int childIndex = 0; childIndex < room.children.length; childIndex++) {
+      final child = room.children[childIndex];
+      // Get child age if available
+      String childAge = '';
+      if (guestsController.rooms.length > roomIndex &&
+          guestsController.rooms[roomIndex].childrenAges.length > childIndex) {
+        childAge = ' (Age: ${guestsController.rooms[roomIndex].childrenAges[childIndex]})';
+      }
+      
+      guestWidgets.add(
+        _buildDetailRow(
+          'Guest $guestCounter', 
+          'Child ${child.titleController.text} ${child.firstNameController.text} ${child.lastNameController.text}$childAge'
+        )
+      );
+      guestCounter++;
+      if (childIndex < room.children.length - 1) {
+        guestWidgets.add(const SizedBox(height: 8));
+      }
+    }
+
+    return guestWidgets;
+  }
+
+  Widget _buildBookerDetailsCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.person, color: Colors.blue),
+                const SizedBox(width: 8),
+                const Text(
+                  'Booker Details',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: TColors.text,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _buildDetailRow('Booker Name', '${bookingController.firstNameController.text} ${bookingController.lastNameController.text}'),
+                const SizedBox(height: 12),
+                _buildDetailRow('Email address', bookingController.emailController.text),
+                const SizedBox(height: 12),
+                _buildDetailRow('Phone', bookingController.getFullPhoneNumber()),
+                const SizedBox(height: 12),
+                _buildDetailRow('Street Address', bookingController.addressController.text),
+                const SizedBox(height: 12),
+                _buildDetailRow('Town/City', bookingController.cityController.text),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: () => _generatePDF(Get.context!),
+              icon: const Icon(Icons.download, color: Colors.white),
+              label: const Text(
+                'Download PDF',
+                style: TextStyle(color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: TColors.primary,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: () => _makePhoneCall('+923219667909'),
+              icon: const Icon(Icons.phone, color: Colors.white),
+              label: const Text(
+                'Contact Support',
+                style: TextStyle(color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: TColors.third,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 100,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 12,
+              color: TColors.text,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHotelImage() {
+    String imageUrl = searchHotelController.image.value;
+    
+    if (imageUrl.isNotEmpty) {
+      if (imageUrl.startsWith('http')) {
+        return CachedNetworkImage(
+          imageUrl: imageUrl,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => Container(
+            color: TColors.background2,
+            child: const Center(
+              child: CircularProgressIndicator(
+                color: TColors.primary,
+                strokeWidth: 2,
+              ),
+            ),
+          ),
+          errorWidget: (context, url, error) => _buildPlaceholderImage(),
+        );
+      } else if (imageUrl.startsWith('/')) {
+        String fullImageUrl = 'https://static.giinfotech.ae/medianew$imageUrl';
+        return CachedNetworkImage(
+          imageUrl: fullImageUrl,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => Container(
+            color: TColors.background2,
+            child: const Center(
+              child: CircularProgressIndicator(
+                color: TColors.primary,
+                strokeWidth: 2,
+              ),
+            ),
+          ),
+          errorWidget: (context, url, error) => _buildPlaceholderImage(),
+        );
+      } else {
+        return Image.asset(
+          imageUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildPlaceholderImage(),
+        );
+      }
+    } else {
+      return _buildPlaceholderImage();
     }
   }
 
-  Future<pw.MemoryImage?> _loadLogoImage() async {
+  Widget _buildPlaceholderImage() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            TColors.primary.withOpacity(0.8),
+            TColors.third.withOpacity(0.6),
+          ],
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.hotel_rounded,
+          size: 32,
+          color: TColors.white.withOpacity(0.8),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _generatePDF(BuildContext context) async {
+    try {
+      final pdf = await _createPDF();
+      await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => pdf,
+        name: 'Hotel_Booking_Confirmation_${bookingController.booking_num.value}',
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('PDF generation failed: $e')),
+      );
+    }
+  }
+
+  Future<Uint8List> _createPDF() async {
+    final pdf = pw.Document();
+    
+    // Load logo if available
+    pw.MemoryImage? logoImage;
     try {
       final ByteData data = await rootBundle.load('assets/images/logo.png');
       final Uint8List bytes = data.buffer.asUint8List();
-      return pw.MemoryImage(bytes);
+      logoImage = pw.MemoryImage(bytes);
     } catch (e) {
-      print('Error loading logo: $e');
-      return null; // Return null if there's an error
+      print('Logo not found: $e');
     }
-  }
-
-  Future<Uint8List> generatePdf(
-    double latitude,
-    double longitude,
-    String hotelName,
-  ) async {
-    final pdf = pw.Document();
-    final mapWidget = await buildMapWidgetWithFallback(
-      latitude,
-      longitude,
-      hotelName,
-    );
-    final hotelAddress =
-        'Omar Bin Al Katab Street PO Box 2961, Central Area, Madina 9055';
-
-    pw.MemoryImage? logoImage = await _loadLogoImage();
 
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(20),
-        // Set maxPages to a higher number to allow for overflow
-        maxPages: 10,
         build: (pw.Context context) {
           return [
-            // Header
-            // pw.Container(
-            //   padding: const pw.EdgeInsets.all(10),
-            //   decoration: pw.BoxDecoration(
-            //     color: PdfColors.amber,
-            //     borderRadius: pw.BorderRadius.circular(8),
-            //   ),
-            //   child: pw.Text(
-            //     'Booking Voucher',
-            //     style: pw.TextStyle(
-            //       color: PdfColors.white,
-            //       fontWeight: pw.FontWeight.bold,
-            //       fontSize: 24,
-            //     ),
-            //   ),
-            // ),
-            pw.SizedBox(height: 20),
-            // Rest of the content follows...
-            // (all the existing content from the current build method)
-            // Voucher Header
+            // Header with logo
             pw.Container(
-              padding: const pw.EdgeInsets.all(10),
+              padding: const pw.EdgeInsets.all(16),
               decoration: pw.BoxDecoration(
-                border: pw.Border.all(color: PdfColors.grey300),
+                color: PdfColors.green50,
                 borderRadius: pw.BorderRadius.circular(8),
               ),
-              child: pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              child: pw.Column(
                 children: [
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       logoImage != null
-                          ? pw.Image(logoImage, height: 30)
+                          ? pw.Image(logoImage, height: 40)
                           : pw.Container(
-                            color: PdfColors.black,
-                            padding: const pw.EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            child: pw.Text(
-                              'Stayinhotels.ae',
-                              style: pw.TextStyle(
-                                color: PdfColors.white,
-                                fontWeight: pw.FontWeight.bold,
-                                fontSize: 16,
+                              padding: const pw.EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: pw.BoxDecoration(
+                                color: PdfColors.blue900,
+                                borderRadius: pw.BorderRadius.circular(4),
+                              ),
+                              child: pw.Text(
+                                'ReadyFlight.pk',
+                                style: pw.TextStyle(
+                                  color: PdfColors.white,
+                                  fontWeight: pw.FontWeight.bold,
+                                  fontSize: 16,
+                                ),
                               ),
                             ),
-                          ),
-                      pw.SizedBox(height: 8),
                       pw.Text(
-                        'Booking No#',
+                        'BOOKING CONFIRMED',
                         style: pw.TextStyle(
+                          fontSize: 24,
                           fontWeight: pw.FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                      pw.Text(
-                        '${bookingController.booking_num.value.toString()}',
-                        style: const pw.TextStyle(fontSize: 12),
-                      ),
-                      pw.SizedBox(height: 5),
-                      pw.Text(
-                        'Supp. Ref:',
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 12,
+                          color: PdfColors.green800,
                         ),
                       ),
                     ],
                   ),
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.end,
-                    children: [
-                      pw.Text(
-                        'Support Contact No:',
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                      pw.Text(
-                        '+923219667909',
-                        style: const pw.TextStyle(fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            pw.SizedBox(height: 10),
-            // Hotel Info
-            pw.Container(
-              padding: const pw.EdgeInsets.all(10),
-              decoration: pw.BoxDecoration(
-                border: pw.Border.all(color: PdfColors.grey300),
-                borderRadius: pw.BorderRadius.circular(8),
-              ),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
+                  pw.SizedBox(height: 16),
                   pw.Text(
-                    'HOTEL NAME',
+                    'Dear ${bookingController.firstNameController.text} ${bookingController.lastNameController.text},',
                     style: pw.TextStyle(
-                      fontWeight: pw.FontWeight.bold,
-                      fontSize: 12,
-                      color: PdfColors.grey700,
-                    ),
-                  ),
-                  pw.SizedBox(height: 4),
-                  pw.Text(
-                    hotelName,
-                    style: pw.TextStyle(
-                      fontWeight: pw.FontWeight.bold,
                       fontSize: 16,
+                      fontWeight: pw.FontWeight.bold,
                     ),
                   ),
-                  pw.SizedBox(height: 4),
+                  pw.SizedBox(height: 8),
                   pw.Text(
-                    hotelAddress,
+                    'Your booking has been submitted successfully!',
                     style: const pw.TextStyle(fontSize: 14),
                   ),
-                  pw.SizedBox(height: 4),
-                  pw.Row(
-                    children: [
-                      pw.Text(
-                        'CITY / COUNTRY',
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 12,
-                          color: PdfColors.grey700,
-                        ),
-                      ),
-                      pw.SizedBox(width: 8),
-                      pw.Text(
-                        'country',
-                        style: const pw.TextStyle(fontSize: 14),
-                      ),
-                    ],
-                  ),
-                  pw.SizedBox(height: 10),
-                  pw.Text(
-                    'HOTEL LOCATION',
-                    style: pw.TextStyle(
-                      fontWeight: pw.FontWeight.bold,
-                      fontSize: 12,
-                      color: PdfColors.black,
-                    ),
-                  ),
-                  pw.SizedBox(height: 5),
-                  pw.Container(
-                    height: 80,
-                    decoration: pw.BoxDecoration(
-                      border: pw.Border.all(color: PdfColors.grey300),
-                      borderRadius: pw.BorderRadius.circular(8),
-                    ),
-                    child: pw.Stack(
-                      children: [
-                        mapWidget,
-                        pw.Positioned(
-                          right: 8,
-                          bottom: 8,
-                          child: pw.Container(
-                            padding: const pw.EdgeInsets.all(4),
-                            decoration: pw.BoxDecoration(
-                              color: PdfColors.white,
-                              borderRadius: pw.BorderRadius.circular(4),
-                            ),
-                            child: pw.Row(
-                              children: [
-                                pw.Text(
-                                  'Google Maps Location',
-                                  style: const pw.TextStyle(fontSize: 8),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             ),
-            pw.SizedBox(height: 10),
-            // Guest Info
-            pw.Container(
-              padding: const pw.EdgeInsets.all(10),
-              decoration: pw.BoxDecoration(
-                border: pw.Border.all(color: PdfColors.grey300),
-                borderRadius: pw.BorderRadius.circular(8),
-              ),
-              child: pw.Row(
-                children: [
-                  pw.Expanded(
-                    child: pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text(
-                          'LEAD GUEST',
-                          style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold,
-                            fontSize: 12,
-                            color: PdfColors.grey700,
-                          ),
-                        ),
-                        pw.SizedBox(height: 4),
-                        pw.Text(
-                          '${bookingController.firstNameController.text} ${bookingController.lastNameController.text}',
-                          style: const pw.TextStyle(fontSize: 14),
-                        ),
-                      ],
-                    ),
-                  ),
-                  pw.Expanded(
-                    child: pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.center,
-                      children: [
-                        pw.Text(
-                          'ROOM(S)',
-                          style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold,
-                            fontSize: 12,
-                            color: PdfColors.grey700,
-                          ),
-                        ),
-                        pw.SizedBox(height: 4),
-                        pw.Text(
-                          '${guestsController.roomCount.value}',
-                          style: const pw.TextStyle(fontSize: 14),
-                        ),
-                      ],
-                    ),
-                  ),
-                  pw.Expanded(
-                    child: pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.center,
-                      children: [
-                        pw.Text(
-                          'NIGHT(S)',
-                          style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold,
-                            fontSize: 12,
-                            color: PdfColors.grey700,
-                          ),
-                        ),
-                        pw.SizedBox(height: 4),
-                        pw.Text(
-                          '${hotelDateController.nights.value}',
-                          style: const pw.TextStyle(fontSize: 14),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            
+            pw.SizedBox(height: 20),
+            
+            // Booking Details
+            _buildPDFSection(
+              'Booking Details',
+              [
+                ['Order Number', bookingController.booking_num.value.toString()],
+                ['Booking Status', 'On Request'],
+                ['Total', selectRoomController.totalPrice.value.toStringAsFixed(0)],
+                ['Payment Status', 'PENDING'],
+              ],
             ),
-            pw.SizedBox(height: 10),
-            // Date Info
-            pw.Container(
-              padding: const pw.EdgeInsets.all(10),
-              decoration: pw.BoxDecoration(
-                border: pw.Border.all(color: PdfColors.grey300),
-                borderRadius: pw.BorderRadius.circular(8),
-              ),
-              child: pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        'CHECK-IN',
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 12,
-                          color: PdfColors.grey700,
-                        ),
-                      ),
-                      pw.SizedBox(height: 4),
-                      pw.Text(
-                        DateFormat(
-                          'dd MMM yyyy',
-                        ).format(hotelDateController.checkInDate.value),
-                        style: pw.TextStyle(
-                          fontSize: 16,
-                          fontWeight: pw.FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.end,
-                    children: [
-                      pw.Text(
-                        'CHECK-OUT',
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 12,
-                          color: PdfColors.grey700,
-                        ),
-                      ),
-                      pw.SizedBox(height: 4),
-                      pw.Text(
-                        DateFormat(
-                          'dd MMM yyyy',
-                        ).format(hotelDateController.checkOutDate.value),
-                        style: pw.TextStyle(
-                          fontSize: 16,
-                          fontWeight: pw.FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            
+            pw.SizedBox(height: 20),
+            
+            // Hotel Details
+            _buildPDFSection(
+              'Hotel Details',
+              [
+                ['Hotel Name', searchHotelController.hotelName.value.isNotEmpty 
+                    ? searchHotelController.hotelName.value 
+                    : 'Smana Hotel Al Raffa'],
+                ['Address', 'Al Raffa Road, Dubai, UNITED ARAB EMIRATES'],
+                ['Check-in', DateFormat('E dd MMM yyyy').format(hotelDateController.checkInDate.value)],
+                ['Check-out', DateFormat('E dd MMM yyyy').format(hotelDateController.checkOutDate.value)],
+                ['Nights', '${hotelDateController.nights.value}'],
+              ],
             ),
-            pw.SizedBox(height: 10),
-            // Room Info
+            
+            pw.SizedBox(height: 20),
+            
+            // Room Details - Updated to show all rooms
+            ..._buildPDFRoomSections(),
+            
+            pw.SizedBox(height: 20),
+            
+            // Booker Details
+            _buildPDFSection(
+              'Booker Details',
+              [
+                ['Name', '${bookingController.firstNameController.text} ${bookingController.lastNameController.text}'],
+                ['Email', bookingController.emailController.text],
+                ['Phone', bookingController.getFullPhoneNumber()],
+                ['Address', bookingController.addressController.text],
+                ['City', bookingController.cityController.text],
+              ],
+            ),
+            
+            pw.SizedBox(height: 20),
+            
+            // Contact Info
             pw.Container(
-              padding: const pw.EdgeInsets.all(10),
+              padding: const pw.EdgeInsets.all(16),
               decoration: pw.BoxDecoration(
-                border: pw.Border.all(color: PdfColors.grey300),
+                color: PdfColors.blue50,
                 borderRadius: pw.BorderRadius.circular(8),
+                border: pw.Border.all(color: PdfColors.blue200),
               ),
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Text(
-                    'ROOM DETAILS',
+                    'Support Contact',
                     style: pw.TextStyle(
+                      fontSize: 16,
                       fontWeight: pw.FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  pw.SizedBox(height: 8),
-                  pw.Table(
-                    border: pw.TableBorder.all(color: PdfColors.grey300),
-                    columnWidths: {
-                      0: const pw.FlexColumnWidth(1),
-                      1: const pw.FlexColumnWidth(2),
-                      2: const pw.FlexColumnWidth(3),
-                      3: const pw.FlexColumnWidth(1),
-                      4: const pw.FlexColumnWidth(1),
-                    },
-                    children: [
-                      pw.TableRow(
-                        decoration: pw.BoxDecoration(color: PdfColors.grey200),
-                        children: [
-                          _buildPdfTableHeaderCell('Room No'),
-                          _buildPdfTableHeaderCell('Room Type / Board Basis'),
-                          _buildPdfTableHeaderCell('Guest Name'),
-                          _buildPdfTableHeaderCell('Adult(s)'),
-                          _buildPdfTableHeaderCell('Children'),
-                        ],
-                      ),
-                      ...List.generate(
-                        guestsController.roomCount.value,
-                        (index) => _buildPdfRoomRow(index + 1),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            pw.SizedBox(height: 10),
-            // Booking Policy
-            pw.Container(
-              padding: const pw.EdgeInsets.all(10),
-              decoration: pw.BoxDecoration(
-                color: PdfColors.grey100,
-                border: pw.Border.all(color: PdfColors.grey300),
-                borderRadius: pw.BorderRadius.circular(8),
-              ),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text(
-                    'Booking Policy',
-                    style: pw.TextStyle(
-                      fontWeight: pw.FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  pw.SizedBox(height: 8),
-                  _buildPdfBulletPoint(
-                    'The usual check-in time is 12:00-14:00 PM (this may vary).',
-                  ),
-                  _buildPdfBulletPoint(
-                    'Rooms may not be available for early check-in unless requested.',
-                  ),
-                  _buildPdfBulletPoint(
-                    'Hotel reservation may be canceled automatically after 18:00 hours if hotel is not informed about the appointment time of the arrival.',
-                  ),
-                  _buildPdfBulletPoint(
-                    'The total cost is between 10-12.00 hours between the high-way (non-toll) & the toll road with different destinations. And the checkout may involve additional charges.',
-                  ),
-                  _buildPdfBulletPoint(
-                    'For any specific system related to particular hotel, kindly reach out to our support team for assistance.',
-                  ),
-                ],
-              ),
-            ),
-            pw.SizedBox(height: 10),
-            // Booking Refund Policy
-            pw.Container(
-              padding: const pw.EdgeInsets.all(10),
-              decoration: pw.BoxDecoration(
-                color: PdfColors.grey100,
-                border: pw.Border.all(color: PdfColors.grey300),
-                borderRadius: pw.BorderRadius.circular(8),
-              ),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text(
-                    'Booking Refund Policy',
-                    style: pw.TextStyle(
-                      fontWeight: pw.FontWeight.bold,
-                      fontSize: 14,
+                      color: PdfColors.blue800,
                     ),
                   ),
                   pw.SizedBox(height: 8),
                   pw.Text(
-                    'Booking payable as per reservation details. Please collect all extras directly from (sleep in) departure. All matters issued are on the condition that all persons acknowledge that in person to taking part must be made, as people for which we shall not be liable for damage, loss, injury, delay or inconvenience caused to passenger as a result of any such arrangements. We will not accept any responsibility for additional expenses due to the changes or delay in air, road, rail sea or indeed any form of transport.',
-                    style: const pw.TextStyle(fontSize: 10),
+                    'Phone: +92 3219667909',
+                    style: const pw.TextStyle(fontSize: 14),
                   ),
-                ],
-              ),
-            ),
-            pw.SizedBox(height: 10),
-            // Important Notes
-            pw.Container(
-              padding: const pw.EdgeInsets.all(10),
-              decoration: pw.BoxDecoration(
-                color: PdfColors.red50,
-                border: pw.Border.all(color: PdfColors.red200),
-                borderRadius: pw.BorderRadius.circular(8),
-              ),
-              child: pw.Row(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
                   pw.Text(
-                    '! ',
-                    style: pw.TextStyle(
-                      fontWeight: pw.FontWeight.bold,
-                      color: PdfColors.red,
-                    ),
-                  ),
-                  pw.Expanded(
-                    child: pw.Text(
-                      'Important Notes - Check your Reservation details carefully and inform us immediately if you need any further clarification; please do not hesitate to contact us.',
-                      style: pw.TextStyle(
-                        color: PdfColors.red700,
-                        fontSize: 10,
-                      ),
-                    ),
+                    'Email: support@readyflight.pk',
+                    style: const pw.TextStyle(fontSize: 14),
                   ),
                 ],
               ),
@@ -734,817 +915,108 @@ class HotelVoucherScreen extends StatelessWidget {
     );
 
     return pdf.save();
+    
   }
-
-  pw.Widget _buildPdfTableHeaderCell(String text) {
+ pw.Widget _buildPDFSection(String title, List<List<String>> data) {
     return pw.Container(
-      padding: const pw.EdgeInsets.all(6),
-      alignment: pw.Alignment.center,
-      child: pw.Text(
-        text,
-        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.grey300),
+        borderRadius: pw.BorderRadius.circular(8),
       ),
-    );
-  }
-
-  pw.Widget _buildPdfTableCell(String text) {
-    return pw.Container(
-      padding: const pw.EdgeInsets.all(6),
-      alignment: pw.Alignment.center,
-      child: pw.Text(text, style: const pw.TextStyle(fontSize: 9)),
-    );
-  }
-
-  pw.TableRow _buildPdfRoomRow(int roomNo) {
-    final roomType = "Standard Room";
-    final boardBasis = "Bed & Breakfast";
-
-    final adultCount =
-        roomNo <= guestsController.rooms.length
-            ? guestsController.rooms[roomNo - 1].adults.value
-            : 2;
-
-    final childrenCount =
-        roomNo <= guestsController.rooms.length
-            ? guestsController.rooms[roomNo - 1].children.value
-            : 0;
-
-    return pw.TableRow(
-      children: [
-        _buildPdfTableCell(roomNo.toString()),
-        _buildPdfTableCell('$roomType / $boardBasis'),
-        pw.Padding(
-          padding: const pw.EdgeInsets.all(6),
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: _getPdfGuestNames(roomNo - 1),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Container(
+            width: double.infinity,
+            padding: const pw.EdgeInsets.all(12),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey100,
+              borderRadius: const pw.BorderRadius.only(
+                topLeft: pw.Radius.circular(8),
+                topRight: pw.Radius.circular(8),
+              ),
+            ),
+            child: pw.Text(
+              title,
+              style: pw.TextStyle(
+                fontSize: 14,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
           ),
-        ),
-        _buildPdfTableCell(adultCount.toString()),
-        _buildPdfTableCell(childrenCount.toString()),
-      ],
-    );
-  }
-
-  List<pw.Widget> _getPdfGuestNames(int roomIndex) {
-    List<pw.Widget> names = [];
-
-    // Check if we have data from the booking controller
-    if (roomIndex < bookingController.roomGuests.length) {
-      // Add adult names
-      for (
-        var i = 0;
-        i < bookingController.roomGuests[roomIndex].adults.length;
-        i++
-      ) {
-        final adult = bookingController.roomGuests[roomIndex].adults[i];
-        if (adult.firstNameController.text.isNotEmpty) {
-          names.add(
-            pw.Text(
-              'Adult ${i + 1}: ${adult.titleController.text} ${adult.firstNameController.text} ${adult.lastNameController.text}',
-              style: const pw.TextStyle(fontSize: 9),
-            ),
-          );
-        }
-      }
-
-      // Add child names
-      for (
-        var i = 0;
-        i < bookingController.roomGuests[roomIndex].children.length;
-        i++
-      ) {
-        final child = bookingController.roomGuests[roomIndex].children[i];
-        if (child.firstNameController.text.isNotEmpty) {
-          names.add(
-            pw.Text(
-              'Child ${i + 1}: ${child.titleController.text} ${child.firstNameController.text} ${child.lastNameController.text}',
-              style: const pw.TextStyle(fontSize: 9),
-            ),
-          );
-        }
-      }
-    }
-
-    // If no names found, add dummy data
-    if (names.isEmpty) {
-      names.add(
-        pw.Text(
-          'Adult 1: Mrs Hadam Rashid',
-          style: const pw.TextStyle(fontSize: 9),
-        ),
-      );
-      names.add(
-        pw.Text(
-          'Adult 2: Mrs Sana Aham',
-          style: const pw.TextStyle(fontSize: 9),
-        ),
-      );
-    }
-
-    return names;
-  }
-
-  Widget _buildVoucherCard(BuildContext context) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-        side: BorderSide(color: Colors.grey.shade300),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildVoucherHeader(),
-          _buildDivider(),
-          _buildHotelInfo(context),
-          _buildDivider(),
-          _buildGuestInfo(),
-          _buildDivider(),
-          _buildDateInfo(),
-          _buildDivider(),
-          _buildRoomInfo(),
-          _buildDivider(),
-          _buildImportantNotes(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVoucherHeader() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Image.asset(
-                'assets/images/logo.png',
-                height: 30,
-                // If you don't have this asset, use a placeholder:
-                errorBuilder:
-                    (context, error, stackTrace) => Container(
-                      color: Colors.black,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      child: const Text(
-                        'Stayinhotels.ae',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+          pw.Padding(
+            padding: const pw.EdgeInsets.all(12),
+            child: pw.Column(
+              children: data.map((row) => 
+                pw.Padding(
+                  padding: const pw.EdgeInsets.only(bottom: 8),
+                  child: pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.SizedBox(
+                        width: 120,
+                        child: pw.Text(
+                          '${row[0]}:',
+                          style: pw.TextStyle(
+                            fontSize: 12,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Booking No#',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-              ),
-              Text(
-                '${bookingController.booking_num.value.toString()}',
-                style: TextStyle(fontSize: 12),
-              ),
-              const SizedBox(height: 5),
-              const Text(
-                'Supp. Ref:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-              ),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              const Text(
-                'Support Contact No:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-              ),
-              GestureDetector(
-                onTap: () => _makePhoneCall('+923219667909'),
-                child: const Text(
-                  '+923219667909',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.blue,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHotelInfo(BuildContext context) {
-    final hotelName =
-        searchHotelController.hotelName.value.isNotEmpty
-            ? searchHotelController.hotelName.value
-            : 'Leader Al Muna Kareem Hotel';
-
-    final hotelAddress =
-        'Omar Bin Al Katab Street PO Box 2961, Central Area, Madina 9055';
-    final country = 'Saudi Arabia';
-
-    // Get the latitude and longitude from your controller
-    final latitude =
-        double.tryParse(searchHotelController.lat.value) ?? 24.4672;
-    final longitude =
-        double.tryParse(searchHotelController.lon.value) ?? 39.6170;
-
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'HOTEL NAME',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-              color: Colors.grey,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            hotelName,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 4),
-          Text(hotelAddress, style: const TextStyle(fontSize: 14)),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              const Text(
-                'CITY / COUNTRY',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(country, style: const TextStyle(fontSize: 14)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'HOTEL LOCATION',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(height: 8),
-          InkWell(
-            onTap: () {
-              // Navigate to the map screen with the actual coordinates
-              Get.to(
-                () => MapScreen(
-                  hotelName: hotelName,
-                  latitude: latitude,
-                  longitude: longitude,
-                ),
-              );
-            },
-            child: Container(
-              height: 120,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-                color:
-                    Colors
-                        .grey[200], // Background color in case image fails to load
-              ),
-              child: Stack(
-                children: [
-                  // Static map image for preview
-                  Container(
-                    height: 120,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    // Use a small GoogleMap widget instead of a static image
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: GoogleMap(
-                        zoomControlsEnabled: false,
-                        mapToolbarEnabled: false,
-                        initialCameraPosition: CameraPosition(
-                          target: LatLng(latitude, longitude),
-                          zoom: 14,
+                      pw.Expanded(
+                        child: pw.Text(
+                          row[1],
+                          style: const pw.TextStyle(fontSize: 12),
                         ),
-                        markers: {
-                          Marker(
-                            markerId: MarkerId(hotelName),
-                            position: LatLng(latitude, longitude),
-                          ),
-                        },
-                        liteModeEnabled:
-                            true, // This makes it less resource-intensive
                       ),
-                    ),
+                    ],
                   ),
-
-                  // View on Google Maps label
-                  Positioned(
-                    right: 8,
-                    bottom: 8,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.location_on,
-                            size: 16,
-                            color: Colors.red,
-                          ),
-                          const SizedBox(width: 4),
-                          const Text(
-                            'View on Google Maps',
-                            style: TextStyle(fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                )
+              ).toList(),
             ),
           ),
         ],
       ),
     );
-  }
-
-  Widget _buildGuestInfo() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'LEAD GUEST',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${bookingController.firstNameController.text} ${bookingController.lastNameController.text}',
-                  style: TextStyle(fontSize: 14),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Text(
-                  'ROOM(S)',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${guestsController.roomCount.value}',
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Text(
-                  'NIGHT(S)',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${hotelDateController.nights.value}',
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDateInfo() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'CHECK-IN',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                DateFormat(
-                  'dd MMM yyyy',
-                ).format(hotelDateController.checkInDate.value),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              const Text(
-                'CHECK-OUT',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                DateFormat(
-                  'dd MMM yyyy',
-                ).format(hotelDateController.checkOutDate.value),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRoomInfo() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Table(
-            columnWidths: const {
-              0: FlexColumnWidth(1),
-              1: FlexColumnWidth(2),
-              2: FlexColumnWidth(3),
-              3: FlexColumnWidth(1),
-              4: FlexColumnWidth(1),
-            },
-            border: TableBorder.all(color: Colors.grey.shade300),
-            children: [
-              TableRow(
-                decoration: BoxDecoration(color: Colors.grey.shade100),
-                children: [
-                  _buildTableHeaderCell('Room No'),
-                  _buildTableHeaderCell('Room Type / Board Basis'),
-                  _buildTableHeaderCell('Guest Name'),
-                  _buildTableHeaderCell('Adult(s)'),
-                  _buildTableHeaderCell('Children'),
-                ],
-              ),
-              ...List.generate(
-                guestsController.roomCount.value,
-                (index) => _buildRoomRow(index + 1),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  TableRow _buildRoomRow(int roomNo) {
-    final roomType = "Standard Room";
-    final boardBasis = "Bed & Breakfast";
-
-    // Get guest info from BookingController if available
-    final guestNames = _getGuestNames(roomNo - 1);
-
-    final adultCount =
-        roomNo <= guestsController.rooms.length
-            ? guestsController.rooms[roomNo - 1].adults.value
-            : 2;
-
-    final childrenCount =
-        roomNo <= guestsController.rooms.length
-            ? guestsController.rooms[roomNo - 1].children.value
-            : 0;
-
-    return TableRow(
-      children: [
-        _buildTableCell(roomNo.toString()),
-        _buildTableCell('$roomType / $boardBasis'),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: guestNames,
-          ),
-        ),
-        _buildTableCell(adultCount.toString()),
-        _buildTableCell(childrenCount.toString()),
-      ],
-    );
-  }
-
-  List<Widget> _getGuestNames(int roomIndex) {
-    List<Widget> names = [];
-
-    // Check if we have data from the booking controller
-    if (roomIndex < bookingController.roomGuests.length) {
-      // Add adult names
-      for (
-        var i = 0;
-        i < bookingController.roomGuests[roomIndex].adults.length;
-        i++
-      ) {
-        final adult = bookingController.roomGuests[roomIndex].adults[i];
-        if (adult.firstNameController.text.isNotEmpty) {
-          names.add(
-            Text(
-              'Adult ${i + 1}: ${adult.titleController.text} ${adult.firstNameController.text} ${adult.lastNameController.text}',
-              style: const TextStyle(fontSize: 12),
-            ),
-          );
-        }
-      }
-
-      // Add child names
-      for (
-        var i = 0;
-        i < bookingController.roomGuests[roomIndex].children.length;
-        i++
-      ) {
-        final child = bookingController.roomGuests[roomIndex].children[i];
-        if (child.firstNameController.text.isNotEmpty) {
-          names.add(
-            Text(
-              'Child ${i + 1}: ${child.titleController.text} ${child.firstNameController.text} ${child.lastNameController.text}',
-              style: const TextStyle(fontSize: 12),
-            ),
-          );
-        }
-      }
-    }
-
-    // If no names found, add dummy data
-    if (names.isEmpty) {
-      names.add(
-        const Text('Adult 1: Mrs Hadam Rashid', style: TextStyle(fontSize: 12)),
-      );
-      names.add(
-        const Text('Adult 2: Mrs Sana Aham', style: TextStyle(fontSize: 12)),
-      );
-    }
-
-    return names;
-  }
-
-  Widget _buildTableHeaderCell(String text) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      child: Text(
-        text,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-      ),
-    );
-  }
-
-  Widget _buildTableCell(String text) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      child: Text(text, style: const TextStyle(fontSize: 12)),
-    );
-  }
-
-  Widget _buildImportantNotes() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: Colors.grey.shade50,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Booking Policy',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          ),
-          const SizedBox(height: 12),
-          _buildBulletPoint(
-            'The usual check-in time is 12:00-14:00 PM (hours however this might vary from hotel to hotel and with different destinations.',
-          ),
-          _buildBulletPoint(
-            'Rooms may not be available for early check-in unless specially requested in advance.',
-          ),
-          _buildBulletPoint(
-            'Hotel reservation may be canceled automatically after 18:00 hours if hotel is not informed about the appointment time of the arrival.',
-          ),
-          _buildBulletPoint(
-            'The total cost is between 10-12.00 hours between the high-way (non-toll) & the toll road with different destinations. And the checkout may involve additional charges. Please check with the hotel reception in advance.',
-          ),
-          _buildBulletPoint(
-            'For any specific system related to particular hotel, kindly reach out to our support team for assistance.',
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Booking Refund Policy',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Booking payable as per reservation details.Please collect all extras directly from (sleep in) departure.All matters issued are on the condition that all persons acknowledge that in person to taking part must be made, as people for which we shall not be liable for damage, loss, injury, delay or inconvenience caused to passenger as a result of any such arrangements. We will not accept any responsibility for additional expenses due to the changes or delay in air, road, rail sea or indeed any form of transport.',
-            style: TextStyle(fontSize: 12),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.red.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.red.shade200),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.info_outline, color: Colors.red.shade700, size: 20),
-                const SizedBox(width: 8),
-                const Expanded(
-                  child: Text(
-                    'Important Notes - Check your Reservation details carefully and inform us immediately if you need any further clarification; please do not hesitate to contact us.',
-                    style: TextStyle(color: Colors.red, fontSize: 12),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBulletPoint(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
-          Expanded(child: Text(text, style: const TextStyle(fontSize: 12))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDivider() {
-    return const Divider(height: 1, thickness: 1);
-  }
-
-  Widget _buildActionButtons(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildActionButton(
-          context,
-          icon: Icons.email_outlined,
-          label: 'Email Voucher',
-          onTap: () {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('Sending email...')));
-          },
-        ),
-        _buildActionButton(
-          context,
-          icon: Icons.print,
-          label: 'Print Voucher',
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Preparing to print...')),
-            );
-          },
-        ),
-        _buildActionButton(
-          context,
-          icon: Icons.support_agent,
-          label: 'Contact Support',
-          onTap: () => _makePhoneCall('+8227889769'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionButton(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFAB00),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: Colors.white, size: 24),
-          ),
-          const SizedBox(height: 8),
-          Text(label, style: const TextStyle(fontSize: 12)),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _makePhoneCall(String phoneNumber) async {
-    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
-    await launchUrl(launchUri);
   }
 
  
-}
-
-class MapScreen extends StatelessWidget {
-  final double latitude;
-  final double longitude;
-  final String hotelName;
-
-  const MapScreen({
-    super.key,
-    required this.latitude,
-    required this.longitude,
-    required this.hotelName,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final CameraPosition initialPosition = CameraPosition(
-      target: LatLng(latitude, longitude),
-      zoom: 15,
-    );
-
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          onPressed: () {
-            Get.back();
-          },
-          icon: const Icon(Icons.arrow_back, color: TColors.primary),
-        ),
-      ),
-      body: GoogleMap(
-        initialCameraPosition: initialPosition,
-        markers: {
-          Marker(
-            markerId: MarkerId(hotelName),
-            position: LatLng(latitude, longitude),
-            infoWindow: InfoWindow(title: hotelName),
-          ),
-        },
-      ),
-    );
+  // New method to build PDF sections for all rooms
+ List<pw.Widget> _buildPDFRoomSections() {
+  List<pw.Widget> roomSections = [];
+  
+  for (int roomIndex = 0; roomIndex < bookingController.roomGuests.length; roomIndex++) {
+    final room = bookingController.roomGuests[roomIndex];
+    final roomNumber = roomIndex + 1;
+    
+    // Get room type and board basis from SelectRoomController
+    String roomType = selectRoomController.getRoomName(roomIndex);
+    String boardBasis = selectRoomController.getRoomMeal(roomIndex);
+    
+    // Fallback to default values if not available
+    if (roomType.isEmpty) {
+      roomType = 'STANDARD KING ROOM • 1 KING BED • NON SMOKING';
+    }
+    if (boardBasis.isEmpty) {
+      boardBasis = 'Bed and Breakfast';
+    }
+    
+    // Build guest list for PDF
+    List<List<String>> roomData = [
+      ['Room Type', roomType],
+      ['Board Bases', boardBasis],
+      ['Guests', '${room.adults.length} Adults, ${room.children.length} Children'],
+    ];
+    
+    // ... rest of the method remains the same
   }
-}
+  
+  return roomSections;
+}Future<void> _makePhoneCall(String phoneNumber) async {
+    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
+    await launchUrl(launchUri);
+  }}
+  
+  
+  
+  

@@ -14,80 +14,88 @@ class SelectRoomController extends GetxController {
       RxList<List<Map<String, dynamic>>>([]);
 
   // Observable maps to store room details
-  final RxMap<int, String> roomNames = RxMap<int, String>({});
+    final RxMap<int, String> roomNames = RxMap<int, String>({});
   final RxMap<int, String> roomMeals = RxMap<int, String>({});
   final RxMap<int, String> roomRateTypes = RxMap<int, String>({});
   final RxMap<int, double> roomPrices = RxMap<int, double>({});
+  get selectedRoomsData => null;
 
   // Method to store prebook response data
   void storePrebookResponse(Map<String, dynamic> response) {
-    prebookResponse.value = response;
+  prebookResponse.value = response;
 
-    // Extract and store room details
-    if (response['hotel']?['rooms']?['room'] != null) {
-      final rooms = response['hotel']['rooms']['room'] as List;
+  // Extract and store room details
+  if (response['hotel']?['rooms']?['room'] != null) {
+    final rooms = response['hotel']['rooms']['room'] as List;
 
-      roomsPolicyDetails.clear();
-      roomNames.clear();
-      roomMeals.clear();
-      roomRateTypes.clear();
-      // Don't clear roomPrices here as they might be set separately
+    roomsPolicyDetails.clear();
+    roomNames.clear();
+    roomMeals.clear();
+    roomRateTypes.clear();
 
-      for (var i = 0; i < rooms.length; i++) {
-        final room = rooms[i];
+    for (var i = 0; i < rooms.length; i++) {
+      final room = rooms[i];
 
-        // Store room name, meal and rate type
-        roomNames[i] = room['roomName'] ?? '';
-        roomMeals[i] = room['meal'] ?? '';
-        roomRateTypes[i] = room['rateType'] ?? '';
+      // Store room name, meal and rate type with proper room index
+      roomNames[i] = room['roomName'] ?? '';
+      roomMeals[i] = room['meal'] ?? '';
+      roomRateTypes[i] = room['rateType'] ?? '';
 
-        // Extract policy details
-        if (room['policies']?['policy'] != null) {
-          List<Map<String, dynamic>> policyDetails = [];
+      // Extract policy details
+      if (room['policies']?['policy'] != null) {
+        List<Map<String, dynamic>> policyDetails = [];
 
-          for (var policy in room['policies']['policy']) {
-            if (policy['condition'] != null) {
-              for (var condition in policy['condition']) {
-                policyDetails.add({
-                  "from_date": condition['fromDate'] ?? '',
-                  "to_date": condition['toDate'] ?? '',
-                  "timezone": condition['timezone'] ?? '',
-                  "from_time": condition['fromTime'] ?? '',
-                  "to_time": condition['toTime'] ?? '',
-                  "percentage": condition['percentage'] ?? '',
-                  "nights": condition['nights'] ?? '',
-                  "fixed": condition['fixed'] ?? '',
-                  "applicableOn": condition['applicableOn'] ?? '',
-                });
-              }
+        for (var policy in room['policies']['policy']) {
+          if (policy['condition'] != null) {
+            for (var condition in policy['condition']) {
+              policyDetails.add({
+                "from_date": condition['fromDate'] ?? '',
+                "to_date": condition['toDate'] ?? '',
+                "timezone": condition['timezone'] ?? '',
+                "from_time": condition['fromTime'] ?? '',
+                "to_time": condition['toTime'] ?? '',
+                "percentage": condition['percentage'] ?? '',
+                "nights": condition['nights'] ?? '',
+                "fixed": condition['fixed'] ?? '',
+                "applicableOn": condition['applicableOn'] ?? '',
+              });
             }
           }
-
-          if (roomsPolicyDetails.length <= i) {
-            roomsPolicyDetails.add(policyDetails);
-          } else {
-            roomsPolicyDetails[i] = policyDetails;
-          }
         }
 
-        // If price is available in the response, update it
-        if (room['price'] != null && room['price']['net'] != null) {
-          double roomPrice = 0.0;
-          try {
-            roomPrice = double.parse(room['price']['net'].toString());
-          } catch (e) {
-            print('Error parsing room price: $e');
-          }
-          updateRoomPrice(i, roomPrice);
+        if (roomsPolicyDetails.length <= i) {
+          roomsPolicyDetails.add(policyDetails);
+        } else {
+          roomsPolicyDetails[i] = policyDetails;
         }
       }
-    }
 
-    // Recalculate total price after update
-    calculateTotalPrice();
+      // If price is available in the response, update it
+      if (room['price'] != null && room['price']['net'] != null) {
+        double roomPrice = 0.0;
+        try {
+          roomPrice = double.parse(room['price']['net'].toString());
+        } catch (e) {
+          print('Error parsing room price: $e');
+        }
+        
+        // Get the number of nights from the controller or parameter
+        int nights = Get.find<HotelDateController>().nights.value;
+        
+        // Multiply price by nights to get total price for this room
+        roomPrice *= nights;
+        
+        updateRoomPrice(i, roomPrice);
+      }
+    }
   }
 
-  // Method to update the price for a specific room
+  // Recalculate total price after update
+  calculateTotalPrice();
+  
+  // Debug: Print the stored data
+  debugPrintRoomData();
+}// Method to update the price for a specific room
   void updateRoomPrice(int roomIndex, double price) {
     roomPrices[roomIndex] = price;
     calculateTotalPrice();
@@ -104,32 +112,33 @@ class SelectRoomController extends GetxController {
 
   // Method to update room data when a room is selected
   void updateSelectedRoom(int roomIndex, dynamic roomData) {
-    // Update room details
-    roomNames[roomIndex] = roomData['roomName'] ?? '';
-    roomMeals[roomIndex] = roomData['meal'] ?? '';
-    roomRateTypes[roomIndex] = roomData['rateType'] ?? '';
+  // Update room details with proper index
+  roomNames[roomIndex] = roomData['roomName'] ?? '';
+  roomMeals[roomIndex] = roomData['meal'] ?? '';
+  roomRateTypes[roomIndex] = roomData['rateType'] ?? '';
 
-    // Update room price
-    double roomPrice = 0.0;
-    if (roomData['price'] != null && roomData['price']['net'] != null) {
-      try {
-        roomPrice = double.parse(roomData['price']['net'].toString());
-      } catch (e) {
-        print('Error parsing room price: $e');
-      }
+  // Update room price
+  double roomPrice = 0.0;
+  if (roomData['price'] != null && roomData['price']['net'] != null) {
+    try {
+      roomPrice = double.parse(roomData['price']['net'].toString());
+    } catch (e) {
+      print('Error parsing room price: $e');
     }
-
-    // Get the number of nights from the controller or parameter
-    int nights = Get.find<HotelDateController>().nights.value;
-
-    // Multiply price by nights to get total price for this room
-    roomPrice *= nights;
-
-    // Update the room price and recalculate total
-    updateRoomPrice(roomIndex, roomPrice);
   }
 
-  // Method to get policy details for a specific room
+  // Get the number of nights
+  int nights = Get.find<HotelDateController>().nights.value;
+
+  // Multiply price by nights to get total price for this room
+  roomPrice *= nights;
+
+  // Update the room price and recalculate total
+  updateRoomPrice(roomIndex, roomPrice);
+  
+  // Debug: Print the updated data
+  debugPrintRoomData();
+}// Method to get policy details for a specific room
   List<Map<String, dynamic>> getPolicyDetailsForRoom(int roomIndex) {
     if (roomIndex < roomsPolicyDetails.length) {
       return roomsPolicyDetails[roomIndex];
@@ -166,5 +175,12 @@ class SelectRoomController extends GetxController {
     roomRateTypes.clear();
     roomPrices.clear();
     totalPrice.value = 0.0;
+  }
+  void debugPrintRoomData() {
+    print('=== ROOM DATA DEBUG ===');
+    roomNames.forEach((index, name) {
+      print('Room $index: $name, Meal: ${roomMeals[index]}, Price: ${roomPrices[index]}');
+    });
+    print('=======================');
   }
 }

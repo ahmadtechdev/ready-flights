@@ -434,262 +434,263 @@ class RoomCard extends StatelessWidget {
     }
   }
 
-  void _showPriceBreakup(BuildContext context) async {
-    final apiService = ApiServiceHotel();
-    final controller = Get.find<SearchHotelController>();
+ void _showPriceBreakup(BuildContext context) async {
+  final apiService = ApiServiceHotel();
+  final controller = Get.find<SearchHotelController>();
 
-    // Show loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder:
-          (context) => const Center(
-            child: CircularProgressIndicator(color: TColors.primary),
-          ),
+  // Show loading dialog
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder:
+        (context) => const Center(
+          child: CircularProgressIndicator(color: TColors.primary),
+        ),
+  );
+
+  try {
+    final response = await apiService.getPriceBreakup(
+      sessionId: controller.sessionId.value,
+      hotelCode: controller.hotelCode.value,
+      groupCode: room['groupCode'] as int,
+      currency: "AED",
+      rateKeys: [room['rateKey']],
     );
 
-    try {
-      final response = await apiService.getPriceBreakup(
-        sessionId: controller.sessionId.value,
-        hotelCode: controller.hotelCode.value,
-        groupCode: room['groupCode'] as int,
-        currency: "AED",
-        rateKeys: [room['rateKey']],
-      );
+    // Dismiss loading dialog
+    // ignore: use_build_context_synchronously
+    Navigator.pop(context);
 
-      // Dismiss loading dialog
-      // ignore: use_build_context_synchronously
-      Navigator.pop(context);
+    if (response != null) {
+      final priceBreakdown = response['priceBreakdown'] as List?;
+      if (priceBreakdown?.isNotEmpty ?? false) {
+        final roomData = priceBreakdown![0];
+        print(roomData['dateRange']);
+        final dateRanges =
+            roomData['dateRange'] != null
+                ? List<Map<String, dynamic>>.from(roomData['dateRange'])
+                : null;
 
-      if (response != null) {
-        final priceBreakdown = response['priceBreakdown'] as List?;
-        if (priceBreakdown?.isNotEmpty ?? false) {
-          final roomData = priceBreakdown![0];
-          print(roomData['dateRange']);
-          final dateRanges =
-              roomData['dateRange'] != null
-                  ? List<Map<String, dynamic>>.from(roomData['dateRange'])
-                  : null;
-
-          showDialog(
-            // ignore: use_build_context_synchronously
-            context: context,
-            builder:
-                (context) => Dialog(
-                  shape: RoundedRectangleBorder(
+        showDialog(
+          // ignore: use_build_context_synchronously
+          context: context,
+          builder:
+              (context) => Dialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.8,
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: TColors.background,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Container(
-                    constraints: BoxConstraints(
-                      maxHeight: MediaQuery.of(context).size.height * 0.8,
-                    ),
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: TColors.background,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Price Breakup Details',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: TColors.text,
-                              ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Price Breakup Details',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: TColors.text,
                             ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.close,
-                                color: TColors.third,
-                              ),
-                              onPressed: () => Navigator.pop(context),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.close,
+                              color: TColors.third,
                             ),
-                          ],
-                        ),
-                        const Divider(color: TColors.background3),
-                        if (dateRanges == null || dateRanges.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Text(
-                              'No price breakup details available for this room.',
-                              style: TextStyle(color: TColors.grey),
-                            ),
-                          )
-                        else
-                          Flexible(
-                            child: SingleChildScrollView(
-                              child: Column(
-                                children: [
-                                  // Summary Section
-                                  Container(
-                                    margin: const EdgeInsets.only(bottom: 16),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                      const Divider(color: TColors.background3),
+                      if (dateRanges == null || dateRanges.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Text(
+                            'No price breakup details available for this room.',
+                            style: TextStyle(color: TColors.grey),
+                          ),
+                        )
+                      else
+                        Flexible(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              children: [
+                                // Summary Section
+                                Container(
+                                  margin: const EdgeInsets.only(bottom: 16),
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: TColors.background2,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: TColors.primary.withOpacity(0.1),
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      _buildSummaryRow(
+                                        'Gross Amount',
+                                        ((roomData['grossAmount'] ?? 0) * pkrprice).toStringAsFixed(0),
+                                        Icons.monetization_on_outlined,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _buildSummaryRow(
+                                        'Tax',
+                                        ((roomData['tax'] ?? 0) * pkrprice).toStringAsFixed(0),
+                                        Icons.receipt_long_outlined,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _buildSummaryRow(
+                                        'Net Amount',
+                                        ((roomData['netAmount'] ?? 0) * pkrprice).toStringAsFixed(0),
+                                        Icons.account_balance_wallet_outlined,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // Daily Price Breakdown
+                                ...dateRanges.map((dateRange) {
+                                  print(dateRanges);
+                                  final fromDate = DateTime.tryParse(
+                                    dateRange['fromDate'] ?? '',
+                                  );
+                                  if (fromDate == null) {
+                                    return const SizedBox.shrink();
+                                  }
+
+                                  // Convert supplier price to PKR
+                                  final supplierPrice = double.tryParse(dateRange['supplierText']?.toString() ?? '0') ?? 0.0;
+                                  final priceInPKR = (supplierPrice * pkrprice);
+
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 12),
                                     padding: const EdgeInsets.all(16),
                                     decoration: BoxDecoration(
                                       color: TColors.background2,
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: TColors.primary.withOpacity(0.1),
+                                        color: TColors.primary.withOpacity(
+                                          0.1,
+                                        ),
                                       ),
                                     ),
                                     child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        _buildSummaryRow(
-                                          'Gross Amount',
-                                          roomData['grossAmount']?.toString() ??
-                                              '0',
-                                          Icons.monetization_on_outlined,
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.all(
+                                                8,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: TColors.primary
+                                                    .withOpacity(0.1),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: const Icon(
+                                                Icons.calendar_today,
+                                                color: TColors.primary,
+                                                size: 20,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Text(
+                                                DateFormat(
+                                                  'MMM dd, yyyy',
+                                                ).format(fromDate),
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        const SizedBox(height: 8),
-                                        _buildSummaryRow(
-                                          'Tax',
-                                          roomData['tax']?.toString() ?? '0',
-                                          Icons.receipt_long_outlined,
-                                        ),
-                                        const SizedBox(height: 8),
-                                        _buildSummaryRow(
-                                          'Net Amount',
-                                          roomData['netAmount']?.toString() ??
-                                              '0',
-                                          Icons.account_balance_wallet_outlined,
+                                        const SizedBox(height: 12),
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Price for this night',
+                                              style: TextStyle(
+                                                color: TColors.grey,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'PKR ${priceInPKR.toStringAsFixed(0)}',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                                color: TColors.primary,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
-                                  ),
-                                  // Daily Price Breakdown
-                                  ...dateRanges.map((dateRange) {
-                                    print(dateRanges);
-                                    final fromDate = DateTime.tryParse(
-                                      dateRange['fromDate'] ?? '',
-                                    );
-                                    if (fromDate == null) {
-                                      return const SizedBox.shrink();
-                                    }
-
-                                    return Container(
-                                      margin: const EdgeInsets.only(bottom: 12),
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: TColors.background2,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: TColors.primary.withOpacity(
-                                            0.1,
-                                          ),
-                                        ),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Container(
-                                                padding: const EdgeInsets.all(
-                                                  8,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: TColors.primary
-                                                      .withOpacity(0.1),
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                ),
-                                                child: const Icon(
-                                                  Icons.calendar_today,
-                                                  color: TColors.primary,
-                                                  size: 20,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 12),
-                                              Expanded(
-                                                child: Text(
-                                                  DateFormat(
-                                                    'MMM dd, yyyy',
-                                                  ).format(fromDate),
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 12),
-                                          Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              const Text(
-                                                'Price for this night',
-                                                style: TextStyle(
-                                                  color: TColors.grey,
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                '\$${dateRange['supplierText'] ?? '0'}',
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 16,
-                                                  color: TColors.primary,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  }),
-                                ],
-                              ),
+                                  );
+                                }),
+                              ],
                             ),
                           ),
-                      ],
-                    ),
+                        ),
+                    ],
                   ),
                 ),
-          );
-        }
+              ),
+        );
       }
-    } catch (e) {
-      // Dismiss loading dialog if still showing
-      // ignore: use_build_context_synchronously
-      Navigator.pop(context);
-      print('Error showing price breakup: $e');
     }
+  } catch (e) {
+    // Dismiss loading dialog if still showing
+    // ignore: use_build_context_synchronously
+    Navigator.pop(context);
+    print('Error showing price breakup: $e');
   }
+}
 
-  Widget _buildSummaryRow(String label, String value, IconData icon) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 20, color: TColors.primary),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(color: TColors.grey, fontSize: 14),
-            ),
-          ],
-        ),
-        Text(
-          '\$$value',
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: TColors.text,
+Widget _buildSummaryRow(String label, String value, IconData icon) {
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Row(
+        children: [
+          Icon(icon, size: 15, color: TColors.primary),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: const TextStyle(color: TColors.grey, fontSize: 13),
           ),
+        ],
+      ),
+      Text(
+        'PKR $value',
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+          color: TColors.text,
         ),
-      ],
-    );
-  }
-
+      ),
+    ],
+  );
+}
   @override
   Widget build(BuildContext context) {
     final pricePerNight = (room['price']['net'] * pkrprice) / nights ?? 0.0;
@@ -813,11 +814,11 @@ class RoomCard extends StatelessWidget {
                         child: Text(
                           showBookNowButton
                               ? (isLoading
-                                  ? 'Checking Availability...'
+                                  ? ''
                                   : 'Book Now')
                               : (isSelected ? 'Selected' : 'Select Room'),
                           style: const TextStyle(
-                            color: TColors.secondary,
+                            color: TColors.white,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -825,7 +826,6 @@ class RoomCard extends StatelessWidget {
                     ),
                     if (isLoading)
                       const Positioned(
-                        right: 16,
                         child: SizedBox(
                           width: 20,
                           height: 20,
@@ -864,7 +864,7 @@ class RoomCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '\PKR${pricePerNight.toStringAsFixed(2)}',
+              '\PKR${pricePerNight.toStringAsFixed(0)}',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ],
@@ -884,7 +884,7 @@ class RoomCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '\PKR${totalPrice.toStringAsFixed(2)}',
+              '\PKR${totalPrice.toStringAsFixed(0)}',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ],
