@@ -58,6 +58,17 @@ class FlydubaiFlightController extends GetxController {
   DateTime? _outboundDate;
   DateTime? _returnDate;
 
+  // Add these properties to your controller class
+  Map<String, dynamic>? _outboundCartData;
+  Map<String, dynamic>? _returnCartData;
+  Map<String, dynamic>? _cartData;
+
+// Getters for cart data
+  Map<String, dynamic>? get outboundCartData => _outboundCartData;
+  Map<String, dynamic>? get returnCartData => _returnCartData;
+  Map<String, dynamic>? get cartData => _cartData;
+
+
 
 
   void clearFlights() {
@@ -577,6 +588,170 @@ class FlydubaiFlightController extends GetxController {
       ),
     ];
   }
+
+
+  // Add these methods to your FlydubaiFlightController class
+
+// Revalidate flight before proceeding to review
+  Future<bool> revalidateFlightBeforeReview({
+    required FlydubaiFlight flight,
+    required FlydubaiFlightFare selectedFare,
+    required bool isReturnFlight,
+  }) async {
+    try {
+      developer.log('=== REVALIDATING FLIGHT PRICING ===');
+
+      // Generate booking ID (LFID_FareIndex)
+      final bookingId = '${flight.flightSegment.lfid}_${_getFareIndex(flight, selectedFare)}';
+
+      developer.log('Booking ID: $bookingId');
+      developer.log('Flight: ${flight.airlineCode} ${flight.flightSegment.flightNumber}');
+      developer.log('Fare Type: ${selectedFare.fareTypeName}');
+
+      // Call revalidation API
+      final result = await apiService.revalidateFlight(
+        bookingId: bookingId,
+        flightData: flight.rawData,
+      );
+
+      if (result['success'] == true) {
+        final updatedPrice = result['updatedPrice'] ?? flight.price;
+        developer.log('Revalidation successful. Updated price: $updatedPrice');
+
+        // Update the flight price with revalidated price
+        if (isReturnFlight) {
+          selectedReturnFlight = _updateFlightPrice(flight, updatedPrice);
+        } else {
+          selectedOutboundFlight = _updateFlightPrice(flight, updatedPrice);
+        }
+
+        // Store cart data for later use in booking process
+        _storeCartData(result['cartData'], isReturnFlight);
+
+        return true;
+      } else {
+        developer.log('Revalidation failed: ${result['error']}');
+        return false;
+      }
+    } catch (e) {
+      developer.log('Revalidation error: $e');
+      return false;
+    }
+  }
+
+// Add flight to cart (for final booking)
+  Future<Map<String, dynamic>> addFlightsToCart() async {
+    try {
+      developer.log('=== ADDING FLIGHTS TO CART ===');
+
+      final List<String> bookingIds = [];
+
+      // Add outbound flight if selected
+      if (selectedOutboundFlight != null && selectedOutboundFareOption != null) {
+        final outboundId = '${selectedOutboundFlight!.flightSegment.lfid}_'
+            '${_getFareIndex(selectedOutboundFlight!, selectedOutboundFareOption!)}';
+        bookingIds.add(outboundId);
+        developer.log('Outbound Booking ID: $outboundId');
+      }
+
+      // Add return flight if selected
+      if (selectedReturnFlight != null && selectedReturnFareOption != null) {
+        final returnId = '${selectedReturnFlight!.flightSegment.lfid}_'
+            '${_getFareIndex(selectedReturnFlight!, selectedReturnFareOption!)}';
+        bookingIds.add(returnId);
+        developer.log('Return Booking ID: $returnId');
+      }
+
+      if (bookingIds.isEmpty) {
+        return {
+          'success': false,
+          'error': 'No flights selected for cart',
+        };
+      }
+
+      // Use outbound flight data for cart (assuming both flights have similar structure)
+      final flightData = selectedOutboundFlight?.rawData ?? selectedReturnFlight?.rawData;
+
+      if (flightData == null) {
+        return {
+          'success': false,
+          'error': 'No flight data available',
+        };
+      }
+
+      final result = await apiService.addToCart(
+        bookingIds: bookingIds,
+        flightData: flightData,
+      );
+
+      if (result['success'] == true) {
+        developer.log('Successfully added flights to cart');
+        // Store cart data for booking process
+        _cartData = result['data'];
+      }
+
+      return result;
+    } catch (e) {
+      developer.log('Add to cart error: $e');
+      return {
+        'success': false,
+        'error': 'Failed to add flights to cart: $e',
+      };
+    }
+  }
+
+// Helper method to get fare index
+  int _getFareIndex(FlydubaiFlight flight, FlydubaiFlightFare fare) {
+    final options = fareOptionsByLFID[flight.rph] ?? [];
+    for (int i = 0; i < options.length; i++) {
+      if (options[i].fareTypeId == fare.fareTypeId) {
+        return i;
+      }
+    }
+    return 0;
+  }
+
+// Helper method to update flight price
+  FlydubaiFlight _updateFlightPrice(FlydubaiFlight flight, double newPrice) {
+    // Create a new flight object with updated price
+    return FlydubaiFlight(
+      id: flight.id,
+      price: newPrice,
+      basePrice: newPrice * 0.75, // Approximate base price (75% of total)
+      taxAmount: newPrice * 0.25, // Approximate tax (25% of total)
+      feeAmount: flight.feeAmount,
+      currency: flight.currency,
+      isRefundable: flight.isRefundable,
+      baggageAllowance: flight.baggageAllowance,
+      legSchedules: flight.legSchedules,
+      stopSchedules: flight.stopSchedules,
+      segmentInfo: flight.segmentInfo,
+      airlineCode: flight.airlineCode,
+      airlineName: flight.airlineName,
+      airlineImg: flight.airlineImg,
+      rph: flight.rph,
+      flightSegment: flight.flightSegment,
+      fareOptions: flight.fareOptions,
+      rawData: flight.rawData,
+      changeFeeDetails: flight.changeFeeDetails,
+      refundFeeDetails: flight.refundFeeDetails,
+    );
+  }
+
+// Store cart data
+  void _storeCartData(Map<String, dynamic>? cartData, bool isReturnFlight) {
+    if (cartData != null) {
+      if (isReturnFlight) {
+        _returnCartData = cartData;
+      } else {
+        _outboundCartData = cartData;
+      }
+    }
+  }
+
+
+
+
 }
 
 // AirlineInfo is now imported from sabre_flight_models.dart AirlineInfo(this.name, this.logoPath);

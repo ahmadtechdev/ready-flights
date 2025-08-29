@@ -788,7 +788,7 @@ class AirBlueFlightApiService {
           print(fareInfo);
           print("fare info 1 that is new");
           print(selectedFareOption?.fareInfoRawData);
-          fareInfo=selectedFareOption?.fareInfoRawData;
+          // fareInfo=selectedFareOption?.fareInfoRawData;
 
           if (fareInfo != null) {
             // Build fare info taxes if exists
@@ -1196,7 +1196,7 @@ class AirBlueFlightApiService {
         i + chunkSize < jsonString.length ? i + chunkSize : jsonString.length,
       );
       if (kDebugMode) {
-        // print(chunk);
+        print(chunk);
       }
     }
   }

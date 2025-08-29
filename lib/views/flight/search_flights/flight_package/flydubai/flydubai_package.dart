@@ -508,6 +508,7 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
     );
   }
 
+// Update the onSelectPackage method in FlyDubaiPackageSelectionDialog
   void onSelectPackage(int selectedPackageIndex) async {
     try {
       isLoading.value = true;
@@ -518,6 +519,29 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
 
       // Get the selected fare option
       final selectedFareOption = fareOptions[selectedPackageIndex];
+
+      // Revalidate flight pricing before proceeding
+      final revalidationSuccess = await flyDubaiController.revalidateFlightBeforeReview(
+        flight: flight,
+        selectedFare: selectedFareOption,
+        isReturnFlight: isReturnFlight,
+      );
+
+      if (!revalidationSuccess) {
+        Get.snackbar(
+          'Price Update Required',
+          'Flight prices have changed. Please review the updated pricing.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 3),
+        );
+
+        // Refresh the package list to show updated prices
+        await _prefetchMarginData();
+        isLoading.value = false;
+        return;
+      }
 
       // Check if this is a one-way flight or we need to select a return flight
       final tripType = flightBookingController.tripType.value;
@@ -585,7 +609,6 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
       isLoading.value = false;
     }
   }
-
   void _showReturnFlights() {
     final returnFlights = flyDubaiController.getReturnFlights();
 
