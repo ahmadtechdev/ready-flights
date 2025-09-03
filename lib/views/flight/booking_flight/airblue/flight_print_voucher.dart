@@ -13,7 +13,7 @@ import '../../../../../services/api_service_sabre.dart';
 import '../../../../../utility/colors.dart';
 import '../../search_flights/airblue/airblue_flight_controller.dart';
 import '../../search_flights/airblue/airblue_flight_model.dart';
-import 'booking_flight_controller.dart';
+import '../booking_flight_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 

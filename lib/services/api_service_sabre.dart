@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../views/flight/booking_flight/airblue/booking_flight_controller.dart';
+import '../views/flight/booking_flight/booking_flight_controller.dart';
 import '../views/flight/search_flights/sabre/sabre_flight_models.dart';
 import 'api_service_airblue.dart';
 
@@ -888,7 +888,7 @@ class ApiServiceSabre extends GetxService {
                     "PersonName": {
                       "NameNumber": passenger["NameNumber"],
                     },
-                    "Text": "+923067011601",
+                    "Text": formattedPhone,
                   },
                   {
 
@@ -926,7 +926,7 @@ class ApiServiceSabre extends GetxService {
               "Ind": true,
             },
             "Source": {
-              "ReceivedFrom": "AryanB2B",
+              "ReceivedFrom": "ReadyFlight",
             },
           },
           "PostBookingHKValidation": {

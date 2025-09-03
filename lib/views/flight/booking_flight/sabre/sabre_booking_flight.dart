@@ -6,19 +6,19 @@ import '../../../../../utility/colors.dart';
 import '../../../../../widgets/travelers_selection_bottom_sheet.dart';
 import '../../search_flights/sabre/sabre_flight_models.dart';
 import '../../search_flights/search_flight_utils/widgets/sabre_flight_card.dart';
-import '../airblue/booking_flight_controller.dart';
+import '../booking_flight_controller.dart';
 import 'sabre_flight_voucher.dart';
 
-class BookingForm extends StatefulWidget {
+class SabreBookingForm extends StatefulWidget {
   final SabreFlight flight;
   Map<String, dynamic>? revalidatePricing;
-  BookingForm({super.key, required this.flight, this.revalidatePricing});
+  SabreBookingForm({super.key, required this.flight, this.revalidatePricing});
 
   @override
-  State<BookingForm> createState() => _BookingFormState();
+  State<SabreBookingForm> createState() => _SabreBookingFormState();
 }
 
-class _BookingFormState extends State<BookingForm> {
+class _SabreBookingFormState extends State<SabreBookingForm> {
   final _formKey = GlobalKey<FormState>();
   final BookingFlightController bookingController = Get.put(
     BookingFlightController(),

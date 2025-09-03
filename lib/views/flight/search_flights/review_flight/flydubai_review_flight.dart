@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../../utility/colors.dart';
+import '../../booking_flight/flydubai/flydubai_booking_flight.dart';
 import '../flydubai/flydubai_model.dart';
 import '../flydubai/flydubai_controller.dart';
 import '../search_flight_utils/widgets/flydubai_flight_card.dart';
@@ -84,13 +85,14 @@ class FlyDubaiReviewTripPage extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () {
                 // Navigate to passenger details or booking confirmation
-                Get.snackbar(
-                  'Next Step',
-                  'Proceeding to passenger details...',
-                  snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: TColors.primary,
-                  colorText: Colors.white,
-                );
+                Get.to(()=> FlyDubaiBookingFlight(flight: flight,));
+                // Get.snackbar(
+                //   'Next Step',
+                //   'Proceeding to passenger details...',
+                //   snackPosition: SnackPosition.BOTTOM,
+                //   backgroundColor: TColors.primary,
+                //   colorText: Colors.white,
+                // );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: TColors.primary,
