@@ -407,16 +407,16 @@ class FlightBookingController extends GetxController {
         ),
 
         // // Call AirBlue API for all trip types including multi-city
-        // _callAirBlueApi(
-        //   type: tripType.value == TripType.multiCity ? 2 : (tripType.value == TripType.roundTrip ? 1 : 0),
-        //   origin: origin,
-        //   destination: destination,
-        //   depDate: formattedDates,
-        //   adult: adultCount.value,
-        //   child: childrenCount.value,
-        //   infant: infantCount.value,
-        //   cabin: travelClass.value,
-        // ),
+        _callAirBlueApi(
+          type: tripType.value == TripType.multiCity ? 2 : (tripType.value == TripType.roundTrip ? 1 : 0),
+          origin: origin,
+          destination: destination,
+          depDate: formattedDates,
+          adult: adultCount.value,
+          child: childrenCount.value,
+          infant: infantCount.value,
+          cabin: travelClass.value,
+        ),
 
 
 

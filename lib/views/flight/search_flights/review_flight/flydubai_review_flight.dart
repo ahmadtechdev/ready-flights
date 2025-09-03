@@ -56,12 +56,12 @@ class FlyDubaiReviewTripPage extends StatelessWidget {
 
                   const SizedBox(height: 24),
 
-                  // Selected package info
-                  _buildSelectedPackageInfo(flyDubaiController),
-
-                  const SizedBox(height: 24),
-
-                  // Price breakdown
+                  // // Selected package info
+                  // _buildSelectedPackageInfo(flyDubaiController),
+                  //
+                  // const SizedBox(height: 24),
+                  //
+                  // // Price breakdown
                   _buildPriceBreakdown(flyDubaiController),
                 ],
               ),
