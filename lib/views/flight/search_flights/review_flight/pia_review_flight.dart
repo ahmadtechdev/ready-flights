@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../utility/colors.dart';
 import '../../../../widgets/travelers_selection_bottom_sheet.dart';
-import '../booking_flight/pia_booking_flight.dart';
+import '../../booking_flight/pia_booking_flight.dart';
 import '../pia/pia_flight_model.dart';
 import '../pia/pia_flight_controller.dart';
 import '../search_flight_utils/widgets/pia_flight_card.dart';

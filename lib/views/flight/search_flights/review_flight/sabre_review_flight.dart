@@ -4,7 +4,7 @@ import 'dart:async';
 
 import '../../../../utility/colors.dart';
 import '../../../../widgets/travelers_selection_bottom_sheet.dart';
-import '../booking_flight/sabre/booking_flight.dart';
+import '../../booking_flight/sabre/booking_flight.dart';
 import '../sabre/sabre_flight_models.dart';
 import '../search_flight_utils/widgets/sabre_flight_card.dart';
 

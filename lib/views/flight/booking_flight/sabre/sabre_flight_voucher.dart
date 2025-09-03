@@ -12,8 +12,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../services/api_service_sabre.dart';
 import '../../../../../utility/colors.dart';
-import '../../sabre/sabre_flight_controller.dart';
-import '../../sabre/sabre_flight_models.dart';
+import '../../search_flights/sabre/sabre_flight_controller.dart';
+import '../../search_flights/sabre/sabre_flight_models.dart';
 import '../airblue/booking_flight_controller.dart';
 
 
@@ -1685,12 +1685,415 @@ class _SabreFlightBookingDetailsScreenState
   }
 
   Future<void> _generatePDF() async {
-    // TODO: Implement PDF generation for Sabre flights
-    Get.snackbar(
-      'Coming Soon',
-      'PDF generation for Sabre flights will be implemented soon',
-      backgroundColor: Colors.blue,
-      colorText: Colors.white,
+    final flight = widget.flight;
+    final pdf = pw.Document();
+
+    // Add page
+    pdf.addPage(
+      pw.MultiPage(
+        build: (pw.Context context) {
+          return [
+            // Header
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'ReadyFlights',
+                      style: pw.TextStyle(
+                        fontSize: 18,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      'Flight Booking Details',
+                      style: pw.TextStyle(
+                        fontSize: 12,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
+                  ],
+                ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Text(
+                      'Agent: ${bookingController.firstNameController.text} ${bookingController.lastNameController.text}',
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 10,
+                      ),
+                    ),
+                    pw.Text(
+                      '${bookingController.emailController.text}',
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
+                    pw.Text(
+                      'Phone: ${bookingController.bookerPhoneCountry} ${bookingController.phoneController.text}',
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      'PNR: ${widget.pnrResponse?['CreatePassengerNameRecordRS']?['ItineraryRef']?['ID'] ?? widget.pnrResponse?['order']?['pnrLocator'] ?? 'N/A'}',
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 10),
+
+            // Add expiry notice to PDF
+            if (_expiryDateTime != null) ...[
+              pw.Container(
+                padding: const pw.EdgeInsets.all(10),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.red, width: 1),
+                  borderRadius: const pw.BorderRadius.all(
+                    pw.Radius.circular(8),
+                  ),
+                ),
+                child: pw.Row(
+                  children: [
+                    pw.Icon(
+                      const pw.IconData(0xe8b5), // schedule icon
+                      color: PdfColors.red,
+                      size: 16,
+                    ),
+                    pw.SizedBox(width: 8),
+                    pw.Expanded(
+                      child: pw.Text(
+                        _expiryMessage,
+                        style: pw.TextStyle(
+                          fontSize: 12,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.red,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 15),
+            ],
+
+            // Flight Details
+            pw.Text(
+              'Flight Details',
+              style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.Divider(),
+
+            // Single flight section for Sabre
+            _buildPdfFlightSection(flight: flight),
+            pw.SizedBox(height: 16),
+
+            // Passenger Details
+            pw.Text(
+              'Passenger Details',
+              style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.Divider(),
+            pw.TableHelper.fromTextArray(
+              context: context,
+              border: pw.TableBorder.all(color: PdfColors.grey300),
+              headerDecoration: pw.BoxDecoration(color: PdfColors.grey200),
+              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              headers: ['Sr', 'Name', 'Type', 'Passport#', 'Ticket #'],
+              data: [
+                ...bookingController.adults.map(
+                      (adult) => [
+                    '${bookingController.adults.indexOf(adult) + 1}',
+                    '${adult.firstNameController.text} ${adult.lastNameController.text}',
+                    'Adult',
+                    adult.passportCnicController.text,
+                    'N/A',
+                  ],
+                ),
+                ...bookingController.children.map(
+                      (child) => [
+                    '${bookingController.adults.length + bookingController.children.indexOf(child) + 1}',
+                    '${child.firstNameController.text} ${child.lastNameController.text}',
+                    'Child',
+                    child.passportCnicController.text,
+                    'N/A',
+                  ],
+                ),
+                ...bookingController.infants.map(
+                      (infant) => [
+                    '${bookingController.adults.length + bookingController.children.length + bookingController.infants.indexOf(infant) + 1}',
+                    '${infant.firstNameController.text} ${infant.lastNameController.text}',
+                    'Infant',
+                    infant.passportCnicController.text,
+                    'N/A',
+                  ],
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 20),
+
+            // Price Breakdown
+            pw.Text(
+              'Price Breakdown',
+              style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.Divider(),
+
+            // Adult pricing breakdown
+            if (bookingController.adults.isNotEmpty) ...[
+              _buildPdfPriceRow(
+                'Adult Base Fare',
+                'PKR ${(flight.price * 0.7).toStringAsFixed(2)}',
+              ),
+              _buildPdfPriceRow(
+                'Adult Taxes',
+                'PKR ${(flight.price * 0.2).toStringAsFixed(2)}',
+              ),
+              _buildPdfPriceRow(
+                'Adult Fees',
+                'PKR ${(flight.price * 0.1).toStringAsFixed(2)}',
+              ),
+            ],
+
+            // Child pricing breakdown
+            if (bookingController.children.isNotEmpty) ...[
+              _buildPdfPriceRow(
+                'Child Base Fare',
+                'PKR ${(flight.price * 0.6).toStringAsFixed(2)}',
+              ),
+              _buildPdfPriceRow(
+                'Child Taxes',
+                'PKR ${(flight.price * 0.2).toStringAsFixed(2)}',
+              ),
+              _buildPdfPriceRow(
+                'Child Fees',
+                'PKR ${(flight.price * 0.2).toStringAsFixed(2)}',
+              ),
+            ],
+
+            // Infant pricing breakdown
+            if (bookingController.infants.isNotEmpty) ...[
+              _buildPdfPriceRow(
+                'Infant Base Fare',
+                'PKR ${(flight.price * 0.3).toStringAsFixed(2)}',
+              ),
+              _buildPdfPriceRow(
+                'Infant Taxes',
+                'PKR ${(flight.price * 0.1).toStringAsFixed(2)}',
+              ),
+              _buildPdfPriceRow(
+                'Infant Fees',
+                'PKR ${(flight.price * 0.1).toStringAsFixed(2)}',
+              ),
+            ],
+
+            pw.Divider(),
+            _buildPdfPriceRow(
+              'Total Amount',
+              'PKR ${flight.price.toStringAsFixed(2)}',
+              isTotal: true,
+            ),
+            pw.SizedBox(height: 20),
+
+            // Footer
+            pw.Center(
+              child: pw.Text(
+                'Thank you for booking with Journey Online!',
+                style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
+              ),
+            ),
+          ];
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+    );
+  }
+
+  pw.Widget _buildPdfFlightSection({
+    required SabreFlight flight,
+  }) {
+    final firstLeg = flight.legSchedules.first;
+    final lastLeg = flight.legSchedules.last;
+    final departureDateTime = DateTime.parse(firstLeg['departure']['dateTime']);
+    final arrivalDateTime = DateTime.parse(lastLeg['arrival']['dateTime']);
+    final duration = arrivalDateTime.difference(departureDateTime);
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.grey300),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text(
+                '${flight.airline} Flight (${flight.flightNumber})',
+                style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              ),
+              pw.Text(
+                'ECONOMY',
+                style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 8),
+          pw.Text(
+            '${firstLeg['departure']['airport']} → ${lastLeg['arrival']['airport']}',
+            style: pw.TextStyle(fontSize: 12),
+          ),
+          pw.SizedBox(height: 8),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text(
+                'Departure: ${departureDateTime.day}-${departureDateTime.month}-${departureDateTime.year} ${departureDateTime.hour.toString().padLeft(2, '0')}:${departureDateTime.minute.toString().padLeft(2, '0')}',
+              ),
+              pw.Text('Duration: ${hours}h ${minutes}m'),
+              pw.Text(
+                'Arrival: ${arrivalDateTime.day}-${arrivalDateTime.month}-${arrivalDateTime.year} ${arrivalDateTime.hour.toString().padLeft(2, '0')}:${arrivalDateTime.minute.toString().padLeft(2, '0')}',
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 8),
+          pw.Row(
+            children: [
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'Hand Baggage:',
+                      style: const pw.TextStyle(
+                        fontSize: 10,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
+                    pw.Text('7 Kg'),
+                  ],
+                ),
+              ),
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'Checked Baggage:',
+                      style: const pw.TextStyle(
+                        fontSize: 10,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
+                    pw.Text(
+                      '${flight.baggageAllowance.weight} ${flight.baggageAllowance.unit}',
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 8),
+          pw.Divider(),
+          pw.SizedBox(height: 8),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'Airline:',
+                    style: pw.TextStyle(
+                      fontSize: 10,
+                      color: PdfColors.grey700,
+                    ),
+                  ),
+                  pw.Text(flight.airline),
+                ],
+              ),
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'Meal:',
+                    style: pw.TextStyle(
+                      fontSize: 10,
+                      color: PdfColors.grey700,
+                    ),
+                  ),
+                  pw.Text(
+                    flight.mealCode.isNotEmpty ? 'Included' : 'Not Included',
+                  ),
+                ],
+              ),
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'Refundable:',
+                    style: pw.TextStyle(
+                      fontSize: 10,
+                      color: PdfColors.grey700,
+                    ),
+                  ),
+                  pw.Text(flight.isRefundable ? 'Yes' : 'No'),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildPdfPriceRow(
+      String label,
+      String value, {
+        bool isTotal = false,
+      }) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 4),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(
+            label,
+            style: pw.TextStyle(
+              fontSize: 12,
+              fontWeight: isTotal ? pw.FontWeight.bold : pw.FontWeight.normal,
+              color: isTotal ? PdfColors.blue800 : PdfColors.black,
+            ),
+          ),
+          pw.Text(
+            value,
+            style: pw.TextStyle(
+              fontSize: 12,
+              fontWeight: isTotal ? pw.FontWeight.bold : pw.FontWeight.normal,
+              color: isTotal ? PdfColors.blue800 : PdfColors.black,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

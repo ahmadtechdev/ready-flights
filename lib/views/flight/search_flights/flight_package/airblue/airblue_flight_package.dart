@@ -541,7 +541,10 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
   // ALSO FIX: In onSelectPackage method
   void onSelectPackage(int selectedPackageIndex) async {
     try {
+
       isLoading.value = true;
+
+      print('DEBUG: onSelectPackage called - isReturnFlight: $isReturnFlight, segmentIndex: $segmentIndex');
 
       // FIXED: Get fare options with correct segment index
       final List<AirBlueFareOption> fareOptions = airBlueController.getFareOptionsForFlight(
@@ -551,7 +554,8 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
 
       // Get the selected fare option
       final selectedFareOption = fareOptions[selectedPackageIndex];
-
+      print("check abc 1");
+      print(isReturnFlight);
       // Check trip type
       final tripType = flightBookingController.tripType.value;
 
@@ -559,9 +563,11 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
         // Handle multi-city selection
         _handleMultiCitySelection(selectedFareOption);
       } else if (tripType == TripType.oneWay || isReturnFlight) {
+        print("check abc 1");
         // For one-way trip or if this is already the return flight selection
         _handleOneWayOrReturnSelection(selectedFareOption);
       } else {
+
         // For round trip (only 2 segments: outbound and return)
         _handleRoundTripSelection(selectedFareOption);
       }
@@ -601,7 +607,6 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
   }
   // NEW: Dedicated method to handle one-way or return flight selections
   void _handleOneWayOrReturnSelection(AirBlueFareOption selectedFareOption) {
-    Get.back(); // Close the package selection dialog
 
     // Store the selected flight and package
     if (isReturnFlight) {
@@ -609,6 +614,7 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
     } else {
       airBlueController.selectedOutboundFareOption = selectedFareOption;
     }
+    Get.back(); // Close the package selection dialog
 
     // Navigate to review page
     Get.snackbar(
@@ -622,14 +628,21 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
       duration: const Duration(seconds: 2),
     );
 
-    Get.to(() => AirBlueReviewTripPage(
-      flight: flight,
-      isReturn: isReturnFlight,
-    ));
+    // FIXED: Use a small delay to ensure the dialog is fully closed before navigation
+    Future.delayed(Duration(milliseconds: 300), () {
+      Get.to(() => AirBlueReviewTripPage(
+        flight: flight,
+        isReturn: isReturnFlight,
+      ));
+    });
   }
 
   // NEW: Dedicated method to handle round trip selections
   void _handleRoundTripSelection(AirBlueFareOption selectedFareOption) {
+
+    print('DEBUG: Return flight selected - ${flight.legSchedules.first['departure']['airport']} -> ${flight.legSchedules.last['arrival']['airport']}');
+
+
     Get.back(); // Close the package selection dialog
 
     // Store the selected outbound flight and package

@@ -6,10 +6,9 @@ import 'package:country_picker/country_picker.dart';
 import '../../../../../services/api_service_airblue.dart';
 import '../../../../../utility/colors.dart';
 import '../../../../../widgets/travelers_selection_bottom_sheet.dart';
-import '../../airblue/airblue_flight_controller.dart';
-import '../../airblue/airblue_flight_model.dart';
-import '../../airblue/airblue_pnr_pricing.dart';
-import '../../search_flight_utils/widgets/airblue_flight_card.dart';
+import '../../search_flights/airblue/airblue_flight_controller.dart';
+import '../../search_flights/airblue/airblue_flight_model.dart';
+import '../../search_flights/airblue/airblue_pnr_pricing.dart';
 import 'booking_flight_controller.dart';
 import 'flight_print_voucher.dart';
 

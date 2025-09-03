@@ -356,36 +356,20 @@ class _AirBlueMultiCityFlightPageState extends State<AirBlueMultiCityFlightPage>
       itemCount: safeFlights.length,
       itemBuilder: (context, index) {
         final flight = safeFlights[index];
-        return GestureDetector(
-          // MAIN FIX: Use widget.currentSegment directly instead of trying to access it from controller
-          onTap: () {
-            print('DEBUG: Flight tapped for segment ${widget.currentSegment}');
-            print('DEBUG: Flight route: ${flight.legSchedules.first['departure']['airport']} -> ${flight.legSchedules.last['arrival']['airport']}');
-            print('DEBUG: Flight RPH: ${flight.rph}');
-            print('DEBUG: Using segment index from widget: ${widget.currentSegment}');
-
-            // CRITICAL FIX: Force set the current segment in controller before calling handler
-            airBlueController.currentMultiCitySegment.value = widget.currentSegment;
-
-            // Debug: verify the controller has the right segment
-            print('DEBUG: Controller current segment set to: ${airBlueController.currentMultiCitySegment.value}');
-
-            // Call the flight selection handler with the correct segment index from widget
-            airBlueController.handleMultiCityFlightSelection(flight, widget.currentSegment);
-          },
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: TColors.grey.withOpacity(0.2),
-                width: 1,
-              ),
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: TColors.grey.withOpacity(0.2),
+              width: 1,
             ),
-            child: AirBlueFlightCard(
-              flight: flight,
-              showReturnFlight: false,
-            ),
+          ),
+          child: AirBlueFlightCard(
+            flight: flight,
+            showReturnFlight: false,
+            isMultiCity: true,
+            currentSegment: widget.currentSegment,
           ),
         );
       },

@@ -11,8 +11,8 @@ import 'package:printing/printing.dart';
 
 import '../../../../../services/api_service_sabre.dart';
 import '../../../../../utility/colors.dart';
-import '../../airblue/airblue_flight_controller.dart';
-import '../../airblue/airblue_flight_model.dart';
+import '../../search_flights/airblue/airblue_flight_controller.dart';
+import '../../search_flights/airblue/airblue_flight_model.dart';
 import 'booking_flight_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -1842,7 +1842,7 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
-                      'Journey Online Booking Voucher',
+                      'Ready Flights',
                       style: pw.TextStyle(
                         fontSize: 18,
                         fontWeight: pw.FontWeight.bold,
@@ -2067,7 +2067,7 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
             // Footer
             pw.Center(
               child: pw.Text(
-                'Thank you for booking with Journey Online!',
+                'Thank you for booking with Ready Flights!',
                 style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
               ),
             ),

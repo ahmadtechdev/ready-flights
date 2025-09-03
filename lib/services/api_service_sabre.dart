@@ -7,8 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../views/flight/search_flights/booking_flight/airblue/booking_flight_controller.dart';
-import '../views/flight/search_flights/booking_flight/sabre/sabre_flight_voucher.dart';
+import '../views/flight/booking_flight/airblue/booking_flight_controller.dart';
 import '../views/flight/search_flights/sabre/sabre_flight_models.dart';
 import 'api_service_airblue.dart';
 
@@ -747,7 +746,7 @@ class ApiServiceSabre extends GetxService {
       if (phone.startsWith('0')) {
         phone = phone.substring(1);
       }
-      return '00952$phone';
+      return '0092$phone';
     }
 
     final formattedPhone = formatPhone(firstAdultPhone, firstAdultCountry);

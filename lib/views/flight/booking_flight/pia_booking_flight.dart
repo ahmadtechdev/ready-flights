@@ -3,8 +3,8 @@ import 'package:get/get.dart';
 import '../../../../services/api_service_pia.dart';
 import '../../../../utility/colors.dart';
 import '../../../../widgets/travelers_selection_bottom_sheet.dart';
-import '../pia/pia_flight_model.dart';
-import '../search_flight_utils/widgets/pia_flight_card.dart';
+import '../search_flights/pia/pia_flight_model.dart';
+import '../search_flights/search_flight_utils/widgets/pia_flight_card.dart';
 import 'booking_flight_controller2.dart';
 
 class PIAFlightBookingForm extends StatefulWidget {

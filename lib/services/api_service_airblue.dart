@@ -10,9 +10,9 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:xml2json/xml2json.dart';
 import 'package:xml/xml.dart' as xml;
+import '../views/flight/booking_flight/airblue/booking_flight_controller.dart';
 import '../views/flight/search_flights/airblue/airblue_flight_model.dart';
 import '../views/flight/search_flights/airblue/airblue_pnr_pricing.dart';
-import '../views/flight/search_flights/booking_flight/airblue/booking_flight_controller.dart';
 import '../views/flight/search_flights/sabre/sabre_flight_models.dart';
 
 class AirBlueFlightApiService {
@@ -603,6 +603,7 @@ class AirBlueFlightApiService {
       if (multicityFlights == null || multicityFlights.isEmpty) {
         bookingClass.add(outboundFareOption!.rawData);
       }
+
       // Add return flight if exists
       if (returnFlight != null) {
         bookingClass.add(returnFareOption!.rawData);
@@ -649,13 +650,6 @@ class AirBlueFlightApiService {
       )
           .toList();
 
-
-      print("adults");
-      print(adults);
-      print("child");
-      print(children);
-      print("infants");
-      print(infants);
 
       // Generate random string for EchoToken
       final randomString = _generateRandomString(32);
@@ -832,7 +826,7 @@ class AirBlueFlightApiService {
   <DepartureDate>${fareInfo['DepartureDate']?['\$t'] ?? flightSegment['DepartureDateTime']}</DepartureDate>
   <DepartureAirport LocationCode="${fareInfo['DepartureAirport']?['LocationCode'] ?? flightSegment['DepartureAirport']['LocationCode']}"/>
   <ArrivalAirport LocationCode="${fareInfo['ArrivalAirport']?['LocationCode'] ?? flightSegment['ArrivalAirport']['LocationCode']}"/>
-  <FareInfo FareBasisCode="${fareInfo['FareInfo']?['FareBasisCode'] ?? flightSegment['ResBookDesigCode']}"/>
+  <FareInfo FareBasisCode="${selectedFareOption?.fareInfoRawData['FareInfo']?['FareBasisCode'] ?? flightSegment['ResBookDesigCode']}"/>
   <PassengerFare>
     <BaseFare CurrencyCode="${fareInfo['PassengerFare']?['BaseFare']?['CurrencyCode'] ?? baseFare['CurrencyCode']}" 
               Amount="${fareInfo['PassengerFare']?['BaseFare']?['Amount'] ?? baseFare['Amount']}" />''';
@@ -993,7 +987,11 @@ class AirBlueFlightApiService {
   </Body>
 </Envelope>''';
 
+      print("request pnr");
+      print(request);
+
       printDebugData('PNR REQUEST', request);
+
 
       // Configure Dio with SSL certificates
       final ByteData certData = await rootBundle.load('assets/certs/cert.pem');
@@ -1169,7 +1167,7 @@ class AirBlueFlightApiService {
       printLongText('Plain String:\n$data');
     } else {
       // JSON/Map or other object
-      // printJsonPretty(data);
+      printJsonPretty(data);
     }
 
     print('--- END DEBUG: $label ---\n');
@@ -1196,7 +1194,7 @@ class AirBlueFlightApiService {
         i + chunkSize < jsonString.length ? i + chunkSize : jsonString.length,
       );
       if (kDebugMode) {
-        print(chunk);
+        // print(chunk);
       }
     }
   }

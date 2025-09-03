@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:country_picker/country_picker.dart';
 import 'package:ready_flights/services/api_service_sabre.dart';
-import 'package:ready_flights/views/flight/search_flights/booking_flight/sabre/sabre_flight_voucher.dart';
 import '../../../../../utility/colors.dart';
 import '../../../../../widgets/travelers_selection_bottom_sheet.dart';
-import '../../sabre/sabre_flight_models.dart';
-import '../../search_flight_utils/widgets/sabre_flight_card.dart';
+import '../../search_flights/sabre/sabre_flight_models.dart';
+import '../../search_flights/search_flight_utils/widgets/sabre_flight_card.dart';
 import '../airblue/booking_flight_controller.dart';
+import 'sabre_flight_voucher.dart';
 
 class BookingForm extends StatefulWidget {
   final SabreFlight flight;

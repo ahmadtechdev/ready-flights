@@ -207,10 +207,7 @@ class FlightBookingPage extends StatelessWidget {
                 itemCount: airBlueController.filteredFlights.length,
                 itemBuilder: (context, index) {
                   final flight = airBlueController.filteredFlights[index];
-                  return GestureDetector(
-                    onTap: () => airBlueController.handleAirBlueFlightSelection(flight),
-                    child: AirBlueFlightCard(flight: flight),
-                  );
+                  return AirBlueFlightCard(flight: flight);
                 },
               );
             }),
@@ -231,14 +228,12 @@ class FlightBookingPage extends StatelessWidget {
                 itemCount: flyDubaiController.filteredOutboundFlights.length,
                 itemBuilder: (context, index) {
                   final flight = flyDubaiController.filteredOutboundFlights[index];
-                  return GestureDetector(
-                    // onTap: () => flyDubaiController.handleFlydubaiFlightSelection(flight),
-                    onTap: () {},
-                    child: FlyDubaiFlightCard(flight: flight, showReturnFlight: false,),
-                  );
+                  return FlyDubaiFlightCard(flight: flight, showReturnFlight: false,);
                 },
               );
             }),
+
+
             // Sabre flights section
             Obx(() {
               if (flightController.isLoading.value && flightController.filteredFlights.isEmpty) {
@@ -253,10 +248,7 @@ class FlightBookingPage extends StatelessWidget {
                 itemCount: flightController.filteredFlights.length,
                 itemBuilder: (context, index) {
                   final flight = flightController.filteredFlights[index];
-                  return GestureDetector(
-                    onTap: () => flightController.handleFlightSelection(flight),
-                    child: FlightCard(flight: flight),
-                  );
+                  return FlightCard(flight: flight);
                 },
               );
             }),

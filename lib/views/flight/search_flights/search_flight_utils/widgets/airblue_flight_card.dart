@@ -12,11 +12,15 @@ class AirBlueFlightCard extends StatefulWidget {
   final AirBlueFlight flight;
   final bool showReturnFlight;
   final bool isShowBookButton;
+  final bool isMultiCity;
+  final int currentSegment;
 
   const AirBlueFlightCard({
     super.key,
     required this.flight,
-    this.showReturnFlight = true,
+    this.showReturnFlight = false,
+    this.isMultiCity = false,
+    this.currentSegment = 0,
     this.isShowBookButton = true,
   });
 
@@ -230,7 +234,7 @@ class _AirBlueFlightCardState extends State<AirBlueFlightCard>
                     ),
                     const Spacer(),
                     // Flight Details Button (replacing 30% OFF)
-                    if(!widget.isShowBookButton)...[
+                    if (!widget.isShowBookButton) ...[
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
@@ -270,8 +274,7 @@ class _AirBlueFlightCardState extends State<AirBlueFlightCard>
                           ),
                         ],
                       ),
-                    ]
-
+                    ],
                   ],
                 ),
 
@@ -365,7 +368,6 @@ class _AirBlueFlightCardState extends State<AirBlueFlightCard>
                                 ),
                               ],
                             ),
-
                           ],
                         ),
                       ),
@@ -446,8 +448,7 @@ class _AirBlueFlightCardState extends State<AirBlueFlightCard>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-
-                    if(widget.isShowBookButton)...[
+                    if (widget.isShowBookButton) ...[
                       // // Best Value Tag
                       // InkWell(
                       //   onTap: () {
@@ -537,14 +538,38 @@ class _AirBlueFlightCardState extends State<AirBlueFlightCard>
                               color: TColors.primary,
                             ),
                           ),
-
                         ],
                       ),
                       InkWell(
-                        onTap:
-                            () => airBlueController.handleAirBlueFlightSelection(
-                          widget.flight,
-                        ),
+                        onTap: () {
+                          if (widget.showReturnFlight) {
+                            print('DEBUG: Return flight selected');
+                            print(
+                              'DEBUG: Flight route: ${widget.flight.legSchedules.first['departure']['airport']} '
+                              '-> ${widget.flight.legSchedules.last['arrival']['airport']}',
+                            );
+                            airBlueController.handleReturnFlightSelection(
+                              widget.flight,
+                            );
+                          } else if(widget.isMultiCity){
+
+                            // CRITICAL FIX: Force set the current segment in controller before calling handler
+                            airBlueController.currentMultiCitySegment.value = widget.currentSegment;
+
+                            // Debug: verify the controller has the right segment
+                            print('DEBUG: Controller current segment set to: ${airBlueController.currentMultiCitySegment.value}');
+
+                            // Call the flight selection handler with the correct segment index from widget
+                            airBlueController.handleMultiCityFlightSelection(widget.flight, widget.currentSegment);
+
+                          } else {
+                            airBlueController.handleAirBlueFlightSelection(
+                              widget.flight,
+                              isReturnFlight: widget.showReturnFlight,
+                            );
+                          }
+                        },
+
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
@@ -598,15 +623,12 @@ class _AirBlueFlightCardState extends State<AirBlueFlightCard>
                           ),
                         ),
                       ),
-                    ]
-
+                    ],
                   ],
                 ),
               ],
             ),
           ),
-
-
         ],
       ),
     );

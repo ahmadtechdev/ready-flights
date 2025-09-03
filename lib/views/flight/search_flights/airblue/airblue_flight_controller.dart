@@ -429,14 +429,14 @@ class AirBlueFlightController extends GetxController {
     print('DEBUG: Selected flights after storage: ${selectedMultiCityFlights.map((f) => f != null ? '${f!.legSchedules.first['departure']['airport']}->${f.legSchedules.last['arrival']['airport']}' : 'null').toList()}');
 
     // Open package selection
-    Get.dialog(
+    Get.off(
       AirBluePackageSelectionDialog(
         flight: flight,
         segmentIndex: segmentIndex,
         isMultiCity: true,
         isReturnFlight: false,
       ),
-      barrierDismissible: false,
+      // barrierDismissible: false,
     );
   }
 
@@ -622,18 +622,32 @@ class AirBlueFlightController extends GetxController {
     // Update current segment before showing selection
     currentMultiCitySegment.value = segmentIndex;
 
+    // // Close any open dialogs first
+    // if (Get.isDialogOpen ?? false) {
+    //   Get.back();
+    // }
+
     // Close any open dialogs first
-    if (Get.isDialogOpen ?? false) {
+    if (Get.isDialogOpen == true) {
       Get.back();
     }
 
-    // FIXED: Always navigate to the page, even if no flights - let the page handle empty flights
-    Future.delayed(Duration(milliseconds: 200), () {
-      Get.to(() => AirBlueMultiCityFlightPage(
+    // Ensure navigation happens on the next frame after dialog is gone
+    Future.microtask(() {
+      Get.off(() => AirBlueMultiCityFlightPage(
         currentSegment: segmentIndex,
-        availableFlights: segmentFlights, // Pass the list even if empty
+        availableFlights: segmentFlights,
       ));
     });
+
+    // Get.off(() => AirBlueMultiCityFlightPage(
+    //   currentSegment: segmentIndex,
+    //   availableFlights: segmentFlights, // Pass the list even if empty
+    // ));
+    // // FIXED: Always navigate to the page, even if no flights - let the page handle empty flights
+    // Future.delayed(Duration(milliseconds: 200), () {
+    //
+    // });
   }
 
   // Proceed to multi-city review page

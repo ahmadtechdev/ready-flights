@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:country_picker/country_picker.dart';
 
 import '../../../../../widgets/travelers_selection_bottom_sheet.dart';
-import '../../../form/flight_booking_controller.dart';
+import '../../form/flight_booking_controller.dart';
 
 class TravelerInfo {
   final TextEditingController titleController;

@@ -55,10 +55,12 @@ class AirblueReturnFlightsPage extends StatelessWidget {
       itemBuilder: (context, index) {
         final flight = flights[index];
         return GestureDetector(
+          // onTap: () {
+          //   print('DEBUG: Return flight selected');
+          //   print('DEBUG: Flight route: ${flight.legSchedules.first['departure']['airport']} -> ${flight.legSchedules.last['arrival']['airport']}');
+          //   airBlueController.handleReturnFlightSelection(flight);
+          // },
           onTap: () {
-            print('DEBUG: Return flight selected');
-            print('DEBUG: Flight route: ${flight.legSchedules.first['departure']['airport']} -> ${flight.legSchedules.last['arrival']['airport']}');
-            airBlueController.handleReturnFlightSelection(flight);
           },
           child: Container(
             margin: const EdgeInsets.only(bottom: 16),
@@ -69,7 +71,7 @@ class AirblueReturnFlightsPage extends StatelessWidget {
                 width: 1,
               ),
             ),
-            child: AirBlueFlightCard(flight: flight, showReturnFlight: false),
+            child: AirBlueFlightCard(flight: flight, showReturnFlight: true,),
           ),
         );
       },
