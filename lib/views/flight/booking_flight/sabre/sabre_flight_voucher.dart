@@ -12,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../services/api_service_sabre.dart';
 import '../../../../../utility/colors.dart';
+import '../../../home/home_screen.dart';
 import '../../search_flights/sabre/sabre_flight_controller.dart';
 import '../../search_flights/sabre/sabre_flight_models.dart';
 import '../booking_flight_controller.dart';
@@ -1658,32 +1659,61 @@ class _SabreFlightBookingDetailsScreenState
   Widget _buildFloatingPrintButton() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
-      child: SizedBox(
-        width: double.infinity,
-        child: FloatingActionButton.extended(
-          onPressed: () => _generatePDF(),
-          backgroundColor: const Color(0xFF1E293B),
-          foregroundColor: Colors.white,
-          elevation: 6,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          label: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.print_rounded, size: 20),
-              SizedBox(width: 8),
-              Text(
-                'Generate & Print Voucher',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+      child: Row(
+        children: [
+          // Go Back to Home Button
+          Expanded(
+            child: FloatingActionButton.extended(
+              onPressed: () {
+                Get.offAll(() => HomeScreen()); // Replace with the page you want
+              },
+              backgroundColor: TColors.background,
+              foregroundColor: TColors.primary,
+              elevation: 6,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-            ],
+              label: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.home_rounded, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Back to Home',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
+          const SizedBox(width: 8), // Space between buttons
+          // Print Button
+          Expanded(
+            child: FloatingActionButton.extended(
+              onPressed: () => _generatePDF(),
+              backgroundColor: TColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 6,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              label: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.print_rounded, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Print Voucher',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
-
   Future<void> _generatePDF() async {
     final flight = widget.flight;
     final pdf = pw.Document();

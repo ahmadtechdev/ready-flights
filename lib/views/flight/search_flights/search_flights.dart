@@ -399,7 +399,7 @@ class FlightBookingPage extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           Text(
-            'Searching $airlineName flights...',
+            'Searching flights...',
             style: const TextStyle(
               color: TColors.grey,
               fontSize: 14,

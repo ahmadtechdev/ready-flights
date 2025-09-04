@@ -1092,7 +1092,7 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                         );
 
                         // Navigate to booking details screen
-                        Get.to(
+                        Get.offAll(
                               () => FlightBookingDetailsScreen(
                             outboundFlight: updatedOutboundFlight ?? widget.flight,
                             returnFlight: updatedReturnFlight ?? widget.returnFlight,

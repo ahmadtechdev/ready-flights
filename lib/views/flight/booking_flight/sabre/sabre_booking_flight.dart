@@ -990,7 +990,7 @@ class _SabreBookingFormState extends State<SabreBookingForm> {
 
                     );
 
-                    Get.to(() => SabreFlightBookingDetailsScreen(
+                    Get.offAll(() => SabreFlightBookingDetailsScreen(
                       flight: widget.flight,
                       pnrResponse: pnrResponse,
                     ));
