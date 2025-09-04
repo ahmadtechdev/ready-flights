@@ -3,6 +3,7 @@ import 'sabre_package_modal.dart';
 class SabreFlight {
   final String imgPath;
   final String airline;
+  final String airlineCode;
   final String flightNumber;
   final double price;
   final bool isRefundable;
@@ -21,6 +22,7 @@ class SabreFlight {
   SabreFlight({
     required this.imgPath,
     required this.airline,
+    required this.airlineCode,
     required this.flightNumber,
     required this.price,
     required this.isRefundable,

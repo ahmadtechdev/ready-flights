@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:country_picker/country_picker.dart';
 import 'package:ready_flights/services/api_service_sabre.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../../utility/colors.dart';
 import '../../../../../widgets/travelers_selection_bottom_sheet.dart';
 import '../../search_flights/sabre/sabre_flight_models.dart';
@@ -851,6 +852,8 @@ class _SabreBookingFormState extends State<SabreBookingForm> {
   }
 
   // Replace the _buildCheckboxGroup method with this dropdown method
+// Replace the _buildDropdownField method in your UI file with this updated version
+
   Widget _buildDropdownField({
     required String label,
     required List<String> options,
@@ -875,7 +878,9 @@ class _SabreBookingFormState extends State<SabreBookingForm> {
             borderRadius: BorderRadius.circular(8),
           ),
           child: DropdownButtonFormField<String>(
-            value: controller.text.isNotEmpty ? controller.text : null,
+            value: controller.text.isNotEmpty && options.contains(controller.text)
+                ? controller.text
+                : null,
             decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(
@@ -896,6 +901,7 @@ class _SabreBookingFormState extends State<SabreBookingForm> {
             onChanged: (String? newValue) {
               if (newValue != null) {
                 controller.text = newValue;
+                // Trigger setState to update the UI immediately
                 setState(() {});
               }
             },
@@ -912,8 +918,6 @@ class _SabreBookingFormState extends State<SabreBookingForm> {
       ],
     );
   }
-
-
   IconData _getTravelerIcon(String type) {
     switch (type) {
       case 'adult':
@@ -971,84 +975,48 @@ class _SabreBookingFormState extends State<SabreBookingForm> {
             ElevatedButton(
               onPressed: () async {
                 if (_formKey.currentState!.validate() && termsAccepted) {
-                  // Print all booker details
-                  print('Booker Details:');
-                  print('First Name: ${bookingController.firstNameController.text}');
-                  print('Last Name: ${bookingController.lastNameController.text}');
-                  print('Email: ${bookingController.emailController.text}');
-                  print('Phone: ${bookingController.phoneController.text}');
-                  print('Remarks: ${bookingController.remarksController.text}');
 
-                  // Print all adult details
-                  for (var i = 0; i < bookingController.adults.length; i++) {
-                    print('Adult ${i + 1} Details:');
-                    print('Title: ${bookingController.adults[i].titleController.text}');
-                    print('First Name: ${bookingController.adults[i].firstNameController.text}');
-                    print('Last Name: ${bookingController.adults[i].lastNameController.text}');
-                    print('Date of Birth: ${bookingController.adults[i].dateOfBirthController.text}');
-                    print('Phone: ${bookingController.adults[i].phoneController.text}');
-                    print('Email: ${bookingController.adults[i].emailController.text}');
-                    print('Nationality: ${bookingController.adults[i].nationalityController.text}');
-                    print('Passport Number: ${bookingController.adults[i].passportCnicController.text}');
-                    print('Passport Expiry: ${bookingController.adults[i].passportExpiryController.text}');
-                    print('Gender: ${bookingController.adults[i].genderController.text}');
+                  try {
+                    // Call the PNR request function
+                    final apiService = ApiServiceSabre();
+                    final pnrResponse = await apiService.createPNRRequest(
+                      flight: widget.flight,
+                      adults: bookingController.adults.toList(),
+                      children: bookingController.children.toList(),
+                      infants: bookingController.infants.toList(),
+                      bookerEmail: bookingController.emailController.text,
+                      bookerPhone: bookingController.getFormattedBookerPhoneNumber(),
+                      revalidatePricing: widget.revalidatePricing,
+
+                    );
+
+                    Get.to(() => SabreFlightBookingDetailsScreen(
+                      flight: widget.flight,
+                      pnrResponse: pnrResponse,
+                    ));
+
+                    Get.snackbar(
+                      'Success',
+                      'Booking created successfully',
+                      backgroundColor: Colors.green,
+                      colorText: Colors.white,
+                      snackPosition: SnackPosition.TOP,
+                    );
+                  } catch (e) {
+                    Get.snackbar(
+                      'Booking Saved',
+                      'Flight details saved. PNR creation may have issues.',
+                      backgroundColor: Colors.orange,
+                      colorText: Colors.white,
+                      snackPosition: SnackPosition.TOP,
+                    );
+
+                    // Still navigate to details screen
+                    Get.to(() => SabreFlightBookingDetailsScreen(
+                      flight: widget.flight,
+                      pnrResponse: null,
+                    ));
                   }
-
-                  // Print all child details
-                  for (var i = 0; i < bookingController.children.length; i++) {
-                    print('Child ${i + 1} Details:');
-                    print('Title: ${bookingController.children[i].titleController.text}');
-                    print('First Name: ${bookingController.children[i].firstNameController.text}');
-                    print('Last Name: ${bookingController.children[i].lastNameController.text}');
-                    print('Date of Birth: ${bookingController.children[i].dateOfBirthController.text}');
-                    print('Nationality: ${bookingController.children[i].nationalityController.text}');
-                    print('Passport Number: ${bookingController.children[i].passportCnicController.text}');
-                    print('Passport Expiry: ${bookingController.children[i].passportExpiryController.text}');
-                    print('Gender: ${bookingController.children[i].genderController.text}');
-                  }
-
-                  // Print all infant details
-                  for (var i = 0; i < bookingController.infants.length; i++) {
-                    print('Infant ${i + 1} Details:');
-                    print('Title: ${bookingController.infants[i].titleController.text}');
-                    print('First Name: ${bookingController.infants[i].firstNameController.text}');
-                    print('Last Name: ${bookingController.infants[i].lastNameController.text}');
-                    print('Date of Birth: ${bookingController.infants[i].dateOfBirthController.text}');
-                    print('Nationality: ${bookingController.infants[i].nationalityController.text}');
-                    print('Passport Number: ${bookingController.infants[i].passportCnicController.text}');
-                    print('Passport Expiry: ${bookingController.infants[i].passportExpiryController.text}');
-                    print('Gender: ${bookingController.infants[i].genderController.text}');
-                  }
-
-                  // Get the booker's email and phone from the form
-                  final bookerEmail = bookingController.emailController.text;
-                  final bookerPhone = bookingController.phoneController.text;
-
-                  // Call the PNR request function
-                  final apiService = ApiServiceSabre();
-                  final pnrResponse = await apiService.createPNRRequest(
-                    flight: widget.flight,
-                    adults: bookingController.adults.toList(),
-                    children: bookingController.children.toList(),
-                    infants: bookingController.infants.toList(),
-                    bookerEmail: bookerEmail,
-                    bookerPhone: bookingController.getFormattedBookerPhoneNumber(),
-                    revalidatePricing: widget.revalidatePricing
-                  );
-
-                  Get.to(() => SabreFlightBookingDetailsScreen(
-                    flight: widget.flight,
-                    pnrResponse: pnrResponse, // Assuming response contains the PNR data
-                  ));
-
-                  // Optionally, you can navigate to a confirmation screen or show a success message
-                  Get.snackbar(
-                    'Success',
-                    'Booking created successfully',
-                    backgroundColor: Colors.green,
-                    colorText: Colors.white,
-                    snackPosition: SnackPosition.TOP,
-                  );
                 } else if (!termsAccepted) {
                   Get.snackbar(
                     'Error',
@@ -1089,6 +1057,7 @@ class _SabreBookingFormState extends State<SabreBookingForm> {
       ),
     );
   }
+
 
   @override
   void dispose() {

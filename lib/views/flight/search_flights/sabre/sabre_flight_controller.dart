@@ -148,10 +148,6 @@ class SabreFlightController extends GetxController {
     }
   }
 
-
-
-
-
 }
 
 extension FlightDateTimeExtension on SabreFlightController {
@@ -560,6 +556,7 @@ extension FlightDateTimeExtension on SabreFlightController {
             final flight = SabreFlight(
               imgPath: airlineInfo.logoPath,
               airline: airlineInfo.name,
+              airlineCode:airlineCode,
               flightNumber:
               '${carrier['marketing'] ?? 'XX'}-${carrier['marketingFlightNumber'] ?? '000'}',
             price:

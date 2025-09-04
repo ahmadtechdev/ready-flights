@@ -877,4 +877,8 @@ class AirBlueFlightController extends GetxController {
     }
     print('=== END DEBUG STATE ===');
   }
+
+  void resetLoadingState() {
+    isLoading.value = true;
+  }
 }

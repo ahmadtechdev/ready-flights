@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthController extends GetxController {
   var dio = Dio();
-  static const String _baseUrl = 'https://onerooftravel.net/api';
+  static const String _baseUrl = 'https://readyflights.pk/api';
 
   // Keys for SharedPreferences
   static const String _tokenKey = 'user_auth_token';
@@ -121,7 +121,7 @@ class AuthController extends GetxController {
     try {
       final response = await dio.post(
         '$_baseUrl/token',
-        data: {'email': email, 'password': password},
+        data: {'email': email, 'password': password, 'Platform':"app"},
       );
 
       if (response.statusCode == 200 && response.data != null) {
@@ -129,6 +129,8 @@ class AuthController extends GetxController {
         final token = response.data['token'];
         final expiryTimestamp = response.data['expire'];
         final userData = response.data['UserData'] ?? {};
+        print("user login data");
+        print(userData);
 
         if (token != null && expiryTimestamp != null) {
           // Store token with expiry and user data

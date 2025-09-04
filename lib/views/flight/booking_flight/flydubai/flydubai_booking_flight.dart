@@ -1030,6 +1030,8 @@ class _FlyDubaiBookingFlightState extends State<FlyDubaiBookingFlight> {
     );
   }
 
+  // Replace the _buildDropdownField method in your UI file with this updated version
+
   Widget _buildDropdownField({
     required String label,
     required List<String> options,
@@ -1054,7 +1056,9 @@ class _FlyDubaiBookingFlightState extends State<FlyDubaiBookingFlight> {
             borderRadius: BorderRadius.circular(8),
           ),
           child: DropdownButtonFormField<String>(
-            value: controller.text.isNotEmpty ? controller.text : null,
+            value: controller.text.isNotEmpty && options.contains(controller.text)
+                ? controller.text
+                : null,
             decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(
@@ -1075,6 +1079,7 @@ class _FlyDubaiBookingFlightState extends State<FlyDubaiBookingFlight> {
             onChanged: (String? newValue) {
               if (newValue != null) {
                 controller.text = newValue;
+                // Trigger setState to update the UI immediately
                 setState(() {});
               }
             },
@@ -1105,6 +1110,8 @@ class _FlyDubaiBookingFlightState extends State<FlyDubaiBookingFlight> {
     }
   }
 
+// Update the _buildBottomBar method in flydubai_booking_flight.dart
+// Update the _buildBottomBar method
   Widget _buildBottomBar() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1137,7 +1144,7 @@ class _FlyDubaiBookingFlightState extends State<FlyDubaiBookingFlight> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '00',
+                  '00', // You might want to calculate the actual total
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -1148,13 +1155,111 @@ class _FlyDubaiBookingFlightState extends State<FlyDubaiBookingFlight> {
             ),
             ElevatedButton(
               onPressed: () async {
-                Get.snackbar(
-                  'Next Step',
-                  'Proceeding to passenger details...',
-                  snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: TColors.primary,
-                  colorText: Colors.white,
-                );
+                // Validate form first
+                if (_formKey.currentState?.validate() ?? false) {
+                  if (termsAccepted) {
+                    // Show loading
+                    Get.dialog(
+                      const Center(child: CircularProgressIndicator()),
+                      barrierDismissible: false,
+                    );
+
+                    try {
+                      print('=== STARTING FLYDUBAI BOOKING PROCESS ===');
+
+                      // Get controller instances
+                      final apiService = Get.find<ApiServiceFlyDubai>();
+                      final flydubaiController = Get.find<FlydubaiFlightController>();
+
+                      // Prepare traveler data
+                      final adults = bookingController.adults;
+                      final children = bookingController.children;
+                      final infants = bookingController.infants;
+
+                      print('Travelers: ${adults.length} adults, ${children.length} children, ${infants.length} infants');
+
+                      // Get cart data from controller
+                      final cartData = flydubaiController.cartData;
+                      if (cartData == null) {
+                        throw Exception('No cart data available. Please add flights to cart first.');
+                      }
+
+                      // Build segment array
+                      final segmentArray = flydubaiController.buildSegmentArray();
+                      print('Segment array: ${segmentArray.length} items');
+
+                      // Get city from booking controller or use default
+                      final city = 'Islamabad'; // You can get this from user input
+
+                      // Get SIM code (you might need to generate or get this)
+                      final simCode = '123'; // Example SIM code
+
+                      // Call createPNR API
+                      final pnrResult = await apiService.createPNR(
+                        adults: adults,
+                        children: children,
+                        infants: infants,
+                        clientEmail: bookingController.emailController.text,
+                        clientPhone: bookingController.getFormattedBookerPhoneNumber(),
+                        countryCode: bookingController.bookerPhoneCountry.value?.phoneCode ?? '92',
+                        simCode: simCode,
+                        city: city,
+                        flightType: widget.returnFlight != null ? 'roundtrip' : 'oneway',
+                        segmentArray: segmentArray,
+                        cartData: cartData,
+                      );
+
+                      // Close loading dialog
+                      Get.back();
+
+                      if (pnrResult['success'] == true) {
+                        print('✅ PNR created successfully: ${pnrResult['confirmationNumber']}');
+
+                        // Show success dialog with PNR details
+                        _showBookingConfirmation(pnrResult);
+                      } else {
+                        print('❌ PNR creation failed: ${pnrResult['error']}');
+                        Get.snackbar(
+                          'Booking Failed',
+                          pnrResult['error']?.toString() ?? 'Unknown error occurred',
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.red,
+                          colorText: Colors.white,
+                        );
+                      }
+                    } catch (e, stackTrace) {
+                      // Close loading dialog
+                      Get.back();
+
+                      print('❌ Booking error: $e');
+                      print('Stack trace: $stackTrace');
+
+                      Get.snackbar(
+                        'Booking Error',
+                        'An error occurred during booking: $e',
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: Colors.red,
+                        colorText: Colors.white,
+                      );
+                    }
+                  } else {
+                    Get.snackbar(
+                      'Terms Required',
+                      'Please accept the terms and conditions',
+                      snackPosition: SnackPosition.BOTTOM,
+                      backgroundColor: Colors.orange,
+                      colorText: Colors.white,
+                    );
+                  }
+                } else {
+                  Get.snackbar(
+                    'Validation Error',
+                    'Please fill all required fields correctly',
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: Colors.orange,
+                    colorText: Colors.white,
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: TColors.primary,
@@ -1178,7 +1283,34 @@ class _FlyDubaiBookingFlightState extends State<FlyDubaiBookingFlight> {
       ),
     );
   }
-
+// Add this helper method to show booking confirmation
+  void _showBookingConfirmation(Map<String, dynamic> pnrResult) {
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Booking Confirmation'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('PNR: ${pnrResult['confirmationNumber'] ?? "Pending"}'),
+            const SizedBox(height: 10),
+            const Text('Your booking has been successfully created!'),
+            const SizedBox(height: 10),
+            Text('Status: ${pnrResult['success'] == true ? 'Confirmed' : 'Pending'}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Get.back();
+              // You might want to navigate to a confirmation page here
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
   @override
   void dispose() {
     // Don't dispose the controllers here as they are managed by BookingFlightController

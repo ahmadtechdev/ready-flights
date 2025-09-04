@@ -193,6 +193,11 @@ class PIAFlightController extends GetxController {
       debugPrint('Stack trace: $stackTrace');
     }
   }
+
+  void resetLoadingState() {
+    isLoading.value = true;
+  }
+
   void _processOriginDestinationOption(
       Map<String, dynamic> option, {
         required bool isOutbound,

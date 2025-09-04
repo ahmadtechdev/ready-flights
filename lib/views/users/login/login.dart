@@ -8,7 +8,7 @@ import 'package:get/get_core/src/get_main.dart';
 import '../../../sizes_helpers.dart';
 import '../../../utility/colors.dart';
 import '../rejistration/register.dart';
-import 'ligin_controller.dart';
+import 'login_controller.dart';
 
 class Login extends StatefulWidget {
   @override

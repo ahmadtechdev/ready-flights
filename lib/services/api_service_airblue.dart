@@ -273,7 +273,7 @@ class AirBlueFlightApiService {
     required String finalPrice,
     required int pnrStatus,
 
-  }) async {
+  }) async   {
 
 
     try {
@@ -368,7 +368,7 @@ class AirBlueFlightApiService {
         "buyingPrice": finalPrice,
         "sellingPrice":finalPrice,
         "pnrStatus": pnrStatus,
-
+        "booking_from":"1"
       };
 
       print("bok body");
@@ -391,6 +391,8 @@ class AirBlueFlightApiService {
 
       // Handle response
       if (response.statusCode == 200 || response.statusCode == 201) {
+        print("check booking response");
+        print(response.data);
         if (response.data is Map<String, dynamic>) {
           return response.data;
         } else if (response.data is String) {
@@ -398,6 +400,7 @@ class AirBlueFlightApiService {
         }
         return {'status': 'success'};
       } else {
+        print(response.statusCode);
         // Handle error responses
         dynamic errorData;
         try {

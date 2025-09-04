@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import '../views/flight/booking_flight/booking_flight_controller.dart';
+
 class ApiServiceFlyDubai {
   // FlyDubai API credentials and constants
   static const String clientId = 'TravelocityPK_FZ_P';
@@ -982,6 +984,619 @@ class ApiServiceFlyDubai {
       print('Error extracting updated price: $e');
       return 0.0;
     }
+  }
+
+
+
+// Update the createPNR method in ApiServiceFlyDubai
+  Future<Map<String, dynamic>> createPNR({
+    required List<TravelerInfo> adults,
+    required List<TravelerInfo> children,
+    required List<TravelerInfo> infants,
+    required String clientEmail,
+    required String clientPhone,
+    required String countryCode,
+    required String simCode,
+    required String city,
+    required String flightType,
+    required List<Map<String, dynamic>> segmentArray,
+    required Map<String, dynamic> cartData,
+  }) async {
+    try {
+      print('=== CREATING PNR FOR FLYDUBAI ===');
+      print('Adults: ${adults.length}, Children: ${children.length}, Infants: ${infants.length}');
+      print('Client Email: $clientEmail, Phone: $clientPhone');
+      print('Country Code: $countryCode, SIM Code: $simCode');
+      print('City: $city, Flight Type: $flightType');
+      print('Segment Array: ${segmentArray.length} segments');
+
+      if (_accessToken == null) {
+        final authSuccess = await authenticate();
+        if (!authSuccess) {
+          return {
+            'success': false,
+            'error': 'Authentication failed',
+            'details': 'Could not authenticate with FlyDubai API'
+          };
+        }
+      }
+
+      // Build the PNR request body
+      final requestBody = _buildPNRRequest(
+        adults: adults,
+        children: children,
+        infants: infants,
+        clientEmail: clientEmail,
+        clientPhone: clientPhone,
+        countryCode: countryCode,
+        simCode: simCode,
+        city: city,
+        flightType: flightType,
+        segmentArray: segmentArray,
+        cartData: cartData,
+      );
+
+      print('PNR Request Body:');
+      printJsonPretty(requestBody);
+
+      // Log the request to file (simulating PHP behavior)
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      print('PNR Request Timestamp: $timestamp');
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/cp/summaryPNR?accural=true'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_accessToken',
+          'Cookie': 'visid_incap_3059742=mt0fc3JTQDStXbDmAKotlet1zGUAAAAAQUIPAAAAAAA/4nh9vwd+842orxzMj3FS',
+          'Accept-Encoding': 'gzip, deflate',
+        },
+        body: json.encode(requestBody),
+      );
+
+      print('PNR Creation Response Status: ${response.statusCode}');
+      print('PNR Creation Response Body:');
+      printJsonPretty(response.body);
+
+      // Log response to file (simulating PHP behavior)
+      print('PNR Response Timestamp: $timestamp');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        print('✅ PNR created successfully');
+
+        // Check for success in response
+        final success = responseData['Success'] == true ||
+            responseData['ConfirmationNumber'] != null;
+
+        return {
+          'success': success,
+          'data': responseData,
+          'confirmationNumber': responseData['ConfirmationNumber']?.toString(),
+          'message': success ? 'PNR created successfully' : 'PNR creation failed',
+          'rawResponse': responseData,
+        };
+      } else if (response.statusCode == 401) {
+        // Token expired
+        print('❌ Token expired, re-authenticating...');
+        _accessToken = null;
+        final authSuccess = await authenticate();
+        if (authSuccess) {
+          return await createPNR(
+            adults: adults,
+            children: children,
+            infants: infants,
+            clientEmail: clientEmail,
+            clientPhone: clientPhone,
+            countryCode: countryCode,
+            simCode: simCode,
+            city: city,
+            flightType: flightType,
+            segmentArray: segmentArray,
+            cartData: cartData,
+          );
+        }
+        return {
+          'success': false,
+          'error': 'Re-authentication failed',
+          'response': response.body,
+        };
+      }
+
+      return {
+        'success': false,
+        'error': 'PNR creation failed with status: ${response.statusCode}',
+        'response': response.body,
+      };
+    } catch (e, stackTrace) {
+      print('❌ PNR creation error: $e');
+      print('Stack trace: $stackTrace');
+      return {
+        'success': false,
+        'error': 'PNR creation failed: $e',
+      };
+    }
+  }
+// Update the _buildPNRRequest method
+  Map<String, dynamic> _buildPNRRequest({
+    required List<TravelerInfo> adults,
+    required List<TravelerInfo> children,
+    required List<TravelerInfo> infants,
+    required String clientEmail,
+    required String clientPhone,
+    required String countryCode,
+    required String simCode,
+    required String city,
+    required String flightType,
+    required List<Map<String, dynamic>> segmentArray,
+    required Map<String, dynamic> cartData,
+  }) {
+    try {
+      print('Building PNR request...');
+
+      // Build passengers array
+      final List<Map<String, dynamic>> passengers = [];
+      int personId = 0;
+
+      // Process adults
+      for (int i = 0; i < adults.length; i++) {
+        personId++;
+        final adult = adults[i];
+        final isPrimary = i == 0;
+
+        // Calculate age
+        final age = _calculateAge(adult.dateOfBirthController.text);
+
+        // Get gender code (M/F)
+        final gender = adult.genderController.text.substring(0, 1).toUpperCase();
+
+        // Get nationality code
+        final nationality = adult.nationalityCountry.value?.countryCode ?? "PK";
+
+        final passenger = {
+          "PersonOrgID": -personId,
+          "FirstName": adult.firstNameController.text,
+          "LastName": adult.lastNameController.text,
+          "MiddleName": "",
+          "Age": age,
+          "DOB": "${adult.dateOfBirthController.text}T00:00:00",
+          "Gender": gender,
+          "Title": adult.titleController.text,
+          "NationalityLaguageID": 1,
+          "RelationType": "Self",
+          "WBCID": 1,
+          "PTCID": 1, // Adult passenger type
+          "TravelsWithPersonOrgID": -personId,
+          "MarketingOptIn": true,
+          "UseInventory": false,
+          "Nationality": nationality,
+          "ProfileId": -2147483648,
+          "IsPrimaryPassenger": isPrimary,
+          "DocumentInfos": [
+            {
+              "DocType": "1",
+              "DocNumber": adult.passportCnicController.text,
+              "IssuingCountry": nationality,
+              "ExpiryDate": adult.passportExpiryController.text.isNotEmpty
+                  ? "${adult.passportExpiryController.text}T00:00:00"
+                  : "2030-12-31T00:00:00" // Default expiry if empty
+            }
+          ]
+        };
+
+        if (isPrimary) {
+          passenger["Address"] = {
+            "Address1": city,
+            "Address2": city,
+            "City": city,
+            "State": "",
+            "Postal": "12123233",
+            "Country": "PK",
+            "CountryCode": countryCode,
+            "AreaCode": "",
+            "PhoneNumber": clientPhone,
+            "Display": ""
+          };
+
+          passenger["ContactInfos"] = [
+            {
+              "Key": null,
+              "ContactID": 0,
+              "PersonOrgID": -1,
+              "ContactField": clientPhone,
+              "ContactType": 2,
+              "Extension": "",
+              "CountryCode": countryCode,
+              "PhoneNumber": clientPhone,
+              "Display": "",
+              "PreferredContactMethod": false,
+              "ValidatedContact": false
+            },
+            {
+              "Key": null,
+              "ContactID": 0,
+              "PersonOrgID": -1,
+              "ContactField": clientEmail,
+              "ContactType": 4,
+              "Extension": "",
+              "CountryCode": countryCode,
+              "PhoneNumber": clientPhone,
+              "Display": "",
+              "PreferredContactMethod": true,
+              "ValidatedContact": false
+            }
+          ];
+        } else {
+          passenger["Address"] = {
+            "Address1": "",
+            "Address2": "",
+            "City": "",
+            "State": "",
+            "Postal": "12123233",
+            "Country": "PK",
+            "CountryCode": countryCode,
+            "AreaCode": "",
+            "PhoneNumber": "",
+            "Display": ""
+          };
+          passenger["ContactInfos"] = [];
+        }
+
+        passengers.add(passenger);
+      }
+
+      // Process children
+      for (int i = 0; i < children.length; i++) {
+        personId++;
+        final child = children[i];
+
+        // Calculate age
+        final age = _calculateAge(child.dateOfBirthController.text);
+
+        // Get gender code
+        final gender = child.genderController.text.substring(0, 1).toUpperCase();
+
+        // Get nationality code
+        final nationality = child.nationalityCountry.value?.countryCode ?? "PK";
+
+        passengers.add({
+          "PersonOrgID": -personId,
+          "FirstName": child.firstNameController.text,
+          "LastName": child.lastNameController.text,
+          "MiddleName": "",
+          "Age": age,
+          "DOB": "${child.dateOfBirthController.text}T00:00:00",
+          "Gender": gender,
+          "Title": child.titleController.text,
+          "NationalityLaguageID": 1,
+          "RelationType": "Self",
+          "WBCID": 1,
+          "PTCID": 6, // Child passenger type
+          "TravelsWithPersonOrgID": -1,
+          "MarketingOptIn": true,
+          "UseInventory": false,
+          "Address": {
+            "Address1": "",
+            "Address2": "",
+            "City": "",
+            "State": "",
+            "Postal": "12123233",
+            "Country": "PK",
+            "CountryCode": countryCode,
+            "AreaCode": "",
+            "PhoneNumber": "",
+            "Display": ""
+          },
+          "Nationality": nationality,
+          "ProfileId": -2147483648,
+          "IsPrimaryPassenger": false,
+          "ContactInfos": [],
+          "DocumentInfos": [
+            {
+              "DocType": "1",
+              "DocNumber": child.passportCnicController.text,
+              "IssuingCountry": nationality,
+              "ExpiryDate": child.passportExpiryController.text.isNotEmpty
+                  ? "${child.passportExpiryController.text}T00:00:00"
+                  : "2030-12-31T00:00:00"
+            }
+          ]
+        });
+      }
+
+      // Process infants
+      for (int i = 0; i < infants.length; i++) {
+        personId++;
+        final infant = infants[i];
+
+        // Calculate age
+        final age = _calculateAge(infant.dateOfBirthController.text);
+
+        // Get gender code
+        final gender = infant.genderController.text.substring(0, 1).toUpperCase();
+
+        // Get nationality code
+        final nationality = infant.nationalityCountry.value?.countryCode ?? "PK";
+
+        passengers.add({
+          "PersonOrgID": -personId,
+          "FirstName": infant.firstNameController.text,
+          "LastName": infant.lastNameController.text,
+          "MiddleName": "",
+          "Age": age,
+          "DOB": "${infant.dateOfBirthController.text}T00:00:00",
+          "Gender": gender,
+          "Title": infant.titleController.text,
+          "NationalityLaguageID": 1,
+          "RelationType": "Self",
+          "WBCID": 1,
+          "PTCID": 5, // Infant passenger type
+          "TravelsWithPersonOrgID": -(i + 1), // Travels with corresponding adult
+          "MarketingOptIn": true,
+          "UseInventory": false,
+          "Address": {
+            "Address1": "",
+            "Address2": "",
+            "City": "",
+            "State": "",
+            "Postal": "12123233",
+            "Country": "PK",
+            "CountryCode": countryCode,
+            "AreaCode": "",
+            "PhoneNumber": "",
+            "Display": ""
+          },
+          "Nationality": nationality,
+          "ProfileId": -2147483648,
+          "IsPrimaryPassenger": false,
+          "ContactInfos": [],
+          "DocumentInfos": [
+            {
+              "DocType": "1",
+              "DocNumber": infant.passportCnicController.text,
+              "IssuingCountry": nationality,
+              "ExpiryDate": infant.passportExpiryController.text.isNotEmpty
+                  ? "${infant.passportExpiryController.text}T00:00:00"
+                  : "2030-12-31T00:00:00"
+            }
+          ]
+        });
+      }
+
+      // Build segments from cart data and segment array
+      final List<Map<String, dynamic>> segments = _buildSegmentsFromCartData(
+          cartData,
+          adults.length,
+          segmentArray
+      );
+
+      // Format phone numbers for the request
+      final formattedPhone = clientPhone.replaceAll(RegExp(r'[^0-9]'), '');
+      final formattedSimCode = simCode.replaceAll(RegExp(r'[^0-9]'), '');
+
+      return {
+        "ActionType": "GetSummary",
+        "ReservationInfo": {
+          "SeriesNumber": "299",
+          "ConfirmationNumber": ""
+        },
+        "CarrierCodes": [
+          {
+            "AccessibleCarrierCode": "FZ"
+          }
+        ],
+        "ClientIPAddress": "",
+        "SecurityToken": "",
+        "SecurityGUID": "",
+        "HistoricUserName": username,
+        "CarrierCurrency": "PKR",
+        "DisplayCurrency": "PKR",
+        "IATANum": "2730402T",
+        "User": username,
+        "ReceiptLanguageID": "1",
+        "Address": {
+          "Address1": city,
+          "Address2": city,
+          "City": city,
+          "Postal": "10967",
+          "PhoneNumber": formattedPhone,
+          "Country": "PK",
+          "CountryCode": countryCode,
+          "State": "",
+          "Display": ""
+        },
+        "ContactInfos": null,
+        "Passengers": passengers,
+        "Segments": segments,
+        "Payments": []
+      };
+    } catch (e, stackTrace) {
+      print('Error building PNR request: $e');
+      print('Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+// Helper method to calculate age from date of birth
+  int _calculateAge(String dobString) {
+    try {
+      final dob = DateTime.parse(dobString);
+      final now = DateTime.now();
+      return now.year - dob.year - (now.month > dob.month || (now.month == dob.month && now.day >= dob.day) ? 0 : 1);
+    } catch (e) {
+      return 25; // Default age if parsing fails
+    }
+  }
+
+// Update the _buildSegmentsFromCartData method
+  List<Map<String, dynamic>> _buildSegmentsFromCartData(
+      Map<String, dynamic> cartData,
+      int passengerCount,
+      List<Map<String, dynamic>> segmentArray
+      ) {
+    final List<Map<String, dynamic>> segments = [];
+
+    try {
+      print('Building segments from cart data and segment array...');
+      print('Segment array: ${segmentArray.length} items');
+
+      // If we have segment array from the controller, use it
+      if (segmentArray.isNotEmpty) {
+        for (final segment in segmentArray) {
+          segments.add({
+            "PersonOrgID": -(segment['pax'] ?? 1),
+            "FareInformationID": segment['fareID'] ?? 1,
+            "SpecialServices": segment['extra'] != null
+                ? _buildSpecialServices(segment['extra'], segment['pax'] ?? 1)
+                : [],
+            "Seats": segment['extra'] != null
+                ? _buildSeats(segment['extra'], segment['pax'] ?? 1)
+                : []
+          });
+        }
+      } else {
+        // Fallback: create basic segments from cart data
+        print('No segment array provided, creating basic segments...');
+
+        // Extract flight groups from cart data
+        final flightGroups = cartData['flightGroups'] as List?;
+        if (flightGroups != null && flightGroups.isNotEmpty) {
+          for (final flightGroup in flightGroups) {
+            final fareBrands = flightGroup['fareBrands'] as List?;
+            if (fareBrands != null && fareBrands.isNotEmpty) {
+              for (final fareBrand in fareBrands) {
+                final fareInfos = fareBrand['fareInfos'] as List?;
+                if (fareInfos != null && fareInfos.isNotEmpty) {
+                  for (final fareInfo in fareInfos) {
+                    final paxFareInfos = fareInfo['paxFareInfos'] as List?;
+                    if (paxFareInfos != null && paxFareInfos.isNotEmpty) {
+                      for (int i = 0; i < paxFareInfos.length; i++) {
+                        final paxFareInfo = paxFareInfos[i];
+                        segments.add({
+                          "PersonOrgID": -(i + 1),
+                          "FareInformationID": paxFareInfo['fareID'] ?? 1,
+                          "SpecialServices": [],
+                          "Seats": []
+                        });
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error building segments from cart data: $e');
+    }
+
+    // Fallback: create basic segments if extraction fails
+    if (segments.isEmpty) {
+      print('Creating fallback segments...');
+      for (int i = 0; i < passengerCount; i++) {
+        segments.add({
+          "PersonOrgID": -(i + 1),
+          "FareInformationID": 1,
+          "SpecialServices": [],
+          "Seats": []
+        });
+      }
+    }
+
+    print('Built ${segments.length} segments');
+    return segments;
+  }
+
+// Helper methods for special services and seats
+  List<Map<String, dynamic>> _buildSpecialServices(Map<String, dynamic> extra, int paxId) {
+    final List<Map<String, dynamic>> services = [];
+
+    try {
+      // Handle baggage
+      if (extra['baggage'] != null && extra['baggage'].toString().isNotEmpty) {
+        final baggageItems = extra['baggage'].toString().split('!!');
+        if (baggageItems.length >= 7) {
+          services.add({
+            "ServiceID": 1,
+            "CodeType": baggageItems[0],
+            "SSRCategory": 99,
+            "LogicalFlightID": int.parse(baggageItems[1]),
+            "DepartureDate": baggageItems[2],
+            "Amount": double.parse(baggageItems[3]),
+            "OverrideAmount": false,
+            "CurrencyCode": baggageItems[4],
+            "Commissionable": false,
+            "Refundable": false,
+            "ChargeComment": baggageItems[5],
+            "PersonOrgID": -paxId,
+            "AlreadyAdded": false,
+            "PhysicalFlightID": int.parse(baggageItems[6]),
+            "secureHash": ""
+          });
+        }
+      }
+
+      // Handle meals
+      if (extra['meal'] is List) {
+        for (final meal in extra['meal']) {
+          if (meal != null && meal.toString().isNotEmpty) {
+            final mealItems = meal.toString().split('!!');
+            if (mealItems.length >= 7) {
+              services.add({
+                "ServiceID": 1,
+                "CodeType": mealItems[0],
+                "SSRCategory": 121,
+                "LogicalFlightID": int.parse(mealItems[1]),
+                "DepartureDate": mealItems[2],
+                "Amount": double.parse(mealItems[3]),
+                "OverrideAmount": false,
+                "CurrencyCode": mealItems[4],
+                "Commissionable": false,
+                "Refundable": false,
+                "ChargeComment": mealItems[5],
+                "PersonOrgID": -paxId,
+                "AlreadyAdded": false,
+                "PhysicalFlightID": int.parse(mealItems[6]),
+                "secureHash": ""
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error building special services: $e');
+    }
+
+    return services;
+  }
+
+  List<Map<String, dynamic>> _buildSeats(Map<String, dynamic> extra, int paxId) {
+    final List<Map<String, dynamic>> seats = [];
+
+    try {
+      // Handle seats
+      if (extra['seat'] is List) {
+        for (final seat in extra['seat']) {
+          if (seat != null && seat.toString().isNotEmpty) {
+            final seatItems = seat.toString().split('!!');
+            if (seatItems.length >= 9) {
+              seats.add({
+                "PersonOrgID": -paxId,
+                "LogicalFlightID": int.parse(seatItems[1]),
+                "PhysicalFlightID": int.parse(seatItems[6]),
+                "DepartureDate": seatItems[2],
+                "SeatSelected": seatItems[8],
+                "RowNumber": seatItems[7]
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error building seats: $e');
+    }
+
+    return seats;
   }
 
 

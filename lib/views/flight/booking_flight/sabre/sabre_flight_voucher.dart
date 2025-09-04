@@ -202,7 +202,7 @@ class _SabreFlightBookingDetailsScreenState
     try {
       if (marginData.isEmpty) {
         final apiService = Get.find<ApiServiceSabre>();
-        marginData = await apiService.getMargin();
+        marginData = await apiService.getMargin(widget.flight.airlineCode, widget.flight.airline);
       }
     } catch (e) {}
   }

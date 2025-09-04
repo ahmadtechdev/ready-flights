@@ -863,6 +863,8 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
   }
 
   // Replace the _buildCheckboxGroup method with this dropdown method
+// Replace the _buildDropdownField method in your UI file with this updated version
+
   Widget _buildDropdownField({
     required String label,
     required List<String> options,
@@ -887,7 +889,9 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
             borderRadius: BorderRadius.circular(8),
           ),
           child: DropdownButtonFormField<String>(
-            value: controller.text.isNotEmpty ? controller.text : null,
+            value: controller.text.isNotEmpty && options.contains(controller.text)
+                ? controller.text
+                : null,
             decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(
@@ -908,6 +912,7 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
             onChanged: (String? newValue) {
               if (newValue != null) {
                 controller.text = newValue;
+                // Trigger setState to update the UI immediately
                 setState(() {});
               }
             },
@@ -924,7 +929,6 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
       ],
     );
   }
-
   IconData _getTravelerIcon(String type) {
     switch (type) {
       case 'adult':

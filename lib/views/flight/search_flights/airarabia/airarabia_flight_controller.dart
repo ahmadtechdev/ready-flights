@@ -274,6 +274,10 @@ class AirArabiaFlightController extends GetxController {
     filteredFlights.value = filtered;
   }
 
+  void resetLoadingState() {
+    isLoading.value = true;
+  }
+
   // Method to get filtered flights by airline
   List<AirArabiaFlight> getFlightsByAirline(String airlineCode) {
     return flights.where((flight) {

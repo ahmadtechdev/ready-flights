@@ -22,6 +22,9 @@ class TravelerInfo {
   final Rx<Country?> phoneCountry;
   final Rx<Country?> nationalityCountry;
 
+  // Flag to prevent infinite loops when syncing
+  bool _isUpdatingTitleGender = false;
+
   TravelerInfo({required this.isInfant})
       : titleController = TextEditingController(),
         firstNameController = TextEditingController(),
@@ -47,9 +50,77 @@ class TravelerInfo {
     nationalityCountry.listen((country) {
       nationalityController.text = country?.displayNameNoCountryCode ?? '';
     });
+
+    // Add listeners for title/gender synchronization
+    titleController.addListener(_onTitleChanged);
+    genderController.addListener(_onGenderChanged);
+  }
+
+  void _onTitleChanged() {
+    if (_isUpdatingTitleGender) return;
+
+    _isUpdatingTitleGender = true;
+    String title = titleController.text;
+
+    switch (title) {
+      case 'Mr':
+      case 'Mstr':
+        genderController.text = 'Male';
+        break;
+      case 'Mrs':
+      case 'Ms':
+      case 'Miss':
+        genderController.text = 'Female';
+        break;
+      case 'Inf':
+      // For infants, don't auto-set gender since it could be either
+        break;
+    }
+    _isUpdatingTitleGender = false;
+  }
+
+  void _onGenderChanged() {
+    if (_isUpdatingTitleGender) return;
+
+    _isUpdatingTitleGender = true;
+    String gender = genderController.text;
+    String currentTitle = titleController.text;
+
+    if (gender == 'Male') {
+      if (isInfant) {
+        titleController.text = 'Inf';
+      } else if (currentTitle.isEmpty || ['Mrs', 'Ms', 'Miss'].contains(currentTitle)) {
+        // Determine if child or adult based on existing title or default logic
+        bool isChild = currentTitle == 'Miss' ||
+            (currentTitle.isEmpty && !isInfant && isChildTraveler());
+        titleController.text = isChild ? 'Mstr' : 'Mr';
+      }
+    } else if (gender == 'Female') {
+      if (isInfant) {
+        titleController.text = 'Inf';
+      } else if (currentTitle.isEmpty || ['Mr', 'Mstr'].contains(currentTitle)) {
+        // Determine if child or adult based on existing title or default logic
+        bool isChild = currentTitle == 'Mstr' ||
+            (currentTitle.isEmpty && !isInfant && isChildTraveler());
+        titleController.text = isChild ? 'Miss' : 'Ms';
+      }
+    }
+    _isUpdatingTitleGender = false;
+  }
+
+  // Helper method to determine if this is a child traveler
+  // You might need to adjust this logic based on your app structure
+  bool isChildTraveler() {
+    // This is a simple heuristic - you might want to improve this
+    // by checking the traveler's position in the children list
+    return false; // Default to adult
   }
 
   void dispose() {
+    // Remove listeners before disposing
+    titleController.removeListener(_onTitleChanged);
+    genderController.removeListener(_onGenderChanged);
+
     titleController.dispose();
     firstNameController.dispose();
     lastNameController.dispose();
@@ -191,9 +262,12 @@ class BookingFlightController extends GetxController {
     final newCount = travelersController.childrenCount.value;
 
     if (newCount > currentCount) {
-      // Add new child travelers
+      // Add new child travelers with proper identification
       for (var i = currentCount; i < newCount; i++) {
-        children.add(TravelerInfo(isInfant: false));
+        final childTraveler = TravelerInfo(isInfant: false);
+        // Override the child check method to return true for children
+        // childTraveler.isChildTraveler = () => true;
+        children.add(childTraveler);
       }
     } else if (newCount < currentCount) {
       // Remove excess child travelers

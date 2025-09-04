@@ -360,6 +360,8 @@ class FlightBookingController extends GetxController {
       piaFlightController.clearFlights();
       flydubaiController.clearFlights();
 
+
+
       // Prepare parameters
       String origin = '';
       String destination = '';

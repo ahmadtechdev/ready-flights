@@ -59,7 +59,7 @@ class _FlightCardState extends State<FlightCard>
   Future<void> _fetchMarginData() async {
     try {
       final apiService = Get.find<ApiServiceSabre>();
-      final data = await apiService.getMargin();
+      final data = await apiService.getMargin(widget.flight.airlineCode, widget.flight.airline);
       marginData.value = data;
 
       // Calculate final price with margin

@@ -70,7 +70,7 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
     try {
       if (marginData.value.isEmpty) {
         final apiService = Get.find<ApiServiceSabre>();
-        marginData.value = await apiService.getMargin();
+        marginData.value = await apiService.getMargin(flight.airlineCode, flight.airlineName);
       }
 
       // Pre-calculate prices for all fare options

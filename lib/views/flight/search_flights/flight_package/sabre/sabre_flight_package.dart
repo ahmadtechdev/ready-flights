@@ -148,7 +148,7 @@ class SabrePackageSelectionDialog extends StatelessWidget {
     Future<void> fetchMarginData() async {
       try {
         final apiService = Get.find<ApiServiceSabre>();
-        final data = await apiService.getMargin();
+        final data = await apiService.getMargin(flight.airlineCode, flight.airline);
         marginData.value = data;
 
         // Calculate final price with margin

@@ -750,7 +750,44 @@ class FlydubaiFlightController extends GetxController {
   }
 
 
+// Add this method to FlydubaiFlightController
+  List<Map<String, dynamic>> buildSegmentArray() {
+    final List<Map<String, dynamic>> segments = [];
 
+    try {
+      // Build segments for outbound flight
+      if (selectedOutboundFlight != null && selectedOutboundFareOption != null) {
+        final fareId = selectedOutboundFareOption!.fareId;
+        segments.add({
+          'pax': 1, // First passenger
+          'fareID': fareId,
+          'extra': {
+            'baggage': '',
+            'meal': [],
+            'seat': []
+          }
+        });
+      }
+
+      // Build segments for return flight
+      if (selectedReturnFlight != null && selectedReturnFareOption != null) {
+        final fareId = selectedReturnFareOption!.fareId;
+        segments.add({
+          'pax': 1, // First passenger
+          'fareID': fareId,
+          'extra': {
+            'baggage': '',
+            'meal': [],
+            'seat': []
+          }
+        });
+      }
+    } catch (e) {
+      print('Error building segment array: $e');
+    }
+
+    return segments;
+  }
 
 }
 

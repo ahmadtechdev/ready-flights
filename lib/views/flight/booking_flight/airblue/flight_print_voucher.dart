@@ -212,7 +212,7 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
     try {
       if (marginData.isEmpty) {
         final apiService = Get.find<ApiServiceSabre>();
-        marginData = await apiService.getMargin();
+        marginData = await apiService.getMargin(widget.outboundFlight.airlineCode, widget.outboundFlight.airlineName);
       }
     } catch (e) {}
   }

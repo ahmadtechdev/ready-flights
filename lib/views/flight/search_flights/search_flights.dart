@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ready_flights/views/flight/search_flights/flydubai/flydubai_controller.dart';
 import 'package:ready_flights/views/flight/search_flights/search_flight_utils/widgets/flydubai_flight_card.dart';
+import 'package:ready_flights/views/home/home_screen.dart';
 import '../../../utility/colors.dart';
 import 'airarabia/airarabia_flight_controller.dart';
 import 'airblue/airblue_flight_controller.dart';
@@ -23,7 +24,7 @@ class FlightBookingPage extends StatelessWidget {
   final AirBlueFlightController airBlueController = Get.find<AirBlueFlightController>();
   final PIAFlightController piaController = Get.put(PIAFlightController());
   final AirArabiaFlightController airArabiaController = Get.put(AirArabiaFlightController());
-  final FlydubaiFlightController flyDubaiController = Get.put(FlydubaiFlightController()); // Add this controller
+  final FlydubaiFlightController flyDubaiController = Get.put(FlydubaiFlightController());
   final FilterController filterController = Get.put(FilterController());
 
   FlightBookingPage({super.key, required this.scenario}) {
@@ -37,20 +38,25 @@ class FlightBookingPage extends StatelessWidget {
       appBar: AppBar(
         surfaceTintColor: TColors.background,
         backgroundColor: TColors.background,
-        leading: const BackButton(),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Get.offAll(() => HomeScreen()); // Replace with the page you want
+          },
+        ),
         title: Obx(() {
           // Get total flight count including FlyDubai
           final totalFlights = controller.filteredFlights.length +
               airBlueController.flights.length +
               piaController.filteredFlights.length +
               airArabiaController.flights.length +
-              flyDubaiController.filteredOutboundFlights.length; // Add FlyDubai count
+              flyDubaiController.filteredOutboundFlights.length;
 
           final isLoading = controller.isLoading.value ||
               airBlueController.isLoading.value ||
               piaController.isLoading.value ||
               airArabiaController.isLoading.value ||
-              flyDubaiController.isLoading.value; // Add FlyDubai loading state
+              flyDubaiController.isLoading.value;
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,117 +196,216 @@ class FlightBookingPage extends StatelessWidget {
     final flightController = Get.find<SabreFlightController>();
 
     return Expanded(
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            // AirBlue flights section
-            Obx(() {
-              if (airBlueController.isLoading.value && airBlueController.filteredFlights.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-              return ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: airBlueController.filteredFlights.length,
-                itemBuilder: (context, index) {
-                  final flight = airBlueController.filteredFlights[index];
-                  return AirBlueFlightCard(flight: flight);
-                },
-              );
-            }),
+      child: Obx(() {
+        // Check if any controller is loading
+        final isAnyLoading = airBlueController.isLoading.value ||
+            flyDubaiController.isLoading.value ||
+            flightController.isLoading.value ||
+            piaController.isLoading.value ||
+            airArabiaController.isLoading.value;
 
+        // Check if all controllers have finished loading and have no flights
+        final hasNoFlights = !isAnyLoading &&
+            airBlueController.filteredFlights.isEmpty &&
+            flyDubaiController.filteredOutboundFlights.isEmpty &&
+            flightController.filteredFlights.isEmpty &&
+            piaController.filteredFlights.isEmpty &&
+            airArabiaController.filteredFlights.isEmpty;
 
+        // Show main loading indicator when all controllers are loading and no flights are available
+        if (isAnyLoading && hasNoFlights) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text(
+                  'Searching for flights...',
+                  style: TextStyle(
+                    color: TColors.grey,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
 
-// FlyDubai flights section
-            Obx(() {
-              if (flyDubaiController.isLoading.value && flyDubaiController.filteredOutboundFlights.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-              return ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: flyDubaiController.filteredOutboundFlights.length,
-                itemBuilder: (context, index) {
-                  final flight = flyDubaiController.filteredOutboundFlights[index];
-                  return FlyDubaiFlightCard(flight: flight, showReturnFlight: false,);
-                },
-              );
-            }),
+        return SingleChildScrollView(
+          child: Column(
+            children: [
+              // AirBlue flights section
+              _buildAirBlueSection(),
 
+              // FlyDubai flights section
+              _buildFlyDubaiSection(),
 
-            // Sabre flights section
-            Obx(() {
-              if (flightController.isLoading.value && flightController.filteredFlights.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-              return ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: flightController.filteredFlights.length,
-                itemBuilder: (context, index) {
-                  final flight = flightController.filteredFlights[index];
-                  return FlightCard(flight: flight);
-                },
-              );
-            }),
+              // Sabre flights section
+              _buildSabreSection(),
 
+              // PIA flights section
+              _buildPIASection(),
 
-            // PIA flights section
-            Obx(() {
-              if (piaController.isLoading.value && piaController.filteredFlights.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-              return ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: piaController.filteredFlights.length,
-                itemBuilder: (context, index) {
-                  final flight = piaController.filteredFlights[index];
-                  return GestureDetector(
-                    onTap: () => piaController.handlePIAFlightSelection(flight),
-                    child: PIAFlightCard(flight: flight),
-                  );
-                },
-              );
-            }),
+              // Air Arabia flights section
+              _buildAirArabiaSection(),
 
-            // Air Arabia flights section
-            Obx(() {
-              if (airArabiaController.isLoading.value && airArabiaController.filteredFlights.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-              return ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: airArabiaController.filteredFlights.length,
-                itemBuilder: (context, index) {
-                  final flight = airArabiaController.filteredFlights[index];
-                  return GestureDetector(
-                    onTap: () => airArabiaController.handleAirArabiaFlightSelection(flight),
-                    child: AirArabiaFlightCard(flight: flight),
-                  );
-                },
-              );
-            }),
+              const SizedBox(height: 36),
+            ],
+          ),
+        );
+      }),
+    );
+  }
 
-            const SizedBox(height: 36),
-          ],
-        ),
+  Widget _buildAirBlueSection() {
+    return Obx(() {
+      if (airBlueController.isLoading.value) {
+        return _buildSectionLoader('AirBlue');
+      }
+
+      if (airBlueController.filteredFlights.isEmpty) {
+        return const SizedBox.shrink();
+      }
+
+      return ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: airBlueController.filteredFlights.length,
+        itemBuilder: (context, index) {
+          final flight = airBlueController.filteredFlights[index];
+          return AirBlueFlightCard(flight: flight);
+        },
+      );
+    });
+  }
+
+  Widget _buildFlyDubaiSection() {
+    return Obx(() {
+      if (flyDubaiController.isLoading.value) {
+        return _buildSectionLoader('FlyDubai');
+      }
+
+      if (flyDubaiController.filteredOutboundFlights.isEmpty) {
+        return const SizedBox.shrink();
+      }
+
+      return ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: flyDubaiController.filteredOutboundFlights.length,
+        itemBuilder: (context, index) {
+          final flight = flyDubaiController.filteredOutboundFlights[index];
+          return FlyDubaiFlightCard(flight: flight, showReturnFlight: false);
+        },
+      );
+    });
+  }
+
+  Widget _buildSabreSection() {
+    return Obx(() {
+      if (controller.isLoading.value) {
+        return _buildSectionLoader('Sabre');
+      }
+
+      if (controller.filteredFlights.isEmpty) {
+        return const SizedBox.shrink();
+      }
+
+      return ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: controller.filteredFlights.length,
+        itemBuilder: (context, index) {
+          final flight = controller.filteredFlights[index];
+          return FlightCard(flight: flight);
+        },
+      );
+    });
+  }
+
+  Widget _buildPIASection() {
+    return Obx(() {
+      if (piaController.isLoading.value) {
+        return _buildSectionLoader('PIA');
+      }
+
+      if (piaController.filteredFlights.isEmpty) {
+        return const SizedBox.shrink();
+      }
+
+      return ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: piaController.filteredFlights.length,
+        itemBuilder: (context, index) {
+          final flight = piaController.filteredFlights[index];
+          return GestureDetector(
+            onTap: () => piaController.handlePIAFlightSelection(flight),
+            child: PIAFlightCard(flight: flight),
+          );
+        },
+      );
+    });
+  }
+
+  Widget _buildAirArabiaSection() {
+    return Obx(() {
+      if (airArabiaController.isLoading.value) {
+        return _buildSectionLoader('Air Arabia');
+      }
+
+      if (airArabiaController.filteredFlights.isEmpty) {
+        return const SizedBox.shrink();
+      }
+
+      return ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: airArabiaController.filteredFlights.length,
+        itemBuilder: (context, index) {
+          final flight = airArabiaController.filteredFlights[index];
+          return GestureDetector(
+            onTap: () => airArabiaController.handleAirArabiaFlightSelection(flight),
+            child: AirArabiaFlightCard(flight: flight),
+          );
+        },
+      );
+    });
+  }
+
+  Widget _buildSectionLoader(String airlineName) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      padding: const EdgeInsets.all(20.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          const SizedBox(width: 16),
+          Text(
+            'Searching $airlineName flights...',
+            style: const TextStyle(
+              color: TColors.grey,
+              fontSize: 14,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -324,4 +429,5 @@ class FlightBookingPage extends StatelessWidget {
         ),
       ),
     );
-  }}
+  }
+}
