@@ -29,6 +29,8 @@ class _SabreBookingFormState extends State<SabreBookingForm> {
   );
 
   bool termsAccepted = false;
+  bool isLoading = false; // Add loading state
+
 
   // Auto-fill function for testing
   void _fillDummyData() {
@@ -127,26 +129,39 @@ class _SabreBookingFormState extends State<SabreBookingForm> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black87),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildFlightDetails(),
-                const SizedBox(height: 24),
-                _buildTravelersForm(),
-                const SizedBox(height: 24),
-                _buildBookerDetails(),
-                const SizedBox(height: 24),
-                _buildTermsAndConditions(),
-                const SizedBox(height: 100), // Space for bottom bar
-              ],
+      body: Stack( // Add Stack to show overlay loader
+        children: [
+          SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildFlightDetails(),
+                    const SizedBox(height: 24),
+                    _buildTravelersForm(),
+                    const SizedBox(height: 24),
+                    _buildBookerDetails(),
+                    const SizedBox(height: 24),
+                    _buildTermsAndConditions(),
+                    const SizedBox(height: 100), // Space for bottom bar
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
+          if (isLoading) // Show overlay when loading
+            Container(
+              color: Colors.black.withOpacity(0.3),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(TColors.primary),
+                ),
+              ),
+            ),
+        ],
       ),
       bottomNavigationBar: _buildBottomBar(),
     );
@@ -973,8 +988,13 @@ class _SabreBookingFormState extends State<SabreBookingForm> {
               ],
             ),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: isLoading
+                  ? null // Disable button when loading
+                  : () async {
                 if (_formKey.currentState!.validate() && termsAccepted) {
+                  setState(() {
+                    isLoading = true; // Start loading
+                  });
 
                   try {
                     // Call the PNR request function
@@ -987,10 +1007,13 @@ class _SabreBookingFormState extends State<SabreBookingForm> {
                       bookerEmail: bookingController.emailController.text,
                       bookerPhone: bookingController.getFormattedBookerPhoneNumber(),
                       revalidatePricing: widget.revalidatePricing,
-
                     );
 
-                    Get.offAll(() => SabreFlightBookingDetailsScreen(
+                    setState(() {
+                      isLoading = false; // Stop loading
+                    });
+
+                    Get.to(() => SabreFlightBookingDetailsScreen(
                       flight: widget.flight,
                       pnrResponse: pnrResponse,
                     ));
@@ -1003,6 +1026,10 @@ class _SabreBookingFormState extends State<SabreBookingForm> {
                       snackPosition: SnackPosition.TOP,
                     );
                   } catch (e) {
+                    setState(() {
+                      isLoading = false; // Stop loading on error
+                    });
+
                     Get.snackbar(
                       'Booking Saved',
                       'Flight details saved. PNR creation may have issues.',
@@ -1036,7 +1063,7 @@ class _SabreBookingFormState extends State<SabreBookingForm> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: TColors.primary,
+                backgroundColor: TColors.primary, // Change color when loading
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 40,
@@ -1047,7 +1074,11 @@ class _SabreBookingFormState extends State<SabreBookingForm> {
                 ),
                 elevation: 2,
               ),
-              child: const Text(
+              child: isLoading
+                  ? CircularProgressIndicator(
+                    strokeWidth: 2,
+                  )
+                  : const Text(
                 'Create Booking',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
@@ -1057,7 +1088,6 @@ class _SabreBookingFormState extends State<SabreBookingForm> {
       ),
     );
   }
-
 
   @override
   void dispose() {

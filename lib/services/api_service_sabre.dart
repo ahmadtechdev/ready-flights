@@ -20,6 +20,9 @@ class ApiServiceSabre extends GetxService {
   static const String _baseUrl = 'https://api.havail.sabre.com';
   static const String _tokenKey = 'flight_api_token';
   static const String _tokenExpiryKey = 'flight_token_expiry';
+  final BookingFlightController bookingController = Get.put(
+    BookingFlightController(),
+  );
 
   final AuthController authController = Get.put(
     AuthController(),
@@ -646,10 +649,14 @@ class ApiServiceSabre extends GetxService {
 
       // Save booking regardless of PNR success
       await saveSabreBooking(
-        bookingController: BookingFlightController(), // You might need to pass this
         flight: flight,
         pnrResponse: pnrResponse,
         token: getValidToken().toString(),
+        adults: adults,
+        children: children,
+        infants: infants,
+        bookerEmail: bookerEmail,
+        bookerPhone: bookerPhone,
       );
 
       return pnrResponse;
@@ -659,10 +666,14 @@ class ApiServiceSabre extends GetxService {
       // Even if PNR fails, try to save the booking
       try {
         await saveSabreBooking(
-          bookingController: BookingFlightController(),
           flight: flight,
           pnrResponse: null, // No PNR response due to error
           token: getValidToken().toString(),
+          adults: adults,
+          children: children,
+          infants: infants,
+          bookerEmail: bookerEmail,
+          bookerPhone: bookerPhone,
         );
       } catch (saveError) {
         print('Failed to save booking after PNR error: $saveError');
@@ -1497,124 +1508,6 @@ class ApiServiceSabre extends GetxService {
   }
 
 
-  Future<Map<String, dynamic>> saveSabreBooking({
-    required BookingFlightController bookingController,
-    required SabreFlight flight,
-    required Map<String, dynamic>? pnrResponse,
-    required String token,
-  }) async {
-    try {
-      // Prepare booking info
-      final bookingInfo = {
-        "bfname": bookingController.firstNameController.text,
-        "blname": bookingController.lastNameController.text,
-        "bemail": bookingController.emailController.text,
-        "bphno": bookingController.phoneController.text,
-        "badd": "b", // Default value since not collected in form
-        "bcity": "a", // Default value since not collected in form
-        "final_price": flight.price.toStringAsFixed(0),
-        "client_email": bookingController.emailController.text,
-        "client_phone": bookingController.phoneController.text,
-      };
-
-      // Prepare adults data
-      final adults = bookingController.adults.map((adult) {
-        return {
-          "title": adult.titleController.text,
-          "first_name": adult.firstNameController.text,
-          "last_name": adult.lastNameController.text,
-          "dob": adult.dateOfBirthController.text,
-          "nationality": adult.nationalityController.text,
-          "passport": adult.passportCnicController.text,
-          "passport_expiry": adult.passportExpiryController.text,
-          "cnic": adult.passportCnicController.text, // Using passport as CNIC
-          "pnr": pnrResponse != null ? _extractPnrFromResponse(pnrResponse) : ""
-        };
-      }).toList();
-
-      // Prepare children data
-      final children = bookingController.children.map((child) {
-        return {
-          "title": child.titleController.text,
-          "first_name": child.firstNameController.text,
-          "last_name": child.lastNameController.text,
-          "dob": child.dateOfBirthController.text,
-          "nationality": child.nationalityController.text,
-          "passport": child.passportCnicController.text,
-          "passport_expiry": child.passportExpiryController.text,
-          "cnic": child.passportCnicController.text,
-        };
-      }).toList();
-
-      // Prepare infants data
-      final infants = bookingController.infants.map((infant) {
-        return {
-          "title": infant.titleController.text,
-          "first_name": infant.firstNameController.text,
-          "last_name": infant.lastNameController.text,
-          "dob": infant.dateOfBirthController.text,
-          "nationality": infant.nationalityController.text,
-          "passport": "Not provided", // Infants may not have passport
-          "passport_expiry": "Not provided",
-          "cnic": "Not provided",
-        };
-      }).toList();
-
-      // Prepare flights data
-      final flights = _prepareSabreFlightData(flight);
-
-      // Determine PNR status (1 for success, 0 for failure)
-      final pnrStatus = pnrResponse != null && _isPnrSuccessful(pnrResponse) ? 1 : 0;
-      final pnr = pnrResponse != null ? _extractPnrFromResponse(pnrResponse) : "";
-
-      // Prepare final request body
-      final requestBody = {
-        "booking_info": bookingInfo,
-        "adults": adults,
-        "children": children,
-        "infants": infants,
-        "flights": flights,
-        "pnr": pnr,
-        "buyingPrice": flight.price.toStringAsFixed(0),
-        "sellingPrice": flight.price.toStringAsFixed(0),
-        "pnrStatus": pnrStatus,
-        "booking_from": "1" // Sabre booking source
-      };
-
-      print("Sabre Booking Request Body:");
-      printJsonPretty(requestBody);
-
-      // Configure Dio
-      final dio = Dio(
-        BaseOptions(
-          baseUrl: 'https://readyflights.pk/api/',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-          responseType: ResponseType.json,
-        ),
-      );
-
-      // Make the API call
-      final response = await dio.post('flight-booking', data: requestBody);
-
-      // Handle response
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        print("Sabre Booking Response:");
-        print(response.data);
-        return response.data is Map<String, dynamic>
-            ? response.data
-            : jsonDecode(response.data);
-      } else {
-        throw Exception('Failed to save booking: ${response.statusMessage}');
-      }
-    } catch (e) {
-      print('Error saving Sabre booking: $e');
-      throw Exception('Error saving booking: $e');
-    }
-  }
-
 // Helper method to extract PNR from response
   String _extractPnrFromResponse(Map<String, dynamic> pnrResponse) {
     try {
@@ -1648,56 +1541,6 @@ class ApiServiceSabre extends GetxService {
     return false;
   }
 
-// Helper method to prepare flight data for Sabre
-  List<Map<String, dynamic>> _prepareSabreFlightData(SabreFlight flight) {
-    final flights = <Map<String, dynamic>>[];
-
-    for (var leg in flight.legSchedules) {
-      for (var schedule in leg['schedules']) {
-        final departureDateTime = DateTime.parse(schedule['departure']['dateTime']);
-        final arrivalDateTime = DateTime.parse(schedule['arrival']['dateTime']);
-        final duration = arrivalDateTime.difference(departureDateTime);
-
-        final segment = flight.segmentInfo.isNotEmpty
-            ? flight.segmentInfo[flights.length]
-            : FlightSegmentInfo(
-          bookingCode: 'Y',
-          cabinCode: 'Y',
-          mealCode: 'M',
-          seatsAvailable: '',
-        );
-
-        flights.add({
-          "departure": {
-            "airport": schedule['departure']['airport'],
-            "date": departureDateTime.toIso8601String().split('T')[0],
-            "time": "${departureDateTime.hour.toString().padLeft(2, '0')}:${departureDateTime.minute.toString().padLeft(2, '0')}",
-            "terminal": schedule['departure']['terminal'] ?? 'Main',
-          },
-          "arrival": {
-            "airport": schedule['arrival']['airport'],
-            "date": arrivalDateTime.toIso8601String().split('T')[0],
-            "time": "${arrivalDateTime.hour.toString().padLeft(2, '0')}:${arrivalDateTime.minute.toString().padLeft(2, '0')}",
-            "terminal": schedule['arrival']['terminal'] ?? 'Main',
-          },
-          "flight_number": schedule['carrier']['marketingFlightNumber'].toString(),
-          "airline_code": schedule['carrier']['marketing'],
-          "operating_flight_number": schedule['carrier']['operatingFlightNumber']?.toString() ?? schedule['carrier']['marketingFlightNumber'].toString(),
-          "operating_airline_code": schedule['carrier']['operating'] ?? schedule['carrier']['marketing'],
-          "cabin_class": _getCabinClassName(segment.cabinCode),
-          "sub_class": segment.cabinCode,
-          "hand_baggage": "7kg", // Default value
-          "check_baggage": "${flight.baggageAllowance.weight} ${flight.baggageAllowance.unit}",
-          "meal": segment.mealCode == 'M' ? 'Meal' : 'None',
-          "layover": flight.legSchedules.length > 1 ? "Yes" : "None",
-          "duration": "${duration.inHours}h ${duration.inMinutes.remainder(60)}m",
-          "type": flight.legSchedules.length == 1 ? "One-Way" : "Multi-City",
-        });
-      }
-    }
-
-    return flights;
-  }
 
   String _getCabinClassName(String cabinCode) {
     switch (cabinCode.toUpperCase()) {
@@ -1715,6 +1558,199 @@ class ApiServiceSabre extends GetxService {
     }
   }
 
+  Future<Map<String, dynamic>> saveSabreBooking({
+
+    required SabreFlight flight,
+    required Map<String, dynamic>? pnrResponse,
+    required String token,
+    required List<TravelerInfo> adults,
+    required List<TravelerInfo> children,
+    required List<TravelerInfo> infants,
+    required String bookerEmail,
+    required String bookerPhone,
+  }) async {
+    try {
+      // Prepare booking info
+      // Prepare booking info
+      final bookingInfo = {
+        "bfname": bookingController.firstNameController.text,
+        "blname": bookingController.lastNameController.text,
+        "bemail": bookingController.emailController.text,
+        "bphno": bookingController.phoneController.text,
+        "badd": "b",
+        "bcity": "a",
+        "final_price": flight.price.toString(),
+        "client_email": bookingController.emailController.text,
+        "client_phone": bookingController.phoneController.text,
+      };
+
+      // Prepare adults data
+      final adults =
+      bookingController.adults.map((adult) {
+        return {
+          "title": adult.titleController.text,
+          "first_name": adult.firstNameController.text,
+          "last_name": adult.lastNameController.text,
+          "dob": adult.dateOfBirthController.text,
+          "nationality": adult.nationalityController.text,
+          "passport": adult.passportCnicController.text,
+          "passport_expiry": adult.passportExpiryController.text,
+          "cnic": adult.passportCnicController.text, // CNIC is not collected in current form, leaving empty
+
+        };
+      }).toList();
+
+      // Prepare children data
+      final children =
+      bookingController.children.map((child) {
+        return {
+          "title": child.titleController.text,
+          "first_name": child.firstNameController.text,
+          "last_name": child.lastNameController.text,
+          "dob": child.dateOfBirthController.text,
+          "nationality": child.nationalityController.text,
+          "passport": child.passportCnicController.text,
+          "passport_expiry": child.passportExpiryController.text,
+          "cnic":child.passportCnicController.text,
+        };
+      }).toList();
+
+      // Prepare infants data
+      final infants =
+      bookingController.infants.map((infant) {
+        return {
+          "title": infant.titleController.text,
+          "first_name": infant.firstNameController.text,
+          "last_name": infant.lastNameController.text,
+          "dob": infant.dateOfBirthController.text,
+          "nationality": infant.nationalityController.text,
+          "passport": "a",
+          "passport_expiry": "a",
+          "cnic":"a",
+        };
+      }).toList();
+
+      // Prepare flights data
+      final flights = _prepareSabreFlightData(flight);
+
+      // Determine PNR status (1 for success, 0 for failure)
+      final pnrStatus = pnrResponse != null && _isPnrSuccessful(pnrResponse) ? 1 : 0;
+      final pnr = pnrResponse != null ? _extractPnrFromResponse(pnrResponse) : "";
+
+      // Prepare final request body
+      final requestBody = {
+        "booking_info": bookingInfo,
+        "adults": adults,
+        "children": children,
+        "infants": infants,
+        "flights": flights,
+        "pnr": pnr,
+        "buyingPrice": flight.price.toStringAsFixed(0),
+        "sellingPrice": flight.price.toStringAsFixed(0),
+        "pnrStatus": pnrStatus,
+        "booking_from": "1", // Sabre booking source
+        // "total_passengers": adults.length + children.length + infants.length,
+        // "booking_date": DateTime.now().toIso8601String(),
+        // "flight_type": flight.legSchedules.length == 1 ? "One-Way" : "Return",
+      };
+
+      print("Sabre Booking Request Body:");
+      printJsonPretty(requestBody);
+
+      // Configure Dio
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: 'https://readyflights.pk/api/',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          responseType: ResponseType.json,
+        ),
+      );
+
+      // Make the API call
+      final response = await dio.post('flight-booking', data: requestBody);
+
+      // Handle response
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print("Sabre Booking Response:");
+        printJsonPretty(response.data);
+        return response.data is Map<String, dynamic>
+            ? response.data
+            : jsonDecode(response.data);
+      } else {
+        throw Exception('Failed to save booking: ${response.statusMessage}');
+      }
+    } catch (e) {
+      print('Error saving Sabre booking: $e');
+      throw Exception('Error saving booking: $e');
+    }
+  }
+
+// Helper method to prepare flight data for Sabre
+  List<Map<String, dynamic>> _prepareSabreFlightData(SabreFlight flight) {
+    final flights = <Map<String, dynamic>>[];
+
+    for (var leg in flight.legSchedules) {
+      for (var schedule in leg['schedules']) {
+        final departureDateTime = DateTime.parse(schedule['departure']['dateTime']);
+        final arrivalDateTime = DateTime.parse(schedule['arrival']['dateTime']);
+        final duration = arrivalDateTime.difference(departureDateTime);
+
+        // Get the corresponding segment info
+        final segmentIndex = flights.length;
+        final segment = segmentIndex < flight.segmentInfo.length
+            ? flight.segmentInfo[segmentIndex]
+            : FlightSegmentInfo(
+          bookingCode: 'Y',
+          cabinCode: 'Y',
+          mealCode: 'M',
+          seatsAvailable: '',
+          fareBasisCode: '',
+        );
+
+        flights.add({
+          "departure": {
+            "airport": schedule['departure']['airport'],
+            "city": schedule['departure']['city'] ?? schedule['departure']['airport'],
+            "date": departureDateTime.toIso8601String().split('T')[0],
+            "time": "${departureDateTime.hour.toString().padLeft(2, '0')}:${departureDateTime.minute.toString().padLeft(2, '0')}",
+            "terminal": schedule['departure']['terminal'] ?? 'Main',
+          },
+          "arrival": {
+            "airport": schedule['arrival']['airport'],
+            "city": schedule['arrival']['city'] ?? schedule['arrival']['airport'],
+            "date": arrivalDateTime.toIso8601String().split('T')[0],
+            "time": "${arrivalDateTime.hour.toString().padLeft(2, '0')}:${arrivalDateTime.minute.toString().padLeft(2, '0')}",
+            "terminal": schedule['arrival']['terminal'] ?? 'Main',
+          },
+          "flight_number": schedule['carrier']['marketingFlightNumber'].toString(),
+          "airline_code": schedule['carrier']['marketing'],
+          "airline_name": flight.airline,
+          "operating_flight_number": schedule['carrier']['operatingFlightNumber']?.toString() ?? schedule['carrier']['marketingFlightNumber'].toString(),
+          "operating_airline_code": schedule['carrier']['operating'] ?? schedule['carrier']['marketing'],
+          "operating_airline_name": flight.airline,
+          "cabin_class": _getCabinClassName(segment.cabinCode),
+          "sub_class": segment.cabinCode,
+          "booking_class": segment.bookingCode,
+          "hand_baggage": "7kg", // Default value
+          "check_baggage": "${flight.baggageAllowance.weight} ${flight.baggageAllowance.unit}",
+          "meal": segment.mealCode == 'M' ? 'Meal' : (segment.mealCode.isNotEmpty ? segment.mealCode : 'None'),
+          "layover": flight.legSchedules.length > 1 ? "Yes" : "None",
+          "duration": "${duration.inHours}h ${duration.inMinutes.remainder(60)}m",
+          "duration_minutes": duration.inMinutes,
+          "type": flight.legSchedules.length == 1 ? "One-Way" : "Return",
+          "fare_basis": segment.fareBasisCode,
+          "seats_available": segment.seatsAvailable,
+          "is_refundable": flight.isRefundable,
+          "aircraft_type": schedule['equipment']?['aircraftType'] ?? 'Unknown',
+        });
+      }
+    }
+
+    return flights;
+  }
 
 }
 
