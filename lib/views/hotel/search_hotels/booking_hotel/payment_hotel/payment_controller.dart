@@ -2,15 +2,19 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:ready_flights/views/hotel/search_hotels/booking_hotel/booking_controller.dart';
 import 'package:ready_flights/views/hotel/search_hotels/booking_hotel/booking_voucher/booking_voucher.dart';
-import 'package:ready_flights/views/hotel/search_hotels/booking_hotel/widget/abi_webview.dart';
+import 'package:ready_flights/views/hotel/search_hotels/booking_hotel/payment_hotel/abi_webview.dart';
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 
 class PaymentController extends GetxController {
+        final BookingController bookingController = Get.put(BookingController());
+
   var selectedTab = 0.obs;
   var selectedBank = ''.obs;
   var isProcessingPayment = false.obs;
+
   
   final List<String> banks = [
     'HBL Bank',
@@ -121,13 +125,28 @@ class PaymentController extends GetxController {
         
         if (status != null) {
           if (status == 'APPROVED' || status == 'COMPLETED') {
-            print('PAYMENT SUCCESS: Order ID = $orderId, Status = $status');
+            // FIX: Update payment status IMMEDIATELY when approved
+       bookingController.payment_status.value = "APPROVED";
+            bookingController.payment_status.refresh(); // Force UI update
+            
+            print('✅ PAYMENT SUCCESS: Order ID = $orderId, Status = $status');
+            print('✅ Payment status updated to: ${bookingController.payment_status.value}');
+            
             timer.cancel();
             _navigateToSuccess(orderId);
           } else if (status == 'DECLINED' || status == 'FAILED' || status == 'CANCELLED') {
-            print('PAYMENT FAILED: Order ID = $orderId, Status = $status');
+            // Update status for failed payments too
+            bookingController.payment_status.value = "FAILED";
+            bookingController.payment_status.refresh(); // Force UI update
+            
+            print('❌ PAYMENT FAILED: Order ID = $orderId, Status = $status');
             timer.cancel();
             _navigateToFailure();
+          } else {
+            // Update status for pending states
+            bookingController.payment_status.value= status ?? "PENDING";
+            bookingController.payment_status.refresh(); // Force UI update
+            print('🔄 Payment still processing: $status');
           }
           // Continue polling for CREATED, PENDING, or other statuses
         }
@@ -177,14 +196,20 @@ class PaymentController extends GetxController {
     }
   }
 
-  // Stop polling and handle navigation
+  // Stop polling and handle navigation - UPDATED
   void _stopPollingAndNavigate(bool success) {
     print('Stopping polling, success: $success');
     _paymentPollingTimer?.cancel();
     
     if (success) {
-      // Success already handled by WebView, just ensure polling stops
-      print('Payment completed successfully via WebView');
+      // FIX: Also update status when WebView reports success
+      bookingController.payment_status.value = "APPROVED";
+      bookingController.payment_status.refresh(); // Force UI update
+      print('✅ Payment completed successfully via WebView - Status: ${bookingController.payment_status.value}');
+    } else {
+      bookingController.payment_status.value = "FAILED";
+      bookingController.payment_status.refresh(); // Force UI update
+      print('❌ Payment failed via WebView - Status: ${bookingController.payment_status.value}');
     }
   }
 
@@ -246,6 +271,14 @@ class PaymentController extends GetxController {
       print('Verify payment exception: $e');
       return null;
     }
+  }
+
+  // ADDED METHOD to manually refresh status
+  void updatePaymentStatus(String newStatus) {
+    bookingController.payment_status.value = newStatus;
+    bookingController.payment_status..refresh();
+    update(); // Force GetX controller update
+    print('📱 Payment status manually updated to: $newStatus');
   }
 
   @override

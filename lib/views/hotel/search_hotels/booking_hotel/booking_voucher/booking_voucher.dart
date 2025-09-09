@@ -10,6 +10,8 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:ready_flights/views/home/home_screen.dart';
+import 'package:ready_flights/views/hotel/search_hotels/booking_hotel/payment_hotel/payment_controller.dart';
 import 'package:ready_flights/views/hotel/search_hotels/select_room/controller/select_room_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
@@ -26,6 +28,7 @@ class HotelBookingThankYouScreen extends StatelessWidget {
   final GuestsController guestsController = Get.find<GuestsController>();
   final BookingController bookingController = Get.find<BookingController>();
   final SelectRoomController selectRoomController = Get.find<SelectRoomController>();
+  final PaymentController paymentController=Get.put(PaymentController());
   final Map<int, dynamic> selectedRooms = {};
 
   HotelBookingThankYouScreen({Key? key}) : super(key: key);
@@ -55,7 +58,7 @@ class HotelBookingThankYouScreen extends StatelessWidget {
         ),
         leading: IconButton(
           icon: const Icon(Icons.close, color: Colors.white),
-          onPressed: () => Get.back(),
+          onPressed: () => Get.off(HomeScreen()),
         ),
         actions: [
           IconButton(
@@ -90,9 +93,9 @@ class HotelBookingThankYouScreen extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.green.shade50,
+        color: Colors.white,
         border: Border(
-          bottom: BorderSide(color: Colors.green.shade200, width: 1),
+          bottom: BorderSide(color: Colors.white, width: 1),
         ),
       ),
       child: Column(
@@ -201,7 +204,7 @@ class HotelBookingThankYouScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 _buildDetailRow('Total', selectRoomController.totalPrice.value.toStringAsFixed(0)),
                 const SizedBox(height: 12),
-                _buildDetailRow('Payment Status', 'PENDING'),
+                _buildDetailRow('Payment Status', bookingController.payment_status.value.toString()),
               ],
             ),
           ),
@@ -837,7 +840,7 @@ class HotelBookingThankYouScreen extends StatelessWidget {
                 ['Order Number', bookingController.booking_num.value.toString()],
                 ['Booking Status', 'On Request'],
                 ['Total', selectRoomController.totalPrice.value.toStringAsFixed(0)],
-                ['Payment Status', 'PENDING'],
+                ['Payment Status', bookingController.payment_status.value.toString()],
               ],
             ),
             

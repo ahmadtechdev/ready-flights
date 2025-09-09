@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:ready_flights/utility/colors.dart';
 import 'package:ready_flights/views/hotel/search_hotels/booking_hotel/booking_voucher/booking_voucher.dart';
-import 'package:ready_flights/views/hotel/search_hotels/booking_hotel/widget/payment_controller.dart';
+import 'package:ready_flights/views/hotel/search_hotels/booking_hotel/payment_hotel/payment_controller.dart';
 import 'package:ready_flights/views/hotel/search_hotels/search_hotel_controller.dart';
 import 'package:ready_flights/views/hotel/search_hotels/select_room/controller/select_room_controller.dart';
 import 'package:ready_flights/widgets/snackbar.dart';

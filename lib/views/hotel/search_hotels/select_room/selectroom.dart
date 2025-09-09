@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:ready_flights/services/api_service_hotel.dart';
 
 import '../../../../services/api_service_hotel.dart';
 import '../../../../utility/colors.dart';

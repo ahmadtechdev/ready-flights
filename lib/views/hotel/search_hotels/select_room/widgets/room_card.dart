@@ -541,19 +541,19 @@ class RoomCard extends StatelessWidget {
                                     children: [
                                       _buildSummaryRow(
                                         'Gross Amount',
-                                        ((roomData['grossAmount'] ?? 0) * pkrprice).toStringAsFixed(0),
+                                        ((roomData['grossAmount'] ?? 0) * apiService.currentROE).toStringAsFixed(0),
                                         Icons.monetization_on_outlined,
                                       ),
                                       const SizedBox(height: 8),
                                       _buildSummaryRow(
                                         'Tax',
-                                        ((roomData['tax'] ?? 0) * pkrprice).toStringAsFixed(0),
+                                        ((roomData['tax'] ?? 0) * apiService.currentROE).toStringAsFixed(0),
                                         Icons.receipt_long_outlined,
                                       ),
                                       const SizedBox(height: 8),
                                       _buildSummaryRow(
                                         'Net Amount',
-                                        ((roomData['netAmount'] ?? 0) * pkrprice).toStringAsFixed(0),
+                                        ((roomData['netAmount'] ?? 0) * apiService.currentROE).toStringAsFixed(0),
                                         Icons.account_balance_wallet_outlined,
                                       ),
                                     ],
@@ -571,7 +571,7 @@ class RoomCard extends StatelessWidget {
 
                                   // Convert supplier price to PKR
                                   final supplierPrice = double.tryParse(dateRange['supplierText']?.toString() ?? '0') ?? 0.0;
-                                  final priceInPKR = (supplierPrice * pkrprice);
+                                  final priceInPKR = (supplierPrice * apiService.currentROE);
 
                                   return Container(
                                     margin: const EdgeInsets.only(bottom: 12),
@@ -693,7 +693,7 @@ Widget _buildSummaryRow(String label, String value, IconData icon) {
 }
   @override
   Widget build(BuildContext context) {
-    final pricePerNight = (room['price']['net'] * pkrprice) / nights ?? 0.0;
+    final pricePerNight = (room['price']['net']) / nights ?? 0.0;
 
     final totalPrice = pricePerNight * nights;
 

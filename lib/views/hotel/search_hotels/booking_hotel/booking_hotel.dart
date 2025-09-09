@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:country_picker/country_picker.dart';
-import 'package:ready_flights/views/hotel/search_hotels/booking_hotel/widget/payment_method.dart';
+import 'package:ready_flights/views/hotel/search_hotels/booking_hotel/payment_hotel/payment_method.dart';
 import 'package:ready_flights/views/hotel/search_hotels/select_room/controller/select_room_controller.dart';
 import '../../../../utility/colors.dart';
 import '../../../../widgets/snackbar.dart';
 import '../../hotel/guests/guests_controller.dart';
 import 'booking_controller.dart';
 import 'booking_voucher/booking_voucher.dart';
-import 'widget/important_booking_details_card.dart';
+import 'payment_hotel/important_booking_details_card.dart';
 
 class BookingHotelScreen extends StatelessWidget {
   final BookingController bookingController = Get.put(BookingController());

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ready_flights/utility/colors.dart';
 import 'package:ready_flights/views/hotel/hotel/hotel_date_controller.dart';
+import 'package:ready_flights/views/hotel/search_hotels/hotel_info/hotel_info.dart';
 import 'dart:math';
 import 'dart:ui' as ui;
 import 'dart:typed_data';
@@ -466,7 +467,7 @@ class _HotelScreenState extends State<HotelScreen> {
 }
 
 class HotelCard extends StatelessWidget {
-  final Map hotel;
+   final Map<String, dynamic> hotel;
 
   HotelCard({super.key, required this.hotel});
 
@@ -594,12 +595,12 @@ class HotelCard extends StatelessWidget {
                 
                 controller.roomsdata.clear();
 
-                ApiServiceHotel().fetchRoomDetails(
-                  hotel['hotelCode'],
-                  controller.sessionId.value,
-                );
+                ApiServiceHotel().fetchHotelDetails(hotel['hotelCode']);
                 controller.filterhotler();
-                Get.to(() => const SelectRoomScreen());
+                Get.to(() => HotelInfoScreen(
+                  hotelId: hotel['hotelCode'],
+                  hotelData: hotel,
+                ));
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: TColors.primary,

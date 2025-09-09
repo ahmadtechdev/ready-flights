@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:ready_flights/views/hotel/search_hotels/booking_hotel/booking_controller.dart';
 import 'package:ready_flights/views/hotel/search_hotels/booking_hotel/booking_voucher/booking_voucher.dart';
+import 'package:ready_flights/views/hotel/search_hotels/booking_hotel/payment_hotel/payment_controller.dart';
+import 'package:ready_flights/widgets/colors.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class AbhipayWebView extends StatefulWidget {
@@ -126,6 +129,7 @@ class _AbhipayWebViewState extends State<AbhipayWebView> {
            params['transaction_status']?.toLowerCase() == 'failed';
   }
 
+  // UPDATED METHOD with PaymentController status update
   void _handlePaymentResult(String url, bool isSuccess) {
     final uri = Uri.parse(url);
     final params = uri.queryParameters;
@@ -136,6 +140,16 @@ class _AbhipayWebViewState extends State<AbhipayWebView> {
     
     if (isSuccess) {
       debugPrint('✅ PAYMENT SUCCESS: Transaction ID: $transactionId, Session ID: ${sessionId ?? 'N/A'}');
+      
+      // FIX: Update payment controller status immediately
+      try {
+        final BookingController bookingController = Get.put(BookingController());
+
+        final PaymentController paymentController = Get.put(PaymentController());
+        paymentController.updatePaymentStatus("APPROVED");
+      } catch (e) {
+        print('Could not update payment controller: $e');
+      }
       
       widget.onPaymentComplete?.call(true);
       
@@ -148,6 +162,14 @@ class _AbhipayWebViewState extends State<AbhipayWebView> {
       });
     } else {
       debugPrint('❌ PAYMENT FAILED: Transaction ID: $transactionId');
+      
+      // FIX: Update payment controller status for failure too
+      try {
+        final PaymentController paymentController = Get.find<PaymentController>();
+        paymentController.updatePaymentStatus("FAILED");
+      } catch (e) {
+        print('Could not update payment controller: $e');
+      }
       
       widget.onPaymentComplete?.call(false);
       
@@ -168,7 +190,7 @@ class _AbhipayWebViewState extends State<AbhipayWebView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Complete Payment'),
-        backgroundColor: Colors.blue[700],
+        backgroundColor: TColors.primary,
         foregroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.close),

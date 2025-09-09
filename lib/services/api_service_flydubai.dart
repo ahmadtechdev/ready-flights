@@ -183,7 +183,7 @@ class ApiServiceFlyDubai {
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
         print("++++++++++++++++++Fly Dubai Response ++++++++++++++++++");
-        // printJsonPretty(responseData);
+        printJsonPretty(responseData);
         return {
           'success': true,
           'flights': responseData,
