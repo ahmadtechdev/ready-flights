@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:ready_flights/views/flight/booking_flight/booking_flight_controller.dart';
 
 import '../../../../../services/api_service_airarabia.dart';
 import '../../../../../services/api_service_sabre.dart';
@@ -466,18 +467,51 @@ class _AirArabiaPackageSelectionDialogState extends State<AirArabiaPackageSelect
     }
   }
 
-  void onSelectPackage(int selectedPackageIndex) async {
-    try {
-      isLoading.value = true;
+  // Replace the onSelectPackage method in AirArabiaPackageSelectionDialog with this:
 
-      final packages = packageResponse.value?.packages ?? [];
-      if (selectedPackageIndex >= packages.length) {
-        throw Exception('Invalid package selection');
+void onSelectPackage(int selectedPackageIndex) async {
+  try {
+    isLoading.value = true;
+
+    final packages = packageResponse.value?.packages ?? [];
+    if (selectedPackageIndex >= packages.length) {
+      throw Exception('Invalid package selection');
+    }
+
+    final selectedPackage = packages[selectedPackageIndex];
+
+    // Get booking controller to access adult travelers data
+    final bookingController = Get.find<BookingFlightController>();
+    
+    // Prepare sector data from the selected flight
+    final sector = _convertFlightToSector(widget.flight);
+    
+    // Prepare fare data
+    final fare = {
+      "bundle": {
+        "cabinClass": widget.flight.cabinClass,
+        "fareFamily": widget.flight.cabinClass,
+        "price": widget.flight.price,
+        "fareOndWiseBookingClassCodes": {
+          "${widget.flight.flightSegments.first['departure']['airport']}/${widget.flight.flightSegments.last['arrival']['airport']}": "E35"
+        }
       }
+    };
 
-      final selectedPackage = packages[selectedPackageIndex];
+    // Call package revalidation API
+    final revalidationResponse = await apiService.revalidateAirArabiaPackage(
+      type: 0, // One way
+      adult: bookingController.adults.length, // Get actual adult count from booking controller
+      child: bookingController.children.length, // Get actual child count
+      infant: bookingController.infants.length, // Get actual infant count
+      sector: sector,
+      fare: fare,
+      csId: 15, // You might want to make this dynamic
+    );
 
-      // Store the selected package in the controller
+    // Check if revalidation was successful
+    if (revalidationResponse['status'] == 200) {
+      // Store the selected package and flight in the controller
       airArabiaController.selectedPackage = selectedPackage;
       airArabiaController.selectedFlight = widget.flight;
 
@@ -486,31 +520,31 @@ class _AirArabiaPackageSelectionDialogState extends State<AirArabiaPackageSelect
       Get.snackbar(
         'Success',
         widget.isReturnFlight
-            ? 'Return flight package selected. Proceeding to booking details.'
-            : 'Flight package selected. Proceeding to booking details.',
+            ? 'Return flight package validated successfully!'
+            : 'Flight package validated successfully!',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
 
-      // TODO: Navigate to booking details page
-      // Get.to(() => AirArabiaReviewTripPage(
-      //   flight: widget.flight,
-      //   package: selectedPackage,
-      //   isReturn: widget.isReturnFlight,
-      // ));
+      // TODO: Navigate to next step (e.g., review trip page)
+      // Get.to(() => ReviewTripPage());
 
-    } catch (e) {
-      Get.snackbar(
-        'Error',
-        'This flight package is no longer available. Please select another option.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-        duration: const Duration(seconds: 3),
-      );
-    } finally {
-      isLoading.value = false;
+    } else {
+      throw Exception(revalidationResponse['message'] ?? 'Package revalidation failed');
     }
+
+  } catch (e) {
+    Get.snackbar(
+      'Error',
+      'Package validation failed: ${e.toString()}',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 3),
+    );
+    print('Package revalidation error: $e');
+  } finally {
+    isLoading.value = false;
   }
-}
+}}

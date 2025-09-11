@@ -172,4 +172,61 @@ class ApiServiceAirArabia {
       }
     }
   }
+  // Add this method to your ApiServiceAirArabia class
+
+Future<Map<String, dynamic>> revalidateAirArabiaPackage({
+  required int type,
+  required int adult,
+  required int child,
+  required int infant,
+  required List<Map<String, dynamic>> sector,
+  required Map<String, dynamic> fare,
+  required int csId,
+}) async {
+  try {
+    final headers = {
+      'Content-Type': 'application/json',
+      'Cookie': 'PHPSESSID=u1gagb79trmq6famf6dbsnt7a6'
+    };
+
+    final data = {
+      "type": type,
+      "adult": adult,
+      "child": child,
+      "infant": infant,
+      "sector": sector,
+      "fare": fare,
+      "cs_id": csId,
+    };
+
+    print("AirArabia Package Revalidation Request *********************");
+    print(jsonEncode(data));
+
+    final response = await _dio.request(
+      'https://onerooftravel.net/api/air-arabia-package-revalidate',
+      options: Options(
+        method: 'POST',
+        headers: headers,
+      ),
+      data: data,
+    );
+
+    
+print("*************** AirArabia Package Revalidation Response 1 *********");
+    print(jsonEncode(response.data));
+    if (response.statusCode == 200) {
+      print("*************** AirArabia Package Revalidation Response *********");
+    print(jsonEncode(response.data));
+      if (response.data is String) {
+        return jsonDecode(response.data) as Map<String, dynamic>;
+      }
+      return response.data as Map<String, dynamic>;
+    } else {
+      throw Exception('Failed to revalidate Air Arabia package: ${response.statusMessage}');
+    }
+  } catch (e) {
+    print('Error revalidating Air Arabia package: $e');
+    rethrow;
+  }
+}
 }

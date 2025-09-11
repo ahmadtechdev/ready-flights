@@ -102,6 +102,9 @@ class _HotelImagesGalleryScreenState extends State<HotelImagesGalleryScreen>
                           children: [
                             Icon(
                               Icons.image_not_supported,
+                              
+
+
                               size: 64,
                               color: TColors.grey,
                             ),
