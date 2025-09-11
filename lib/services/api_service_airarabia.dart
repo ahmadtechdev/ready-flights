@@ -2,10 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:get/get.dart';
 import 'package:xml2json/xml2json.dart';
-
-import '../views/flight/search_flights/airarabia/airarabia_flight_model.dart';
 
 class ApiServiceAirArabia {
   final Dio _dio = Dio();
@@ -37,16 +34,71 @@ class ApiServiceAirArabia {
         "cabin": cabin,
       };
 
-
-
+      print("AirArabia Request *********************");
+      print(data);
       final response = await _dio.request(
-        'https://onerooftravel.net/api/model_controllers/air-arabia-flights',
+        'https://onerooftravel.net/api/new-air-arabia-flights',
         options: Options(
           method: 'POST',
           headers: headers,
         ),
         data: data,
       );
+
+      // printDebugData('Air Arabia Response', response);
+      print("*************** Response Arabia*********");
+      print(response);
+      if (response.statusCode == 200) {
+        // Ensure the response is parsed as Map
+        if (response.data is String) {
+          return jsonDecode(response.data) as Map<String, dynamic>;
+        }
+        print("*************** Response Arabia*********");
+        print(response);
+        return response.data as Map<String, dynamic>;
+      } else {
+        throw Exception('Failed to load Air Arabia flights: ${response.statusMessage}');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getFlightPackages({
+    required int type,
+    required int adult,
+    required int child,
+    required int infant,
+    required List<Map<String, dynamic>> sector,
+  }) async {
+    try {
+      final headers = {
+        'Content-Type': 'application/json',
+        'Cookie': 'PHPSESSID=f6e1vveq1sr0h15f4t4k31u4f6'
+      };
+
+      final data = {
+        "type": type,
+        "adult": adult,
+        "child": child,
+        "infant": infant,
+        "sector": sector,
+      };
+
+      print("AirArabia Packages Request *********************");
+      print(data);
+
+      final response = await _dio.request(
+        'https://onerooftravel.net/api/get-air-arabia-package',
+        options: Options(
+          method: 'POST',
+          headers: headers,
+        ),
+        data: data,
+      );
+
+      print("*************** AirArabia Packages Response *********");
+      // print(response);
 
       if (response.statusCode == 200) {
         // Ensure the response is parsed as Map
@@ -55,76 +107,10 @@ class ApiServiceAirArabia {
         }
         return response.data as Map<String, dynamic>;
       } else {
-        throw Exception('Failed to load Air Arabia flights: ${response.statusMessage}');
+        throw Exception('Failed to load Air Arabia packages: ${response.statusMessage}');
       }
     } catch (e) {
-      print('Error in Air Arabia API: $e');
-      rethrow;
-    }
-  }
-
-  // New method for Air Arabia fare prices
-  Future getAirArabiaFare({
-    required AirArabiaFlight sectorType, // flight array
-    required int adult,
-    required int child,
-    required int infant,
-  }) async {
-    try {
-      final headers = {
-        'Content-Type': 'application/json',
-      };
-
-      print("check");
-      print(sectorType.json);
-
-      final data = {
-        "sector_type": sectorType.json,
-        "adult": adult,
-        "child": child,
-        "infant": infant,
-        "type": 0, // Always 0 as per requirements
-      };
-
-      // Print request data
-      print('=== AIR ARABIA FARE API REQUEST ===');
-      print('URL: https://onerooftravel.net/api/fare/air-araibia-fare');
-      print('Method: GET');
-      print('Headers: $headers');
-      print('Request Data:');
-      print(data);
-      print('=====================================');
-
-      final response = await _dio.request(
-        'https://onerooftravel.net/api/fare/air-araibia-fare',
-        options: Options(
-          method: 'POST',
-          headers: headers,
-        ),
-        data: data,
-      );
-
-      // Print response data
-      print('=== AIR ARABIA FARE API RESPONSE ===');
-      print('Status Code: ${response.statusCode}');
-      print('Response Data:');
-      printDebugData('Air Arabia Fare Response', response.data);
-      print('====================================');
-
-      if (response.statusCode == 200) {
-        print(response.data);
-        // Ensure the response is parsed as Map
-        if (response.data is String) {
-          return response.data ;
-        }
-        return response.data as Map<String, dynamic>;
-      } else {
-        throw Exception('Failed to load Air Arabia fare: ${response.statusMessage}');
-      }
-    } catch (e) {
-      print('=== AIR ARABIA FARE API ERROR ===');
-      print('Error: $e');
-      print('=================================');
+      print('Error getting Air Arabia packages: $e');
       rethrow;
     }
   }
@@ -140,6 +126,7 @@ class ApiServiceAirArabia {
       return {'error': 'Failed to parse XML response'};
     }
   }
+
 
   void printDebugData(String label, dynamic data) {
     // print('--- DEBUG: $label ---');
@@ -170,19 +157,19 @@ class ApiServiceAirArabia {
 
   /// Converts XML string to JSON (Map)
 
+
   /// Prints JSON nicely with chunking
   void printJsonPretty(dynamic jsonData) {
     const int chunkSize = 1000;
-    // final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);
-    for (int i = 0; i < jsonData.length; i += chunkSize) {
-      final chunk = jsonData.substring(
+    final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);
+    for (int i = 0; i < jsonString.length; i += chunkSize) {
+      final chunk = jsonString.substring(
         i,
-        i + chunkSize < jsonData.length ? i + chunkSize : jsonData.length,
+        i + chunkSize < jsonString.length ? i + chunkSize : jsonString.length,
       );
       if (kDebugMode) {
         print(chunk);
       }
     }
   }
-
 }

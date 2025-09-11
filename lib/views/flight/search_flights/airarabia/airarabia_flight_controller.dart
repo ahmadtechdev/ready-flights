@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import '../../../../services/api_service_airarabia.dart';
 import '../filters/filter_flight_model.dart';
 import '../flight_package/airarabia/airarabia_flight_package.dart';
-import '../search_flight_utils/filter_flight_model.dart';
 import 'airarabia_flight_model.dart';
 
 class AirArabiaFlightController extends GetxController {
@@ -15,6 +14,10 @@ class AirArabiaFlightController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxString errorMessage = ''.obs;
   final RxString sortType = 'Suggested'.obs;
+
+  // Selected flight and package for booking
+  AirArabiaFlight? selectedFlight;
+  AirArabiaPackage? selectedPackage;
 
   void clearFlights() {
     flights.clear();
@@ -49,7 +52,6 @@ class AirArabiaFlightController extends GetxController {
         // Handle one-way flights (original logic)
         _processOneWayFlights(ondWiseFlights);
       }
-
 
       // // Sort flights by price initially
       // flights.sort((a, b) => a.price.compareTo(b.price));
@@ -92,6 +94,7 @@ class AirArabiaFlightController extends GetxController {
     // We need to identify which route is outbound and which is inbound
     // The first route in the response is typically outbound, second is inbound
     final outboundRoute = routes[0];
+    // ignore: unused_local_variable
     final inboundRoute = routes[1];
 
     // Get all outbound and inbound flight options
@@ -139,38 +142,6 @@ class AirArabiaFlightController extends GetxController {
     }
   }
 
-  Future<void> handleAirArabiaFlightSelection(AirArabiaFlight flight) async {
-
-    try {
-      // You might need to adjust these values based on your flight data structure
-      // and where you store passenger counts. For now, using sample values:
-      const int adultCount = 1; // Replace with actual passenger count
-      const int childCount = 0; // Replace with actual passenger count
-      const int infantCount = 0; // Replace with actual passenger count
-
-      // Extract flight array from the selected flight
-      // You may need to adjust this based on your flight data structure
-      final apiServiceAirArabia = new ApiServiceAirArabia();
-      // Call the fare API
-      await apiServiceAirArabia.getAirArabiaFare(
-        sectorType: flight,
-        adult: adultCount,
-        child: childCount,
-        infant: infantCount,
-      );
-
-    } catch (e) {
-      print('Error calling Air Arabia fare API: $e');
-    }
-
-    Get.to(
-          () => AirArabiaPackageSelectionDialog(
-        flight: flight,
-        isReturnFlight: false,
-      ),
-    );
-  }
-
   AirArabiaFlight _createRoundTripPackage(
       Map<String, dynamic> outbound,
       Map<String, dynamic> inbound
@@ -202,6 +173,15 @@ class AirArabiaFlightController extends GetxController {
     };
 
     return AirArabiaFlight.fromJson(combinedOption);
+  }
+
+  void handleAirArabiaFlightSelection(AirArabiaFlight flight) {
+    Get.to(
+          () => AirArabiaPackageSelectionDialog(
+        flight: flight,
+        isReturnFlight: false,
+      ),
+    );
   }
 
   // Updated apply filters method with better airline filtering
@@ -274,10 +254,6 @@ class AirArabiaFlightController extends GetxController {
     filteredFlights.value = filtered;
   }
 
-  void resetLoadingState() {
-    isLoading.value = true;
-  }
-
   // Method to get filtered flights by airline
   List<AirArabiaFlight> getFlightsByAirline(String airlineCode) {
     return flights.where((flight) {
@@ -302,5 +278,8 @@ class AirArabiaFlightController extends GetxController {
       )
     ];
   }
+
+
+
 }
 

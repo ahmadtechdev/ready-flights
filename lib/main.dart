@@ -35,6 +35,7 @@ class MyApp extends StatelessWidget {
     Get.lazyPut(() => ApiServiceAirArabia(), fenix: true);
     Get.lazyPut(() => AirBlueFlightController(), fenix: true);
     Get.lazyPut(() => FlydubaiFlightController(), fenix: true);
+
     Get.put(AuthController());
 
     return GetMaterialApp(

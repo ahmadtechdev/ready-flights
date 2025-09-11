@@ -418,6 +418,10 @@ class AirBlueFlight {
       final departureDateTime = flightSegment['DepartureDateTime']?.toString() ?? '';
       final arrivalDateTime = flightSegment['ArrivalDateTime']?.toString() ?? '';
 
+      print("airblue time check");
+      print(departureDateTime);
+      print(arrivalDateTime);
+
       return [
         {
           'airlineCode': flightSegment['MarketingAirline']?['Code'] ?? 'PA',

@@ -62,8 +62,6 @@ class FlightPackageInfo {
 
         final segments = passengerInfo['fareComponents'][0]['segments'][0]['segment'];
 
-        print("seats check");
-        print(segments['seatsAvailable']);
         cabinCode = segments['cabinCode'] ?? 'Y';
         mealCode = segments['mealCode'] ?? 'N';
         seatsAvailable = segments['seatsAvailable'] ?? 0;

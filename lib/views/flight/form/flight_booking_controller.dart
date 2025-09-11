@@ -422,18 +422,18 @@ class FlightBookingController extends GetxController {
 
 
 
-        // // Call Air Arabia API for all trip types except multi-city
-        // if (tripType.value != TripType.multiCity)
-        //   _callAirArabiaApi(
-        //     type: tripType.value == TripType.roundTrip ? 1 : 0,
-        //     origin: origin,
-        //     destination: destination,
-        //     depDate: formattedDates,
-        //     adult: adultCount.value,
-        //     child: childrenCount.value,
-        //     infant: infantCount.value,
-        //     cabin: travelClass.value,
-        //   ),
+        // Call Air Arabia API for all trip types except multi-city
+        if (tripType.value != TripType.multiCity)
+          _callAirArabiaApi(
+            type: tripType.value == TripType.roundTrip ? 1 : 0,
+            origin: origin,
+            destination: destination,
+            depDate: formattedDates,
+            adult: adultCount.value,
+            child: childrenCount.value,
+            infant: infantCount.value,
+            cabin: travelClass.value,
+          ),
       ];
 
       // // 2. FlyDubai API (via FlyDubai controller) - SINGLE CALL, NO DUPLICATES

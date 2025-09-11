@@ -1,23 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../../../services/api_service_airarabia.dart';
+import '../../../../../services/api_service_sabre.dart';
 import '../../../../../utility/colors.dart';
 import '../../airarabia/airarabia_flight_model.dart';
 import '../../airarabia/airarabia_flight_controller.dart';
 import '../../search_flight_utils/widgets/airarabia_flight_card.dart';
 
-class AirArabiaPackageSelectionDialog extends StatelessWidget {
+class AirArabiaPackageSelectionDialog extends StatefulWidget {
   final AirArabiaFlight flight;
   final bool isReturnFlight;
-  final RxBool isLoading = false.obs;
 
-  AirArabiaPackageSelectionDialog({
+  const AirArabiaPackageSelectionDialog({
     super.key,
     required this.flight,
     required this.isReturnFlight,
   });
 
+  @override
+  State<AirArabiaPackageSelectionDialog> createState() => _AirArabiaPackageSelectionDialogState();
+}
+
+class _AirArabiaPackageSelectionDialogState extends State<AirArabiaPackageSelectionDialog> {
+  final RxBool isLoading = false.obs;
+  final RxBool isLoadingPackages = true.obs;
+  final Rx<AirArabiaPackageResponse?> packageResponse = Rx<AirArabiaPackageResponse?>(null);
+  final RxString errorMessage = ''.obs;
+
+  // Cache for margin data and calculated prices
+  final Rx<Map<String, dynamic>> marginData = Rx<Map<String, dynamic>>({});
+  final Map<String, RxDouble> finalPrices = {};
+
   final airArabiaController = Get.find<AirArabiaFlightController>();
+  final apiService = Get.find<ApiServiceAirArabia>();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPackages();
+    _prefetchMarginData();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,110 +54,274 @@ class AirArabiaPackageSelectionDialog extends StatelessWidget {
           onPressed: () => Get.back(),
         ),
         title: Text(
-          'Select Flight Package',
+          widget.isReturnFlight
+              ? 'Select Return Flight Package'
+              : 'Select Flight Package',
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // _buildFlightInfo(),
-            AirArabiaFlightCard(flight: flight),
-            _buildPackageCard(),
-            const SizedBox(height: 20),
-          ],
-        ),
+      body: Column(
+        children: [
+          _buildFlightInfo(),
+          Expanded(
+            child: _buildPackagesList(),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildFlightInfo() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '${flight.flightSegments.first['departure']?['airport']} → ${flight.flightSegments.last['arrival']?['airport']}',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
+    return AirArabiaFlightCard(flight: widget.flight, showReturnFlight: false);
+  }
+
+  Future<void> _loadPackages() async {
+    try {
+      isLoadingPackages.value = true;
+      errorMessage.value = '';
+
+      // Convert flight segments to the format expected by the API
+      final sector = _convertFlightToSector(widget.flight);
+
+      final response = await apiService.getFlightPackages(
+        type: 0, // One way
+        adult: 1, // Default values - these should come from search parameters
+        child: 0,
+        infant: 0,
+        sector: sector,
+      );
+
+      if (response['status'] == 200) {
+        packageResponse.value = AirArabiaPackageResponse.fromJson(response);
+      } else {
+        errorMessage.value = response['message'] ?? 'Failed to load packages';
+      }
+    } catch (e) {
+      errorMessage.value = 'Error loading packages: $e';
+    } finally {
+      isLoadingPackages.value = false;
+    }
+  }
+
+  List<Map<String, dynamic>> _convertFlightToSector(AirArabiaFlight flight) {
+    // Convert AirArabiaFlight to the sector format expected by the packages API
+    final List<Map<String, dynamic>> flightSegments = [];
+
+    for (var segment in flight.flightSegments) {
+      flightSegments.add({
+        'flightNumber': segment['flightNumber'],
+        'origin': {
+          'airportCode': segment['departure']['airport'],
+          'terminal': segment['departure']['terminal'] ?? '',
+          'countryCode': 'PK', // Default country code
+        },
+        'destination': {
+          'airportCode': segment['arrival']['airport'],
+          'terminal': segment['arrival']['terminal'] ?? '',
+          'countryCode': 'AE', // Default country code
+        },
+        'departureDateTimeLocal': segment['departure']['dateTime'],
+        'departureDateTimeZulu': segment['departure']['dateTime'],
+        'arrivalDateTimeLocal': segment['arrival']['dateTime'],
+        'arrivalDateTimeZulu': segment['arrival']['dateTime'],
+        'segmentCode': '${segment['departure']['airport']}/${segment['arrival']['airport']}',
+        'availablePaxCounts': [
+          {'paxType': 'ADT', 'count': 9},
+          {'paxType': 'INF', 'count': 9},
+        ],
+        'transportMode': 'AIRCRAFT',
+        'modelName': '',
+        'aircraftModel': segment['aircraftModel'] ?? 'A320',
+        'flightSegmentRef': '${DateTime.now().millisecondsSinceEpoch}',
+      });
+    }
+
+    return [{
+      'flightSegments': flightSegments,
+      'cabinPrices': [{
+        'cabinClass': flight.cabinClass,
+        'fareFamily': flight.cabinClass,
+        'price': flight.price,
+        'fareOndWiseBookingClassCodes': {
+          '${flight.flightSegments.first['departure']['airport']}/${flight.flightSegments.last['arrival']['airport']}': 'E35'
+        },
+        'availabilityStatus': 'UNKNOWN_AVAILABILITY_STATUS',
+        'paxTypeWiseBasePrices': [
+          {'paxType': 'ADT', 'price': flight.price},
+          {'paxType': 'CHD', 'price': 0},
+          {'paxType': 'INF', 'price': 0},
+        ]
+      }]
+    }];
+  }
+
+  Future<void> _prefetchMarginData() async {
+    try {
+      if (marginData.value.isEmpty) {
+        final apiService = Get.find<ApiServiceSabre>();
+        marginData.value = await apiService.getMargin("FJ", "Air Arabia");
+      }
+
+      // Pre-calculate prices for all packages when they're loaded
+      if (packageResponse.value != null) {
+        for (var package in packageResponse.value!.packages) {
+          final String packageKey = '${package.packageType}-${package.packageName}';
+
+          if (!finalPrices.containsKey(packageKey)) {
+            final apiService = Get.find<ApiServiceSabre>();
+            final marginedBasePrice = apiService.calculatePriceWithMargin(
+              package.basePrice,
+              marginData.value,
+            );
+            final totalPrice = marginedBasePrice + widget.flight.price;
+            finalPrices[packageKey] = totalPrice.obs;
+          }
+        }
+      }
+    } catch (e) {
+      // Handle margin calculation errors silently
+    }
+  }
+
+  Widget _buildPackagesList() {
+    return Obx(() {
+      if (isLoadingPackages.value) {
+        return const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.flight, size: 16, color: TColors.primary),
-              const SizedBox(width: 8),
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
               Text(
-                '${flight.airlineName} (${flight.airlineCode})',
-                style: const TextStyle(fontSize: 14),
-              ),
-              const Spacer(),
-              Text(
-                'PKR ${flight.price.toStringAsFixed(0)}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                'Loading packages...',
+                style: TextStyle(fontSize: 16, color: TColors.grey),
               ),
             ],
           ),
+        );
+      }
+
+      if (errorMessage.value.isNotEmpty) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(
+                'Error loading packages',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                errorMessage.value,
+                style: const TextStyle(fontSize: 14, color: TColors.grey),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadPackages,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        );
+      }
+
+      final packages = packageResponse.value?.packages ?? [];
+
+      if (packages.isEmpty) {
+        return const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.warning_amber_rounded, size: 48, color: Colors.amber),
+              SizedBox(height: 16),
+              Text(
+                'No packages available for this flight',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Please select another flight',
+                style: TextStyle(fontSize: 14, color: TColors.grey),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(left: 16, top: 8, bottom: 8),
+            child: Text(
+              'Available Packages',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: TColors.text,
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: packages.length,
+              itemBuilder: (context, index) {
+                return _buildPackageCard(packages[index], index);
+              },
+            ),
+          ),
         ],
-      ),
-    );
+      );
+    });
   }
 
-  Widget _buildPackageCard() {
+  Widget _buildPackageCard(AirArabiaPackage package, int index) {
+    final headerColor = _getPackageColor(package.packageType);
+    final price = finalPrices['${package.packageType}-${package.packageName}']?.value ??
+        (package.totalPrice + widget.flight.price);
+
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         color: TColors.background,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
       child: Column(
         children: [
-          // Header with package name and price
+          // Header with package name
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [TColors.primary, TColors.primary.withOpacity(0.8)],
+                colors: [headerColor, headerColor.withOpacity(0.8)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Standard Package',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+            child: Center(
+              child: Text(
+                package.packageName,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: TColors.background,
                 ),
-                Text(
-                  'PKR ${flight.price.toStringAsFixed(0)}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
 
@@ -146,74 +333,85 @@ class AirArabiaPackageSelectionDialog extends StatelessWidget {
                 _buildPackageDetail(
                   Icons.luggage,
                   'Hand Baggage',
-                  '10 KG included',
+                  '10 KG',
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 _buildPackageDetail(
                   Icons.luggage,
                   'Checked Baggage',
-                  '20 KG included',
+                  package.baggageAllowance,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 _buildPackageDetail(
                   Icons.restaurant,
                   'Meal',
-                  'No meal service',
+                  package.mealInfo,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 _buildPackageDetail(
                   Icons.airline_seat_recline_normal,
-                  'Cabin Class',
-                  getCabinClassName(flight.cabinClass),
+                  'Seat',
+                  package.seatInfo,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 _buildPackageDetail(
                   Icons.change_circle,
-                  'Change Fee',
-                  'PKR 5,000',
+                  'Modification',
+                  package.modificationPolicy,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 _buildPackageDetail(
                   Icons.currency_exchange,
-                  'Refund Fee',
-                  'Non-refundable',
+                  'Cancellation',
+                  package.cancellationPolicy,
                 ),
               ],
             ),
           ),
 
-          // Select button
+          // Price and button
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Obx(
-                  () => ElevatedButton(
-                onPressed: isLoading.value ? null : () => onSelectPackage(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: TColors.primary,
-                  minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  elevation: 2,
-                ),
-                child: isLoading.value
-                    ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 3,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                )
-                    : Text(
-                  'Select Package',
+            child: Column(
+              children: [
+                Text(
+                  'PKR ${price.toStringAsFixed(0)}',
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: TColors.text,
                   ),
                 ),
-              ),
+                const SizedBox(height: 12),
+                Obx(() => ElevatedButton(
+                  onPressed: isLoading.value
+                      ? null
+                      : () => onSelectPackage(index),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: headerColor,
+                    minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: isLoading.value
+                      ? const CircularProgressIndicator(
+                    strokeWidth: 3,
+                    valueColor: AlwaysStoppedAnimation<Color>(TColors.background),
+                  )
+                      : Text(
+                    widget.isReturnFlight
+                        ? 'Select Return Package'
+                        : 'Select Package',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: TColors.background,
+                    ),
+                  ),
+                )),
+              ],
             ),
           ),
         ],
@@ -222,56 +420,97 @@ class AirArabiaPackageSelectionDialog extends StatelessWidget {
   }
 
   Widget _buildPackageDetail(IconData icon, String title, String value) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: TColors.secondary,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: TColors.primary, size: 18),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(fontSize: 12, color: TColors.grey),
-              ),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: TColors.text,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, color: TColors.primary, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: TColors.grey,
+                  ),
                 ),
-              ),
-            ],
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: TColors.text,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  String getCabinClassName(String cabinCode) {
-    switch (cabinCode) {
-      case 'F':
-        return 'First Class';
-      case 'C':
-        return 'Business Class';
-      case 'Y':
-        return 'Economy Class';
-      case 'W':
-        return 'Premium Economy';
+  Color _getPackageColor(String packageType) {
+    switch (packageType.toLowerCase()) {
+      case 'basic':
+        return TColors.primary;
+      case 'value':
+        return Colors.blue;
+      case 'ultimate':
+        return Colors.purple;
       default:
-        return 'Economy Class';
+        return TColors.primary;
     }
   }
 
-  void onSelectPackage() async {
+  void onSelectPackage(int selectedPackageIndex) async {
+    try {
+      isLoading.value = true;
 
+      final packages = packageResponse.value?.packages ?? [];
+      if (selectedPackageIndex >= packages.length) {
+        throw Exception('Invalid package selection');
+      }
+
+      final selectedPackage = packages[selectedPackageIndex];
+
+      // Store the selected package in the controller
+      airArabiaController.selectedPackage = selectedPackage;
+      airArabiaController.selectedFlight = widget.flight;
+
+      Get.back(); // Close the package selection dialog
+
+      Get.snackbar(
+        'Success',
+        widget.isReturnFlight
+            ? 'Return flight package selected. Proceeding to booking details.'
+            : 'Flight package selected. Proceeding to booking details.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+
+      // TODO: Navigate to booking details page
+      // Get.to(() => AirArabiaReviewTripPage(
+      //   flight: widget.flight,
+      //   package: selectedPackage,
+      //   isReturn: widget.isReturnFlight,
+      // ));
+
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'This flight package is no longer available. Please select another option.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+    } finally {
+      isLoading.value = false;
+    }
   }
 }

@@ -339,6 +339,8 @@ class ApiServiceSabre extends GetxService {
       );
 
       if (response.statusCode == 200) {
+        // print("Sabre Response");
+        // printJsonPretty(response.data);
         return response.data;
       } else {
         throw Exception('Failed to model_controllers flights: ${response.statusCode}');

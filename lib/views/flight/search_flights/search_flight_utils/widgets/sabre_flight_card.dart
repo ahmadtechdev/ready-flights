@@ -32,8 +32,6 @@ class FlightCard extends StatefulWidget {
 class _FlightCardState extends State<FlightCard>
     with SingleTickerProviderStateMixin {
   bool isExpanded = false;
-  late AnimationController _controller;
-  late Animation<double> _expandAnimation;
 
   final Rx<Map<String, dynamic>> marginData = Rx<Map<String, dynamic>>({});
   final RxDouble finalPrice = 0.0.obs;
@@ -42,14 +40,7 @@ class _FlightCardState extends State<FlightCard>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _expandAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
-    );
+
 
     // Fetch margin data when widget initializes
     _fetchMarginData();
@@ -75,7 +66,6 @@ class _FlightCardState extends State<FlightCard>
 
   @override
   void dispose() {
-    _controller.dispose();
     super.dispose();
   }
 
@@ -160,6 +150,153 @@ class _FlightCardState extends State<FlightCard>
     if (time.isEmpty) return 'N/A';
     return time.split(':').sublist(0, 2).join(':'); // Extract HH:mm
   }
+
+  void _showFlightDetailsDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) => _buildFlightDetailsDialog(),
+    );
+  }
+
+  Widget _buildFlightDetailsDialog() {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 50),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutBack,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 20,
+              spreadRadius: 2,
+              offset: const Offset(0, 10),
+            ),
+            BoxShadow(
+              color: TColors.primary.withOpacity(0.1),
+              blurRadius: 40,
+              spreadRadius: 0,
+              offset: const Offset(0, 20),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Dialog Header
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    TColors.primary,
+                    TColors.primary.withOpacity(0.8),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.flight_takeoff,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Text(
+                      'Flight Details',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Scrollable Content
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Flight Segments
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: widget.flight.stopSchedules.length,
+                      separatorBuilder: (context, index) => const SizedBox(height: 16),
+                      itemBuilder: (context, index) {
+                        return _buildFlightSegment(
+                          widget.flight.stopSchedules[index],
+                          index,
+                          widget.flight.stopSchedules.length,
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Baggage Information
+                    _buildSectionCard(
+                      title: 'Baggage Allowance',
+                      content: formatBaggageInfo(),
+                      icon: Icons.luggage,
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Fare Rules
+                    _buildSectionCard(
+                      title: 'Policy',
+                      content: _buildFareRules(),
+                      icon: Icons.rule,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -291,6 +428,10 @@ class _FlightCardState extends State<FlightCard>
 
                 // Flight Route Information
                 ...widget.flight.legSchedules.map((legSchedule) {
+
+                  print("Ahmad leg schedule check");
+                  print(legSchedule);
+
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Row(
@@ -311,7 +452,7 @@ class _FlightCardState extends State<FlightCard>
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                legSchedule['departure']['city'] ?? 'DEP',
+                                legSchedule['departure']['airport'] ?? 'DEP',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
@@ -333,16 +474,7 @@ class _FlightCardState extends State<FlightCard>
                         Expanded(
                           flex: 3,
                           child: InkWell(
-                            onTap: () {
-                              setState(() {
-                                isExpanded = !isExpanded;
-                                if (isExpanded) {
-                                  _controller.forward();
-                                } else {
-                                  _controller.reverse();
-                                }
-                              });
-                            },
+                            onTap: _showFlightDetailsDialog,
                             child: Column(
                               children: [
                                 Text(
@@ -427,7 +559,7 @@ class _FlightCardState extends State<FlightCard>
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                legSchedule['arrival']['city'] ?? 'ARR',
+                                legSchedule['arrival']['airport'] ?? 'ARR',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
@@ -448,53 +580,6 @@ class _FlightCardState extends State<FlightCard>
                     ),
                   );
                 }).toList(),
-
-                // Expandable Details Section (keeping your existing detailed view)
-                SizeTransition(
-                  sizeFactor: _expandAnimation,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: const BorderRadius.vertical(
-                        bottom: Radius.circular(12),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Flight Segments
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: widget.flight.stopSchedules.length,
-                          itemBuilder: (context, index) {
-                            final schedule = widget.flight.stopSchedules[index];
-                            return _buildFlightSegment(
-                              schedule,
-                              index,
-                              widget.flight.stopSchedules.length,
-                            );
-                          },
-                        ),
-
-                        // // Baggage Information
-                        // _buildSectionCard(
-                        //   title: 'Baggage Allowance',
-                        //   content: formatBaggageInfo(),
-                        //   icon: Icons.luggage,
-                        // ),
-                        //
-                        // // Fare Rules
-                        // _buildSectionCard(
-                        //   title: 'Policy',
-                        //   content: _buildFareRules(),
-                        //   icon: Icons.rule,
-                        // ),
-                      ],
-                    ),
-                  ),
-                ),
-                // const SizedBox(height: 12),
 
                 // Bottom Row - Flight Details Button and Book Button
                 Row(
@@ -825,7 +910,7 @@ class _FlightCardState extends State<FlightCard>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      schedule['departure']['city'] ?? "UNK",
+                      schedule['departure']['airport'] ?? "UNK",
                       style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                     Text(
@@ -886,7 +971,7 @@ class _FlightCardState extends State<FlightCard>
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      schedule['arrival']['city'] ?? "UNK",
+                      schedule['arrival']['airport'] ?? "UNK",
                       style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                     Text(

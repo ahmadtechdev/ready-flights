@@ -1,8 +1,6 @@
 // airarabia_flight_model.dart
 import 'package:flutter/foundation.dart';
-import 'package:get/get.dart';
 
-import '../../../../widgets/custom_textfield.dart';
 
 class AirArabiaFlight {
   final String id;
@@ -18,7 +16,6 @@ class AirArabiaFlight {
   final bool isRoundTrip;
   final Map<String, dynamic>? outboundFlight;
   final Map<String, dynamic>? inboundFlight;
-  final Map<String, dynamic>? json;
 
   AirArabiaFlight({
     required this.id,
@@ -34,7 +31,6 @@ class AirArabiaFlight {
     this.isRoundTrip = false,
     this.outboundFlight,
     this.inboundFlight,
-    this.json,
   });
 
   factory AirArabiaFlight.fromJson(Map<String, dynamic> json) {
@@ -70,7 +66,7 @@ class AirArabiaFlight {
       // Safely get cabin price with proper type casting
       Map<String, dynamic> cabinPrice;
       try {
-           // Check if cabinPrices exists and is not null
+        // Check if cabinPrices exists and is not null
         if (json['cabinPrices'] != null) {
           final cabinPricesRaw = json['cabinPrices'] as List;
 
@@ -106,7 +102,9 @@ class AirArabiaFlight {
           'availabilityStatus': 'UNAVAILABLE'
         };
 
-        print("Error: $e");
+        if (kDebugMode) {
+          print("Error: $e");
+        }
       }
 
       // Get flight segments for outbound/inbound logic
@@ -128,7 +126,6 @@ class AirArabiaFlight {
         inboundFlight: json['inboundFlight'] != null
             ? Map<String, dynamic>.from(json['inboundFlight'] as Map)
             : _findInboundFlight(flightSegmentsList),
-        json: json,
       );
     } catch (e, stackTrace) {
       if (kDebugMode) {
@@ -181,4 +178,209 @@ class AirArabiaFlight {
   }
 
   bool get isDirectFlight => flightSegments.length == 1;
+}
+
+// AirArabia Package Models
+class AirArabiaPackage {
+  final String packageName;
+  final String packageType; // Basic, Value, Ultimate
+  final double basePrice;
+  final double totalPrice;
+  final String currency;
+  final String cabinClass;
+  final String baggageAllowance;
+  final String mealInfo;
+  final String seatInfo;
+  final String modificationPolicy;
+  final String cancellationPolicy;
+  final bool isRefundable;
+  final Map<String, dynamic> rawData;
+
+  AirArabiaPackage({
+    required this.packageName,
+    required this.packageType,
+    required this.basePrice,
+    required this.totalPrice,
+    required this.currency,
+    required this.cabinClass,
+    required this.baggageAllowance,
+    required this.mealInfo,
+    required this.seatInfo,
+    required this.modificationPolicy,
+    required this.cancellationPolicy,
+    required this.isRefundable,
+    required this.rawData,
+  });
+
+  factory AirArabiaPackage.fromJson(Map<String, dynamic> json) {
+    try {
+      final packageName = json['bundledServiceName'] ?? 'Basic';
+      final packageType = _getPackageType(packageName);
+      final basePrice = double.tryParse(json['perPaxBundledFee']?.toString() ?? '')
+          ?? (json['perPaxBundledFee'] as num?)?.toDouble()
+          ?? 0.0;
+      final totalPrice = basePrice; // Will be calculated with margin later
+      final currency = 'PKR';
+      final cabinClass = 'Y'; // Default to Economy
+
+      // Parse description for package details
+      final description = json['description'] ?? '';
+      final descriptionLines = description.split('\n');
+
+      final baggageAllowance = _getBaggageAllowance(packageType);
+      final mealInfo = descriptionLines.length > 2 ? descriptionLines[2] : 'Charges Apply';
+      final seatInfo = descriptionLines.length > 3 ? descriptionLines[3] : 'Charges Apply';
+      final modificationPolicy = descriptionLines.length > 4 ? descriptionLines[4] : 'Charges Apply';
+      final cancellationPolicy = descriptionLines.length > 5 ? descriptionLines[5] : 'Charges Apply';
+
+      final isRefundable = !packageType.toLowerCase().contains('basic');
+
+      return AirArabiaPackage(
+        packageName: packageName,
+        packageType: packageType,
+        basePrice: basePrice,
+        totalPrice: totalPrice,
+        currency: currency,
+        cabinClass: cabinClass,
+        baggageAllowance: baggageAllowance,
+        mealInfo: mealInfo,
+        seatInfo: seatInfo,
+        modificationPolicy: modificationPolicy,
+        cancellationPolicy: cancellationPolicy,
+        isRefundable: isRefundable,
+        rawData: json,
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error creating AirArabiaPackage: $e');
+      }
+      rethrow;
+    }
+  }
+
+  static String _getPackageType(String packageName) {
+    switch (packageName.toLowerCase()) {
+      case 'value':
+        return 'Value';
+      case 'ultimate':
+        return 'Ultimate';
+      default:
+        return 'Basic';
+    }
+  }
+
+  static String _getBaggageAllowance(String packageType) {
+    switch (packageType.toLowerCase()) {
+      case 'value':
+        return '30 KG';
+      case 'ultimate':
+        return '40 KG';
+      default:
+        return 'Charges Apply';
+    }
+  }
+}
+
+class AirArabiaPackageResponse {
+  final List<AirArabiaPackage> packages;
+  final double basePrice;
+  final String currency;
+  final String route; // e.g., "KHI/SHJ/DAC"
+  final Map<String, dynamic> rawData;
+
+  AirArabiaPackageResponse({
+    required this.packages,
+    required this.basePrice,
+    required this.currency,
+    required this.route,
+    required this.rawData,
+  });
+
+  factory AirArabiaPackageResponse.fromJson(Map<String, dynamic> json) {
+    try {
+      final List<AirArabiaPackage> packages = [];
+      double basePrice = 0.0;
+      final String currency = 'PKR';
+      String route = '';
+
+      // Parse the response structure based on the PHP example
+      final Map<String, dynamic>? dataWrapper = json['data'] as Map<String, dynamic>?;
+      final dynamic bodyNode = (dataWrapper != null) ? dataWrapper['body'] : json['body'];
+      if (bodyNode != null) {
+        final body = bodyNode;
+        final otaAirPriceRS = body['OTA_AirPriceRS'];
+
+        if (otaAirPriceRS != null) {
+          final pricedItineraries = otaAirPriceRS['PricedItineraries'];
+
+          if (pricedItineraries != null) {
+            final pricedItinerary = pricedItineraries['PricedItinerary'];
+
+            if (pricedItinerary != null) {
+              final airItinerary = pricedItinerary['AirItinerary'];
+              final airItineraryPricingInfo = pricedItinerary['AirItineraryPricingInfo'];
+
+              // Extract route information
+              if (airItinerary != null) {
+                final originDestinationOptions = airItinerary['OriginDestinationOptions'];
+                if (originDestinationOptions != null) {
+                  final aaBundledServiceExt = originDestinationOptions['AABundledServiceExt'];
+
+                  if (aaBundledServiceExt != null) {
+                    // Handle both single item and list
+                    final List<dynamic> bundledServices = aaBundledServiceExt is List
+                        ? aaBundledServiceExt
+                        : [aaBundledServiceExt];
+
+                    for (var service in bundledServices) {
+                      if (service['@attributes'] != null) {
+                        route = service['@attributes']['applicableOnd'] ?? '';
+                      }
+
+                      // Extract packages from bundledService
+                      if (service['bundledService'] != null) {
+                        final bundledService = service['bundledService'];
+                        final List<dynamic> serviceList = bundledService is List
+                            ? bundledService
+                            : [bundledService];
+
+                        for (var packageData in serviceList) {
+                          packages.add(AirArabiaPackage.fromJson(packageData));
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+
+              // Extract base price
+              if (airItineraryPricingInfo != null) {
+                final itinTotalFare = airItineraryPricingInfo['ItinTotalFare'];
+                if (itinTotalFare != null) {
+                  final totalFare = itinTotalFare['TotalFare'];
+                  final attrs = (totalFare is Map) ? totalFare['@attributes'] : null;
+                  final amountStr = (attrs is Map) ? attrs['Amount']?.toString() : null;
+                  if (amountStr != null) {
+                    basePrice = double.tryParse(amountStr) ?? 0.0;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return AirArabiaPackageResponse(
+        packages: packages,
+        basePrice: basePrice,
+        currency: currency,
+        route: route,
+        rawData: json,
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error creating AirArabiaPackageResponse: $e');
+      }
+      rethrow;
+    }
+  }
 }

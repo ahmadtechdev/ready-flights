@@ -157,11 +157,11 @@ class AirBlueFlightApiService {
 
       // print("request");
       final xmlRequest = request.toString();
-      _convertXmlToJson(xmlRequest);
+      final jsonRequest = _convertXmlToJson(xmlRequest);
       printDebugData('Air Blue Request', xmlRequest);
 
 
-      // _printJsonPretty(jsonRequest);
+      printJsonPretty(jsonRequest);
 
       // Log the request (matching PHP format)
       // await _logRequest(request, 'Shopping_request');
@@ -217,11 +217,11 @@ class AirBlueFlightApiService {
 
       // Convert XML to JSON using xml2json package
       final xmlResponse = response.data.toString();
-      _convertXmlToJson(xmlResponse);
+      final jsonResponse = _convertXmlToJson(xmlResponse);
 
       printDebugData('Air Blue Response', xmlResponse);
 
-      // printJsonPretty(jsonResponse);
+      printJsonPretty(jsonResponse);
 
       // // Log the response (matching PHP format)
       // await _logResponse(response.data.toString(), 'Shopping_response');
@@ -371,8 +371,8 @@ class AirBlueFlightApiService {
         "booking_from":"1"
       };
 
-      print("bok body");
-      printJsonPretty(requestBody);
+      // print("bok body");
+      // printJsonPretty(requestBody);
 
       // Configure Dio
       final dio = Dio(
@@ -1197,7 +1197,7 @@ class AirBlueFlightApiService {
         i + chunkSize < jsonString.length ? i + chunkSize : jsonString.length,
       );
       if (kDebugMode) {
-        // print(chunk);
+        print(chunk);
       }
     }
   }
