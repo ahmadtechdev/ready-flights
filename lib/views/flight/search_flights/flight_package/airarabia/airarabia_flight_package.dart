@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ready_flights/views/flight/booking_flight/booking_flight_controller.dart';
+import 'package:ready_flights/views/flight/search_flights/airarabia/validation_data/validation.dart';
 
 import '../../../../../services/api_service_airarabia.dart';
 import '../../../../../services/api_service_sabre.dart';
@@ -480,7 +481,11 @@ void onSelectPackage(int selectedPackageIndex) async {
 
     final selectedPackage = packages[selectedPackageIndex];
 
-    // Get booking controller to access adult travelers data
+    // Store the selected package and flight in the controller
+    airArabiaController.selectedPackage = selectedPackage;
+    airArabiaController.selectedFlight = widget.flight;
+
+    // Get booking controller to access travelers data
     final bookingController = Get.find<BookingFlightController>();
     
     // Prepare sector data from the selected flight
@@ -498,52 +503,31 @@ void onSelectPackage(int selectedPackageIndex) async {
       }
     };
 
-    // Call package revalidation API
-    final revalidationResponse = await apiService.revalidateAirArabiaPackage(
-      type: 0, // One way
-      adult: bookingController.adults.length, // Get actual adult count from booking controller
-      child: bookingController.children.length, // Get actual child count
-      infant: bookingController.infants.length, // Get actual infant count
-      sector: sector,
-      fare: fare,
-      csId: 15, // You might want to make this dynamic
-    );
+    Get.back(); // Close the package selection dialog
 
-    // Check if revalidation was successful
-    if (revalidationResponse['status'] == 200) {
-      // Store the selected package and flight in the controller
-      airArabiaController.selectedPackage = selectedPackage;
-      airArabiaController.selectedFlight = widget.flight;
-
-      Get.back(); // Close the package selection dialog
-
-      Get.snackbar(
-        'Success',
-        widget.isReturnFlight
-            ? 'Return flight package validated successfully!'
-            : 'Flight package validated successfully!',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
-
-      // TODO: Navigate to next step (e.g., review trip page)
-      // Get.to(() => ReviewTripPage());
-
-    } else {
-      throw Exception(revalidationResponse['message'] ?? 'Package revalidation failed');
-    }
+    // Navigate to revalidation screen with required parameters
+    Get.to(() => AirArabiaRevalidationScreen(), arguments: {
+      'type': 0, // One way
+      'adult': bookingController.adults.length,
+      'child': bookingController.children.length, 
+      'infant': bookingController.infants.length,
+      'sector': sector,
+      'fare': fare,
+      'csId': 15,
+      'selectedPackage': selectedPackage,
+      'selectedFlight': widget.flight,
+    });
 
   } catch (e) {
     Get.snackbar(
       'Error',
-      'Package validation failed: ${e.toString()}',
+      'Package selection failed: ${e.toString()}',
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.red,
       colorText: Colors.white,
       duration: const Duration(seconds: 3),
     );
-    print('Package revalidation error: $e');
+    print('Package selection error: $e');
   } finally {
     isLoading.value = false;
   }
