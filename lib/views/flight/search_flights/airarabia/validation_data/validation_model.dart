@@ -32,9 +32,9 @@ class AirArabiaRevalidationData {
 
   factory AirArabiaRevalidationData.fromJson(Map<String, dynamic> json) {
     return AirArabiaRevalidationData(
-      pricing: PricingInfo.fromJson(json['pricing']),
-      extras: ExtrasInfo.fromJson(json['extras']),
-      meta: MetaInfo.fromJson(json['meta']),
+      pricing: PricingInfo.fromJson(json['pricing'] ?? {}),
+      extras: ExtrasInfo.fromJson(json['extras'] ?? {}),
+      meta: MetaInfo.fromJson(json['meta'] ?? {}),
     );
   }
 }
@@ -56,43 +56,48 @@ class PricingInfo {
 
   factory PricingInfo.fromJson(Map<String, dynamic> json) {
     return PricingInfo(
-      ptcFareBreakdown: PTCFareBreakdown.fromJson(json['PTC_FareBreakdown']),
-      totalPrice: (json['total_price'] as num).toDouble(),
-      totalPriceAed: json['total_price_aed'] ?? '',
-      currency: json['currency'] ?? 'PKR',
-      aedRoe: (json['aed_roe'] as num).toDouble(),
+      ptcFareBreakdown: PTCFareBreakdown.fromJson(json['PTC_FareBreakdown'] ?? {}),
+      totalPrice: _parseDouble(json['total_price']),
+      totalPriceAed: json['total_price_aed']?.toString() ?? '',
+      currency: json['currency']?.toString() ?? 'PKR',
+      aedRoe: _parseDouble(json['aed_roe']),
     );
   }
 }
 
 class PTCFareBreakdown {
   final Map<String, dynamic> attributes;
-  final PassengerTypeQuantity passengerTypeQuantity;
-  final FareBasisCodes fareBasisCodes;
-  final PassengerFare passengerFare;
-  final TravelerRefNumber travelerRefNumber;
+  final PassengerTypeQuantity? passengerTypeQuantity;
+  final FareBasisCodes? fareBasisCodes;
+  final PassengerFare? passengerFare;
+  final TravelerRefNumber? travelerRefNumber;
 
   PTCFareBreakdown({
     required this.attributes,
-    required this.passengerTypeQuantity,
-    required this.fareBasisCodes,
-    required this.passengerFare,
-    required this.travelerRefNumber,
+    this.passengerTypeQuantity,
+    this.fareBasisCodes,
+    this.passengerFare,
+    this.travelerRefNumber,
   });
 
   factory PTCFareBreakdown.fromJson(Map<String, dynamic> json) {
     return PTCFareBreakdown(
       attributes: Map<String, dynamic>.from(json['@attributes'] ?? {}),
-      passengerTypeQuantity: PassengerTypeQuantity.fromJson(json['PassengerTypeQuantity']),
-      fareBasisCodes: FareBasisCodes.fromJson(json['FareBasisCodes']),
-      passengerFare: PassengerFare.fromJson(json['PassengerFare']),
-      travelerRefNumber: TravelerRefNumber.fromJson(json['TravelerRefNumber']),
+      passengerTypeQuantity: json['PassengerTypeQuantity'] != null
+          ? PassengerTypeQuantity.fromJson(json['PassengerTypeQuantity'])
+          : null,
+      fareBasisCodes: json['FareBasisCodes'] != null
+          ? FareBasisCodes.fromJson(json['FareBasisCodes'])
+          : null,
+      passengerFare: json['PassengerFare'] != null
+          ? PassengerFare.fromJson(json['PassengerFare'])
+          : null,
+      travelerRefNumber: json['TravelerRefNumber'] != null
+          ? TravelerRefNumber.fromJson(json['TravelerRefNumber'])
+          : null,
     );
   }
 }
-
-// Additional model classes for PassengerTypeQuantity, FareBasisCodes, PassengerFare, TravelerRefNumber
-// would be defined here following the same pattern
 
 class ExtrasInfo {
   final BaggageInfo baggage;
@@ -107,9 +112,9 @@ class ExtrasInfo {
 
   factory ExtrasInfo.fromJson(Map<String, dynamic> json) {
     return ExtrasInfo(
-      baggage: BaggageInfo.fromJson(json['baggage']),
-      meal: MealInfo.fromJson(json['meal']),
-      seat: SeatInfo.fromJson(json['seat']),
+      baggage: BaggageInfo.fromJson(json['baggage'] ?? {}),
+      meal: MealInfo.fromJson(json['meal'] ?? {}),
+      seat: SeatInfo.fromJson(json['seat'] ?? {}),
     );
   }
 }
@@ -125,8 +130,8 @@ class BaggageInfo {
 
   factory BaggageInfo.fromJson(Map<String, dynamic> json) {
     return BaggageInfo(
-      jsession: json['jsession'] ?? '',
-      body: BaggageBody.fromJson(json['body']),
+      jsession: json['jsession']?.toString() ?? '',
+      body: BaggageBody.fromJson(json['body'] ?? {}),
     );
   }
 }
@@ -140,7 +145,7 @@ class BaggageBody {
 
   factory BaggageBody.fromJson(Map<String, dynamic> json) {
     return BaggageBody(
-      aaBaggageDetailsRS: AABaggageDetailsRS.fromJson(json['AA_OTA_AirBaggageDetailsRS']),
+      aaBaggageDetailsRS: AABaggageDetailsRS.fromJson(json['AA_OTA_AirBaggageDetailsRS'] ?? {}),
     );
   }
 }
@@ -163,15 +168,16 @@ class AABaggageDetailsRS {
   });
 
   factory AABaggageDetailsRS.fromJson(Map<String, dynamic> json) {
-  return AABaggageDetailsRS(
-    attributes: Map<String, dynamic>.from(json['@attributes'] ?? {}),
-    success: List<dynamic>.from(json['Success'] ?? []),
-    warnings: List<dynamic>.from(json['Warnings'] ?? []),
-    onDBaggagesEnabled: (json['OnDBaggagesEnabled'] ?? 'false').toString().toLowerCase() == 'true',
-    baggageDetailsResponses: BaggageDetailsResponses.fromJson(json['BaggageDetailsResponses']),
-    errors: List<dynamic>.from(json['Errors'] ?? []),
-  );
-}}
+    return AABaggageDetailsRS(
+      attributes: Map<String, dynamic>.from(json['@attributes'] ?? {}),
+      success: _parseList(json['Success']),
+      warnings: _parseList(json['Warnings']),
+      onDBaggagesEnabled: _parseBool(json['OnDBaggagesEnabled']),
+      baggageDetailsResponses: BaggageDetailsResponses.fromJson(json['BaggageDetailsResponses'] ?? {}),
+      errors: _parseList(json['Errors']),
+    );
+  }
+}
 
 class BaggageDetailsResponses {
   final OnDBaggageDetailsResponse onDBaggageDetailsResponse;
@@ -188,7 +194,6 @@ class BaggageDetailsResponses {
   }
 }
 
-
 class OnDBaggageDetailsResponse {
   final List<FlightSegmentInfo> flightSegmentInfo;
   final List<BaggageOption> baggage;
@@ -200,12 +205,8 @@ class OnDBaggageDetailsResponse {
 
   factory OnDBaggageDetailsResponse.fromJson(Map<String, dynamic> json) {
     return OnDBaggageDetailsResponse(
-      flightSegmentInfo: List<FlightSegmentInfo>.from(
-        ((json['OnDFlightSegmentInfo'] as List?) ?? []).map((x) => FlightSegmentInfo.fromJson(x))
-      ),
-      baggage: List<BaggageOption>.from(
-        ((json['Baggage'] as List?) ?? []).map((x) => BaggageOption.fromJson(x))
-      ),
+      flightSegmentInfo: _parseFlightSegmentInfoList(json['OnDFlightSegmentInfo']),
+      baggage: _parseBaggageList(json['Baggage']),
     );
   }
 }
@@ -230,8 +231,6 @@ class FlightSegmentInfo {
   }
 }
 
-// airarabia_revalidation_model.dart (continued)
-
 class BaggageOption {
   final String baggageCode;
   final String baggageDescription;
@@ -247,10 +246,10 @@ class BaggageOption {
 
   factory BaggageOption.fromJson(Map<String, dynamic> json) {
     return BaggageOption(
-      baggageCode: json['baggageCode'] ?? '',
-      baggageDescription: json['baggageDescription'] ?? '',
-      baggageCharge: json['baggageCharge'] ?? '0.00',
-      currencyCode: json['currencyCode'] ?? 'PKR',
+      baggageCode: json['baggageCode']?.toString() ?? '',
+      baggageDescription: json['baggageDescription']?.toString() ?? '',
+      baggageCharge: json['baggageCharge']?.toString() ?? '0.00',
+      currencyCode: json['currencyCode']?.toString() ?? 'PKR',
     );
   }
 }
@@ -266,8 +265,8 @@ class MealInfo {
 
   factory MealInfo.fromJson(Map<String, dynamic> json) {
     return MealInfo(
-      jsession: json['jsession'] ?? '',
-      body: MealBody.fromJson(json['body']),
+      jsession: json['jsession']?.toString() ?? '',
+      body: MealBody.fromJson(json['body'] ?? {}),
     );
   }
 }
@@ -281,7 +280,7 @@ class MealBody {
 
   factory MealBody.fromJson(Map<String, dynamic> json) {
     return MealBody(
-      aaMealDetailsRS: AAMealDetailsRS.fromJson(json['AA_OTA_AirMealDetailsRS']),
+      aaMealDetailsRS: AAMealDetailsRS.fromJson(json['AA_OTA_AirMealDetailsRS'] ?? {}),
     );
   }
 }
@@ -304,10 +303,10 @@ class AAMealDetailsRS {
   factory AAMealDetailsRS.fromJson(Map<String, dynamic> json) {
     return AAMealDetailsRS(
       attributes: Map<String, dynamic>.from(json['@attributes'] ?? {}),
-      success: List<dynamic>.from(json['Success'] ?? []),
-      warnings: List<dynamic>.from(json['Warnings'] ?? []),
-      mealDetailsResponses: MealDetailsResponses.fromJson(json['MealDetailsResponses']),
-      errors: List<dynamic>.from(json['Errors'] ?? []),
+      success: _parseList(json['Success']),
+      warnings: _parseList(json['Warnings']),
+      mealDetailsResponses: MealDetailsResponses.fromJson(json['MealDetailsResponses'] ?? {}),
+      errors: _parseList(json['Errors']),
     );
   }
 }
@@ -323,10 +322,8 @@ class MealDetailsResponses {
 
   factory MealDetailsResponses.fromJson(Map<String, dynamic> json) {
     return MealDetailsResponses(
-      mealDetailsResponse: List<MealDetailsResponse>.from(
-        ((json['MealDetailsResponse'] as List?) ?? []).map((x) => MealDetailsResponse.fromJson(x))
-      ),
-      multipleMealSelectionEnabled: (json['multipleMealSelectionEnabled'] ?? 'false').toString().toLowerCase() == 'true',
+      mealDetailsResponse: _parseMealDetailsResponseList(json['MealDetailsResponse']),
+      multipleMealSelectionEnabled: _parseBool(json['multipleMealSelectionEnabled']),
     );
   }
 }
@@ -342,10 +339,8 @@ class MealDetailsResponse {
 
   factory MealDetailsResponse.fromJson(Map<String, dynamic> json) {
     return MealDetailsResponse(
-      flightSegmentInfo: FlightSegmentInfo.fromJson(json['FlightSegmentInfo']),
-      meals: List<MealOption>.from(
-        (json['Meal'] as List).map((x) => MealOption.fromJson(x))
-      ),
+      flightSegmentInfo: FlightSegmentInfo.fromJson(json['FlightSegmentInfo'] ?? {}),
+      meals: _parseMealOptionList(json['Meal']),
     );
   }
 }
@@ -355,7 +350,7 @@ class MealOption {
   final String mealDescription;
   final String mealCharge;
   final String mealName;
-  final String defaultMeal; // Changed from bool to String
+  final String defaultMeal;
   final String availableMeals;
   final String soldMeals;
   final String allocatedMeals;
@@ -378,20 +373,20 @@ class MealOption {
   });
 
   factory MealOption.fromJson(Map<String, dynamic> json) {
-  return MealOption(
-    mealCode: json['mealCode'] ?? '',
-    mealDescription: json['mealDescription'] ?? '',
-    mealCharge: json['mealCharge'] ?? '0.00',
-    mealName: json['mealName'] ?? '',
-    defaultMeal: json['defaultMeal'] ?? 'N',
-    availableMeals: json['availableMeals'] ?? '0',
-    soldMeals: json['soldMeals'] ?? '0',
-    allocatedMeals: json['allocatedMeals'] ?? '0',
-    mealImageLink: json['mealImageLink'] ?? '',
-    mealCategoryCode: json['mealCategoryCode'] ?? '',
-    currencyCode: json['currencyCode'] ?? 'PKR',
-  );
-}
+    return MealOption(
+      mealCode: json['mealCode']?.toString() ?? '',
+      mealDescription: json['mealDescription']?.toString() ?? '',
+      mealCharge: json['mealCharge']?.toString() ?? '0.00',
+      mealName: json['mealName']?.toString() ?? '',
+      defaultMeal: json['defaultMeal']?.toString() ?? 'N',
+      availableMeals: json['availableMeals']?.toString() ?? '0',
+      soldMeals: json['soldMeals']?.toString() ?? '0',
+      allocatedMeals: json['allocatedMeals']?.toString() ?? '0',
+      mealImageLink: json['mealImageLink']?.toString() ?? '',
+      mealCategoryCode: json['mealCategoryCode']?.toString() ?? '',
+      currencyCode: json['currencyCode']?.toString() ?? 'PKR',
+    );
+  }
 }
 
 class SeatInfo {
@@ -405,8 +400,8 @@ class SeatInfo {
 
   factory SeatInfo.fromJson(Map<String, dynamic> json) {
     return SeatInfo(
-      jsession: json['jsession'] ?? '',
-      body: SeatBody.fromJson(json['body']),
+      jsession: json['jsession']?.toString() ?? '',
+      body: SeatBody.fromJson(json['body'] ?? {}),
     );
   }
 }
@@ -420,7 +415,7 @@ class SeatBody {
 
   factory SeatBody.fromJson(Map<String, dynamic> json) {
     return SeatBody(
-      otaAirSeatMapRS: OTAAirSeatMapRS.fromJson(json['OTA_AirSeatMapRS']),
+      otaAirSeatMapRS: OTAAirSeatMapRS.fromJson(json['OTA_AirSeatMapRS'] ?? {}),
     );
   }
 }
@@ -443,10 +438,10 @@ class OTAAirSeatMapRS {
   factory OTAAirSeatMapRS.fromJson(Map<String, dynamic> json) {
     return OTAAirSeatMapRS(
       attributes: Map<String, dynamic>.from(json['@attributes'] ?? {}),
-      success: List<dynamic>.from(json['Success'] ?? []),
-      warnings: List<dynamic>.from(json['Warnings'] ?? []),
-      seatMapResponses: SeatMapResponses.fromJson(json['SeatMapResponses']),
-      errors: List<dynamic>.from(json['Errors'] ?? []),
+      success: _parseList(json['Success']),
+      warnings: _parseList(json['Warnings']),
+      seatMapResponses: SeatMapResponses.fromJson(json['SeatMapResponses'] ?? {}),
+      errors: _parseList(json['Errors']),
     );
   }
 }
@@ -460,9 +455,7 @@ class SeatMapResponses {
 
   factory SeatMapResponses.fromJson(Map<String, dynamic> json) {
     return SeatMapResponses(
-      seatMapResponse: List<SeatMapResponse>.from(
-        (json['SeatMapResponse'] as List).map((x) => SeatMapResponse.fromJson(x))
-      ),
+      seatMapResponse: _parseSeatMapResponseList(json['SeatMapResponse']),
     );
   }
 }
@@ -481,8 +474,8 @@ class SeatMapResponse {
   factory SeatMapResponse.fromJson(Map<String, dynamic> json) {
     return SeatMapResponse(
       attributes: Map<String, dynamic>.from(json['@attributes'] ?? {}),
-      flightSegmentInfo: FlightSegmentInfo.fromJson(json['FlightSegmentInfo']),
-      seatMapDetails: SeatMapDetails.fromJson(json['SeatMapDetails']),
+      flightSegmentInfo: FlightSegmentInfo.fromJson(json['FlightSegmentInfo'] ?? {}),
+      seatMapDetails: SeatMapDetails.fromJson(json['SeatMapDetails'] ?? {}),
     );
   }
 }
@@ -496,7 +489,7 @@ class SeatMapDetails {
 
   factory SeatMapDetails.fromJson(Map<String, dynamic> json) {
     return SeatMapDetails(
-      cabinClass: CabinClass.fromJson(json['CabinClass']),
+      cabinClass: CabinClass.fromJson(json['CabinClass'] ?? {}),
     );
   }
 }
@@ -513,7 +506,7 @@ class CabinClass {
   factory CabinClass.fromJson(Map<String, dynamic> json) {
     return CabinClass(
       attributes: Map<String, dynamic>.from(json['@attributes'] ?? {}),
-      airRows: AirRows.fromJson(json['AirRows']),
+      airRows: AirRows.fromJson(json['AirRows'] ?? {}),
     );
   }
 }
@@ -527,9 +520,7 @@ class AirRows {
 
   factory AirRows.fromJson(Map<String, dynamic> json) {
     return AirRows(
-      airRow: List<AirRow>.from(
-        (json['AirRow'] as List).map((x) => AirRow.fromJson(x))
-      ),
+      airRow: _parseAirRowList(json['AirRow']),
     );
   }
 }
@@ -546,7 +537,7 @@ class AirRow {
   factory AirRow.fromJson(Map<String, dynamic> json) {
     return AirRow(
       attributes: Map<String, dynamic>.from(json['@attributes'] ?? {}),
-      airSeats: AirSeats.fromJson(json['AirSeats']),
+      airSeats: AirSeats.fromJson(json['AirSeats'] ?? {}),
     );
   }
 }
@@ -560,9 +551,7 @@ class AirSeats {
 
   factory AirSeats.fromJson(Map<String, dynamic> json) {
     return AirSeats(
-      airSeat: List<AirSeat>.from(
-        (json['AirSeat'] as List).map((x) => AirSeat.fromJson(x))
-      ),
+      airSeat: _parseAirSeatList(json['AirSeat']),
     );
   }
 }
@@ -610,10 +599,10 @@ class MetaInfo {
 
   factory MetaInfo.fromJson(Map<String, dynamic> json) {
     return MetaInfo(
-      jsession: json['jsession'] ?? '',
-      echoToken: json['echoToken'] ?? '',
-      transactionId: json['transactionId'] ?? '',
-      finalKey: json['final_key'] ?? '',
+      jsession: json['jsession']?.toString() ?? '',
+      echoToken: json['echoToken']?.toString() ?? '',
+      transactionId: json['transactionId']?.toString() ?? '',
+      finalKey: json['final_key']?.toString() ?? '',
     );
   }
 }
@@ -642,36 +631,36 @@ class FareBasisCodes {
 
   factory FareBasisCodes.fromJson(Map<String, dynamic> json) {
     return FareBasisCodes(
-      fareBasisCode: json['FareBasisCode'] ?? '',
+      fareBasisCode: json['FareBasisCode']?.toString() ?? '',
     );
   }
 }
 
 class PassengerFare {
   final Map<String, dynamic> attributes;
-  final BaseFare baseFare;
-  final EquiBaseFare equiBaseFare;
-  final Taxes taxes;
+  final BaseFare? baseFare;
+  final EquiBaseFare? equiBaseFare;
+  final Taxes? taxes;
   final List<dynamic> fees;
-  final TotalFare totalFare;
+  final TotalFare? totalFare;
 
   PassengerFare({
     required this.attributes,
-    required this.baseFare,
-    required this.equiBaseFare,
-    required this.taxes,
+    this.baseFare,
+    this.equiBaseFare,
+    this.taxes,
     required this.fees,
-    required this.totalFare,
+    this.totalFare,
   });
 
   factory PassengerFare.fromJson(Map<String, dynamic> json) {
     return PassengerFare(
       attributes: Map<String, dynamic>.from(json['@attributes'] ?? {}),
-      baseFare: BaseFare.fromJson(json['BaseFare']),
-      equiBaseFare: EquiBaseFare.fromJson(json['EquiBaseFare']),
-      taxes: Taxes.fromJson(json['Taxes']),
-      fees: List<dynamic>.from(json['Fees'] ?? []),
-      totalFare: TotalFare.fromJson(json['TotalFare']),
+      baseFare: json['BaseFare'] != null ? BaseFare.fromJson(json['BaseFare']) : null,
+      equiBaseFare: json['EquiBaseFare'] != null ? EquiBaseFare.fromJson(json['EquiBaseFare']) : null,
+      taxes: json['Taxes'] != null ? Taxes.fromJson(json['Taxes']) : null,
+      fees: _parseList(json['Fees']),
+      totalFare: json['TotalFare'] != null ? TotalFare.fromJson(json['TotalFare']) : null,
     );
   }
 }
@@ -713,9 +702,7 @@ class Taxes {
 
   factory Taxes.fromJson(Map<String, dynamic> json) {
     return Taxes(
-      taxes: List<TaxItem>.from(
-        (json['Tax'] as List).map((x) => TaxItem.fromJson(x))
-      ),
+      taxes: _parseTaxItemList(json['Tax']),
     );
   }
 }
@@ -760,4 +747,114 @@ class TravelerRefNumber {
       attributes: Map<String, dynamic>.from(json['@attributes'] ?? {}),
     );
   }
+}
+
+// Helper functions for safe parsing
+double _parseDouble(dynamic value) {
+  if (value == null) return 0.0;
+  if (value is double) return value;
+  if (value is int) return value.toDouble();
+  if (value is String) return double.tryParse(value) ?? 0.0;
+  return 0.0;
+}
+
+bool _parseBool(dynamic value) {
+  if (value == null) return false;
+  if (value is bool) return value;
+  if (value is String) return value.toLowerCase() == 'true';
+  return false;
+}
+
+List<dynamic> _parseList(dynamic value) {
+  if (value == null) return [];
+  if (value is List) return value;
+  return [value]; // Single item wrapped in list
+}
+
+List<FlightSegmentInfo> _parseFlightSegmentInfoList(dynamic value) {
+  if (value == null) return [];
+  if (value is List) {
+    return value.map((x) => FlightSegmentInfo.fromJson(x as Map<String, dynamic>)).toList();
+  }
+  if (value is Map<String, dynamic>) {
+    return [FlightSegmentInfo.fromJson(value)];
+  }
+  return [];
+}
+
+List<BaggageOption> _parseBaggageList(dynamic value) {
+  if (value == null) return [];
+  if (value is List) {
+    return value.map((x) => BaggageOption.fromJson(x as Map<String, dynamic>)).toList();
+  }
+  if (value is Map<String, dynamic>) {
+    return [BaggageOption.fromJson(value)];
+  }
+  return [];
+}
+
+List<MealDetailsResponse> _parseMealDetailsResponseList(dynamic value) {
+  if (value == null) return [];
+  if (value is List) {
+    return value.map((x) => MealDetailsResponse.fromJson(x as Map<String, dynamic>)).toList();
+  }
+  if (value is Map<String, dynamic>) {
+    return [MealDetailsResponse.fromJson(value)];
+  }
+  return [];
+}
+
+List<MealOption> _parseMealOptionList(dynamic value) {
+  if (value == null) return [];
+  if (value is List) {
+    return value.map((x) => MealOption.fromJson(x as Map<String, dynamic>)).toList();
+  }
+  if (value is Map<String, dynamic>) {
+    return [MealOption.fromJson(value)];
+  }
+  return [];
+}
+
+List<SeatMapResponse> _parseSeatMapResponseList(dynamic value) {
+  if (value == null) return [];
+  if (value is List) {
+    return value.map((x) => SeatMapResponse.fromJson(x as Map<String, dynamic>)).toList();
+  }
+  if (value is Map<String, dynamic>) {
+    return [SeatMapResponse.fromJson(value)];
+  }
+  return [];
+}
+
+List<AirRow> _parseAirRowList(dynamic value) {
+  if (value == null) return [];
+  if (value is List) {
+    return value.map((x) => AirRow.fromJson(x as Map<String, dynamic>)).toList();
+  }
+  if (value is Map<String, dynamic>) {
+    return [AirRow.fromJson(value)];
+  }
+  return [];
+}
+
+List<AirSeat> _parseAirSeatList(dynamic value) {
+  if (value == null) return [];
+  if (value is List) {
+    return value.map((x) => AirSeat.fromJson(x as Map<String, dynamic>)).toList();
+  }
+  if (value is Map<String, dynamic>) {
+    return [AirSeat.fromJson(value)];
+  }
+  return [];
+}
+
+List<TaxItem> _parseTaxItemList(dynamic value) {
+  if (value == null) return [];
+  if (value is List) {
+    return value.map((x) => TaxItem.fromJson(x as Map<String, dynamic>)).toList();
+  }
+  if (value is Map<String, dynamic>) {
+    return [TaxItem.fromJson(value)];
+  }
+  return [];
 }
