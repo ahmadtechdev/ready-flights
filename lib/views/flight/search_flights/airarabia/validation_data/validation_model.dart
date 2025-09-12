@@ -163,16 +163,15 @@ class AABaggageDetailsRS {
   });
 
   factory AABaggageDetailsRS.fromJson(Map<String, dynamic> json) {
-    return AABaggageDetailsRS(
-      attributes: Map<String, dynamic>.from(json['@attributes'] ?? {}),
-      success: List<dynamic>.from(json['Success'] ?? []),
-      warnings: List<dynamic>.from(json['Warnings'] ?? []),
-      onDBaggagesEnabled: json['OnDBaggagesEnabled'] ?? false,
-      baggageDetailsResponses: BaggageDetailsResponses.fromJson(json['BaggageDetailsResponses']),
-      errors: List<dynamic>.from(json['Errors'] ?? []),
-    );
-  }
-}
+  return AABaggageDetailsRS(
+    attributes: Map<String, dynamic>.from(json['@attributes'] ?? {}),
+    success: List<dynamic>.from(json['Success'] ?? []),
+    warnings: List<dynamic>.from(json['Warnings'] ?? []),
+    onDBaggagesEnabled: (json['OnDBaggagesEnabled'] ?? 'false').toString().toLowerCase() == 'true',
+    baggageDetailsResponses: BaggageDetailsResponses.fromJson(json['BaggageDetailsResponses']),
+    errors: List<dynamic>.from(json['Errors'] ?? []),
+  );
+}}
 
 class BaggageDetailsResponses {
   final OnDBaggageDetailsResponse onDBaggageDetailsResponse;
@@ -183,10 +182,12 @@ class BaggageDetailsResponses {
 
   factory BaggageDetailsResponses.fromJson(Map<String, dynamic> json) {
     return BaggageDetailsResponses(
-      onDBaggageDetailsResponse: OnDBaggageDetailsResponse.fromJson(json['OnDBaggageDetailsResponse']),
+      onDBaggageDetailsResponse: OnDBaggageDetailsResponse.fromJson(
+          json['OnDBaggageDetailsResponse'] ?? {}),
     );
   }
 }
+
 
 class OnDBaggageDetailsResponse {
   final List<FlightSegmentInfo> flightSegmentInfo;
@@ -200,10 +201,10 @@ class OnDBaggageDetailsResponse {
   factory OnDBaggageDetailsResponse.fromJson(Map<String, dynamic> json) {
     return OnDBaggageDetailsResponse(
       flightSegmentInfo: List<FlightSegmentInfo>.from(
-        (json['OnDFlightSegmentInfo'] as List).map((x) => FlightSegmentInfo.fromJson(x))
+        ((json['OnDFlightSegmentInfo'] as List?) ?? []).map((x) => FlightSegmentInfo.fromJson(x))
       ),
       baggage: List<BaggageOption>.from(
-        (json['Baggage'] as List).map((x) => BaggageOption.fromJson(x))
+        ((json['Baggage'] as List?) ?? []).map((x) => BaggageOption.fromJson(x))
       ),
     );
   }
@@ -323,9 +324,9 @@ class MealDetailsResponses {
   factory MealDetailsResponses.fromJson(Map<String, dynamic> json) {
     return MealDetailsResponses(
       mealDetailsResponse: List<MealDetailsResponse>.from(
-        (json['MealDetailsResponse'] as List).map((x) => MealDetailsResponse.fromJson(x))
+        ((json['MealDetailsResponse'] as List?) ?? []).map((x) => MealDetailsResponse.fromJson(x))
       ),
-      multipleMealSelectionEnabled: json['multipleMealSelectionEnabled'] ?? false,
+      multipleMealSelectionEnabled: (json['multipleMealSelectionEnabled'] ?? 'false').toString().toLowerCase() == 'true',
     );
   }
 }
@@ -354,7 +355,7 @@ class MealOption {
   final String mealDescription;
   final String mealCharge;
   final String mealName;
-  final String defaultMeal;
+  final String defaultMeal; // Changed from bool to String
   final String availableMeals;
   final String soldMeals;
   final String allocatedMeals;
@@ -377,20 +378,20 @@ class MealOption {
   });
 
   factory MealOption.fromJson(Map<String, dynamic> json) {
-    return MealOption(
-      mealCode: json['mealCode'] ?? '',
-      mealDescription: json['mealDescription'] ?? '',
-      mealCharge: json['mealCharge'] ?? '0.00',
-      mealName: json['mealName'] ?? '',
-      defaultMeal: json['defaultMeal'] ?? 'N',
-      availableMeals: json['availableMeals'] ?? '0',
-      soldMeals: json['soldMeals'] ?? '0',
-      allocatedMeals: json['allocatedMeals'] ?? '0',
-      mealImageLink: json['mealImageLink'] ?? '',
-      mealCategoryCode: json['mealCategoryCode'] ?? '',
-      currencyCode: json['currencyCode'] ?? 'PKR',
-    );
-  }
+  return MealOption(
+    mealCode: json['mealCode'] ?? '',
+    mealDescription: json['mealDescription'] ?? '',
+    mealCharge: json['mealCharge'] ?? '0.00',
+    mealName: json['mealName'] ?? '',
+    defaultMeal: json['defaultMeal'] ?? 'N',
+    availableMeals: json['availableMeals'] ?? '0',
+    soldMeals: json['soldMeals'] ?? '0',
+    allocatedMeals: json['allocatedMeals'] ?? '0',
+    mealImageLink: json['mealImageLink'] ?? '',
+    mealCategoryCode: json['mealCategoryCode'] ?? '',
+    currencyCode: json['currencyCode'] ?? 'PKR',
+  );
+}
 }
 
 class SeatInfo {

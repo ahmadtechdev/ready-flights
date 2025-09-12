@@ -196,7 +196,7 @@ Future<Map<String, dynamic>> revalidateAirArabiaPackage({
       "infant": infant,
       "sector": sector,
       "fare": fare,
-      "cs_id": csId,
+      // "cs_id": csId,
     };
 
     print("AirArabia Package Revalidation Request *********************");

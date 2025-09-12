@@ -111,27 +111,35 @@ class AirArabiaRevalidationController extends GetxController {
 
   void _processBaggageOptions(BaggageInfo baggageInfo) {
     try {
-      final baggageOptions = baggageInfo.body.aaBaggageDetailsRS
-          .baggageDetailsResponses.onDBaggageDetailsResponse.baggage;
+      // Safe navigation with null checks
+      final baggageDetails = baggageInfo.body.aaBaggageDetailsRS;
+      final baggageResponses = baggageDetails.baggageDetailsResponses;
+      final onDBaggageResponse = baggageResponses.onDBaggageDetailsResponse;
+      
+      // Check if baggage list exists and is not null
+      final baggageOptions = onDBaggageResponse.baggage ?? [];
       
       availableBaggage.value = baggageOptions;
 
-      // Set default "No Bag" option
-      final noBagOption = baggageOptions.firstWhere(
-        (bag) => bag.baggageCode.toLowerCase().contains('no bag'),
-        orElse: () => baggageOptions.first,
-      );
-      
-      selectedBaggage['default'] = noBagOption;
+      if (baggageOptions.isNotEmpty) {
+        // Set default "No Bag" option or first available option
+        final noBagOption = baggageOptions.firstWhere(
+          (bag) => bag.baggageCode.toLowerCase().contains('no bag'),
+          orElse: () => baggageOptions.first,
+        );
+        
+        selectedBaggage['default'] = noBagOption;
+      }
     } catch (e) {
       print('Error processing baggage options: $e');
+      availableBaggage.value = []; // Ensure empty list on error
     }
   }
 
   void _processMealOptions(MealInfo mealInfo) {
     try {
       final mealResponses = mealInfo.body.aaMealDetailsRS
-          .mealDetailsResponses.mealDetailsResponse;
+          .mealDetailsResponses.mealDetailsResponse ?? [];
 
       availableMeals.clear();
       mealsBySegment.clear();
@@ -141,17 +149,20 @@ class AirArabiaRevalidationController extends GetxController {
                            response.flightSegmentInfo.attributes['RPH'] ?? 
                            'segment_${mealResponses.indexOf(response)}';
         
-        mealsBySegment[segmentCode] = response.meals;
-        availableMeals.addAll(response.meals);
+        final meals = response.meals ?? [];
+        mealsBySegment[segmentCode] = meals;
+        availableMeals.addAll(meals);
       }
     } catch (e) {
       print('Error processing meal options: $e');
+      availableMeals.clear();
+      mealsBySegment.clear();
     }
   }
 
   void _processSeatOptions(SeatInfo seatInfo) {
     try {
-      final seatResponses = seatInfo.body.otaAirSeatMapRS.seatMapResponses.seatMapResponse;
+      final seatResponses = seatInfo.body.otaAirSeatMapRS.seatMapResponses.seatMapResponse ?? [];
 
       availableSeats.clear();
       seatsBySegment.clear();
@@ -168,6 +179,8 @@ class AirArabiaRevalidationController extends GetxController {
       }
     } catch (e) {
       print('Error processing seat options: $e');
+      availableSeats.clear();
+      seatsBySegment.clear();
     }
   }
 
@@ -175,10 +188,10 @@ class AirArabiaRevalidationController extends GetxController {
     final List<SeatOption> seats = [];
     
     try {
-      final airRows = response.seatMapDetails.cabinClass.airRows.airRow;
+      final airRows = response.seatMapDetails.cabinClass.airRows.airRow ?? [];
       
       for (final row in airRows) {
-        final airSeats = row.airSeats.airSeat;
+        final airSeats = row.airSeats.airSeat ?? [];
         for (final airSeat in airSeats) {
           if (airSeat.attributes['SeatAvailability'] == 'VAC') {
             seats.add(SeatOption(
@@ -197,7 +210,7 @@ class AirArabiaRevalidationController extends GetxController {
     return seats;
   }
 
-  void selectBaggage(String passengerId, BaggageOption baggage) {
+   void selectBaggage(String passengerId, BaggageOption baggage) {
     selectedBaggage[passengerId] = baggage;
     _updateExtrasPrice();
   }
@@ -252,17 +265,22 @@ class AirArabiaRevalidationController extends GetxController {
     return basePrice.value + totalExtrasPrice.value;
   }
 
-  bool isMealSelected(String segmentCode, MealOption meal) {
-    return selectedMeals[segmentCode]?.any((m) => m.mealCode == meal.mealCode) ?? false;
-  }
+bool isMealSelected(String segmentCode, MealOption meal) {
+  return selectedMeals[segmentCode]?.any((m) => m.mealCode == meal.mealCode) ?? false;
+}
 
   SeatOption? getSelectedSeat(String segmentCode) {
     return selectedSeats[segmentCode];
   }
 
   List<FlightSegmentInfo> getFlightSegments() {
-    return revalidationResponse.value?.data?.extras.baggage.body.aaBaggageDetailsRS
-        .baggageDetailsResponses.onDBaggageDetailsResponse.flightSegmentInfo ?? [];
+    try {
+      return revalidationResponse.value?.data?.extras.baggage.body.aaBaggageDetailsRS
+          .baggageDetailsResponses.onDBaggageDetailsResponse.flightSegmentInfo ?? [];
+    } catch (e) {
+      print('Error getting flight segments: $e');
+      return [];
+    }
   }
 
   // Added missing methods
