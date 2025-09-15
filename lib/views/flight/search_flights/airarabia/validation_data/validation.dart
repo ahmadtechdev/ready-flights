@@ -2,182 +2,133 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ready_flights/utility/colors.dart';
+import 'package:ready_flights/views/flight/search_flights/airarabia/airarabia_flight_model.dart';
 import 'package:ready_flights/views/flight/search_flights/airarabia/validation_data/validation_controller.dart';
 import 'package:ready_flights/views/flight/search_flights/airarabia/validation_data/validation_model.dart';
+import 'dart:math' as math;
 
-class AirArabiaRevalidationScreen extends StatelessWidget {
-  final AirArabiaRevalidationController controller = Get.put(AirArabiaRevalidationController());
+import 'package:ready_flights/views/flight/search_flights/review_flight/airarabia_review_flight.dart';
 
+class AirArabiaRevalidationScreen extends StatefulWidget {
   AirArabiaRevalidationScreen({super.key});
 
   @override
+  State<AirArabiaRevalidationScreen> createState() => _AirArabiaRevalidationScreenState();
+}
+
+class _AirArabiaRevalidationScreenState extends State<AirArabiaRevalidationScreen> {
+  bool _isExpanded = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: TColors.background,
-      body: Column(
-        children: [
-          _buildModernAppBar(context),
-          Expanded(
-            child: Obx(() {
-              if (controller.isLoading.value) {
-                return _buildLoadingState();
-              }
+    return GetBuilder<AirArabiaRevalidationController>(
+      init: AirArabiaRevalidationController(),
+      builder: (controller) {
+        return Scaffold(
+          backgroundColor: const Color(0xFFF5F7FA),
+          body: Column(
+            children: [
+              _buildElegantAppBar(context),
+              Expanded(
+                child: Obx(() {
+                  final isLoading = controller.isLoading.value;
+                  final errorMessage = controller.errorMessage.value;
+                  final response = controller.revalidationResponse.value;
+                  
+                  if (isLoading) {
+                    return _buildLoadingState();
+                  }
 
-              if (controller.errorMessage.value.isNotEmpty) {
-                return _buildErrorState();
-              }
+                  if (errorMessage.isNotEmpty) {
+                    return _buildErrorState(controller);
+                  }
 
-              if (controller.revalidationResponse.value == null) {
-                return _buildEmptyState();
-              }
+                  if (response == null) {
+                    return _buildEmptyState();
+                  }
 
-              return _buildMainContent();
-            }),
+                  return _buildMainContent(controller);
+                }),
+              ),
+              _buildCollapsiblePriceBox(context),
+            ],
           ),
-          _buildModernBottomSummary(),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildModernAppBar(BuildContext context) {
+  Widget _buildElegantAppBar(BuildContext context) {
     return Container(
       padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 20,
+        top: MediaQuery.of(context).padding.top + 12,
         bottom: 20,
-        left: 24,
-        right: 24,
+        left: 20,
+        right: 20,
       ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [TColors.primary, TColors.secondary],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          colors: [
+            TColors.primary,
+            TColors.primary.withOpacity(0.8),
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
         ),
         borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(32),
-          bottomRight: Radius.circular(32),
+          bottomLeft: Radius.circular(24),
+          bottomRight: Radius.circular(24),
         ),
         boxShadow: [
           BoxShadow(
-            color: TColors.primary.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: TColors.primary.withOpacity(0.2),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Get.back(),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: TColors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: TColors.white.withOpacity(0.1),
-                  width: 1,
-                ),
-              ),
-              child: const Icon(
-                Icons.arrow_back_ios,
-                color: TColors.white,
-                size: 20,
-              ),
-            ),
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Flight Extras',
-                  style: TextStyle(
-                    color: TColors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Personalize your journey',
-                  style: TextStyle(
-                    color: TColors.white.withOpacity(0.85),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: TColors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: TColors.white.withOpacity(0.1),
-                width: 1,
-              ),
-            ),
-            child: const Icon(
-              Icons.flight_takeoff,
-              color: TColors.white,
-              size: 24,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoadingState() {
-    return Container(
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      child: SafeArea(
+        bottom: false,
+        child: Row(
           children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: TColors.white,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: TColors.primary.withOpacity(0.1),
-                    blurRadius: 30,
-                    offset: const Offset(0, 15),
+            GestureDetector(
+              onTap: () => Get.back(),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: TColors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.arrow_back_ios_new,
+                  color: TColors.white,
+                  size: 20,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Flight Extras',
+                    style: TextStyle(
+                      color: TColors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  Text(
+                    'Personalize your journey',
+                    style: TextStyle(
+                      color: TColors.white.withOpacity(0.8),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                 ],
-              ),
-              child: Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 4,
-                  valueColor: AlwaysStoppedAnimation<Color>(TColors.primary),
-                ),
-              ),
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              'Loading Flight Extras',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: TColors.primary,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Preparing your personalized options...',
-              style: TextStyle(
-                fontSize: 16,
-                color: TColors.grey,
-                fontWeight: FontWeight.w400,
               ),
             ),
           ],
@@ -186,76 +137,107 @@ class AirArabiaRevalidationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildErrorState() {
+  Widget _buildLoadingState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: TColors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: TColors.primary.withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Center(
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                valueColor: AlwaysStoppedAnimation<Color>(TColors.primary),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Loading Flight Extras',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: TColors.primary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Please wait...',
+            style: TextStyle(
+              fontSize: 14,
+              color: TColors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(AirArabiaRevalidationController controller) {
     return Center(
       child: Container(
         margin: const EdgeInsets.all(24),
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: TColors.white,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: TColors.red.withOpacity(0.1),
-              blurRadius: 30,
-              offset: const Offset(0, 15),
+              color: TColors.black.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: TColors.red.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Icon(
-                Icons.error_outline_rounded,
-                size: 40,
-                color: TColors.red,
-              ),
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: TColors.red,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             const Text(
-              'Unable to Load Extras',
+              'Something went wrong',
               style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
                 color: TColors.primary,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
               controller.errorMessage.value,
-              style: TextStyle(
-                fontSize: 16,
-                color: TColors.grey,
-                height: 1.5,
-              ),
               textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: TColors.grey,
+              ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () => Get.back(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: TColors.primary,
-                foregroundColor: TColors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
-              child: const Text(
-                'Go Back',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              child: const Text('Go Back'),
             ),
           ],
         ),
@@ -270,16 +252,15 @@ class AirArabiaRevalidationScreen extends StatelessWidget {
         children: [
           Icon(
             Icons.flight_takeoff,
-            size: 64,
+            size: 48,
             color: TColors.grey.withOpacity(0.5),
           ),
           const SizedBox(height: 16),
           Text(
             'No extras available',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 16,
               color: TColors.grey,
-              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -287,81 +268,53 @@ class AirArabiaRevalidationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMainContent() {
+  Widget _buildMainContent(AirArabiaRevalidationController controller) {
     return DefaultTabController(
       length: 3,
       child: Column(
         children: [
           Container(
-            margin: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+            margin: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: TColors.white,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
                   color: TColors.black.withOpacity(0.04),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
             child: TabBar(
               indicator: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
                 color: TColors.primary,
               ),
-              indicatorPadding: const EdgeInsets.all(6),
+              indicatorPadding: const EdgeInsets.only(bottom: 5,top: 5),
               labelColor: TColors.white,
               unselectedLabelColor: TColors.grey,
               labelStyle: const TextStyle(
                 fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-              unselectedLabelStyle: const TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
+                fontSize: 12,
               ),
               dividerColor: Colors.transparent,
-              tabs: const [
-                Tab(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.luggage, size: 20),
-                      SizedBox(width: 8),
-                      Text('Baggage'),
-                    ],
-                  ),
-                ),
-                Tab(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.restaurant_menu, size: 20),
-                      SizedBox(width: 8),
-                      Text('Meals'),
-                    ],
-                  ),
-                ),
-                Tab(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.airline_seat_recline_normal, size: 20),
-                      SizedBox(width: 8),
-                      Text('Seats'),
-                    ],
-                  ),
-                ),
+              tabs: [
+                Container(padding: EdgeInsets.symmetric(horizontal: 10),
+                  child: Tab(text: 'Baggage')),
+                Container(padding: EdgeInsets.symmetric(horizontal: 10),
+                  child: Tab(text: 'Meals')),
+                Container(padding: EdgeInsets.symmetric(horizontal: 10),
+                  child: Tab(text: 'Seats')),
               ],
             ),
           ),
           Expanded(
             child: TabBarView(
               children: [
-                _buildBaggageTab(),
-                _buildMealsTab(),
-                _buildSeatsTab(),
+                _buildBaggageTab(controller),
+                _buildMealsTab(controller),
+                _buildSeatsTab(controller),
               ],
             ),
           ),
@@ -370,162 +323,65 @@ class AirArabiaRevalidationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBaggageTab() {
+  Widget _buildBaggageTab(AirArabiaRevalidationController controller) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'Choose Your Baggage',
             style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
               color: TColors.primary,
-              letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Select the perfect baggage allowance for your trip',
+            'Select additional baggage for your journey',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 14,
               color: TColors.grey,
-              height: 1.4,
             ),
           ),
-          const SizedBox(height: 24),
-          ...controller.availableBaggage.map((baggage) {
-            final isSelected = controller.selectedBaggage['default']?.baggageCode == baggage.baggageCode;
-
-            return Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: TColors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: isSelected ? TColors.primary : TColors.grey.withOpacity(0.2),
-                  width: isSelected ? 2 : 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: isSelected
-                        ? TColors.primary.withOpacity(0.15)
-                        : TColors.black.withOpacity(0.04),
-                    blurRadius: isSelected ? 20 : 15,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => controller.selectBaggage('default', baggage),
-                  borderRadius: BorderRadius.circular(20),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? TColors.primary.withOpacity(0.1)
-                                : TColors.grey.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Icon(
-                            Icons.luggage,
-                            color: isSelected ? TColors.primary : TColors.grey,
-                            size: 28,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                baggage.baggageDescription,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                  color: TColors.primary,
-                                  height: 1.2,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'PKR ${baggage.baggageCharge}',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: isSelected ? TColors.primary : TColors.third,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: isSelected ? TColors.primary : Colors.transparent,
-                            border: isSelected ? null : Border.all(
-                              color: TColors.grey.withOpacity(0.3),
-                              width: 2,
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: isSelected
-                              ? const Icon(
-                            Icons.check,
-                            color: TColors.white,
-                            size: 20,
-                          )
-                              : null,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-          const SizedBox(height: 120), // Space for bottom summary
+          const SizedBox(height: 16),
+          Obx(() => Column(
+            children: controller.availableBaggage.map((baggage) {
+              final isSelected = controller.selectedBaggage['default']?.baggageCode == baggage.baggageCode;
+              return _buildSelectionCard(
+                icon: Icons.luggage,
+                title: baggage.baggageDescription,
+                price: 'PKR ${baggage.baggageCharge}',
+                isSelected: isSelected,
+                onTap: () => controller.selectBaggage('default', baggage),
+              );
+            }).toList(),
+          )),
         ],
       ),
     );
   }
 
-  Widget _buildMealsTab() {
+  Widget _buildMealsTab(AirArabiaRevalidationController controller) {
     final segments = controller.getFlightSegments();
-
+    
     return DefaultTabController(
       length: segments.length,
       child: Column(
         children: [
           if (segments.length > 1)
             Container(
-              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 color: TColors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: TColors.black.withOpacity(0.04),
-                    blurRadius: 15,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(12),
               ),
               child: TabBar(
                 isScrollable: true,
                 indicatorColor: TColors.primary,
                 labelColor: TColors.primary,
                 unselectedLabelColor: TColors.grey,
-                labelStyle: const TextStyle(fontWeight: FontWeight.w600),
                 tabs: segments.map((segment) {
                   final departure = segment.departureAirport['LocationCode'] ?? '';
                   final arrival = segment.arrivalAirport['LocationCode'] ?? '';
@@ -538,139 +394,40 @@ class AirArabiaRevalidationScreen extends StatelessWidget {
               children: segments.map((segment) {
                 final segmentCode = segment.attributes['SegmentCode'] ?? '';
                 final meals = controller.getMealsForSegment(segmentCode);
-
+                
                 return SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
                         'Select Your Meals',
                         style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
                           color: TColors.primary,
-                          letterSpacing: -0.5,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Choose delicious meals for your flight',
+                        'Pre-order delicious meals for your flight',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 14,
                           color: TColors.grey,
-                          height: 1.4,
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                       ...meals.map((meal) {
                         final isSelected = controller.isMealSelected(segmentCode, meal);
-
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          decoration: BoxDecoration(
-                            color: TColors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: isSelected ? TColors.primary : TColors.grey.withOpacity(0.2),
-                              width: isSelected ? 2 : 1,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: isSelected
-                                    ? TColors.primary.withOpacity(0.15)
-                                    : TColors.black.withOpacity(0.04),
-                                blurRadius: isSelected ? 20 : 15,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: () => controller.toggleMeal(segmentCode, meal),
-                              borderRadius: BorderRadius.circular(20),
-                              child: Padding(
-                                padding: const EdgeInsets.all(20),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 56,
-                                      height: 56,
-                                      decoration: BoxDecoration(
-                                        color: isSelected
-                                            ? TColors.primary.withOpacity(0.1)
-                                            : TColors.grey.withOpacity(0.08),
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      child: Icon(
-                                        Icons.restaurant_menu,
-                                        color: isSelected ? TColors.primary : TColors.grey,
-                                        size: 28,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            meal.mealName,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 18,
-                                              color: TColors.primary,
-                                              height: 1.2,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            meal.mealDescription,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: TColors.grey,
-                                              height: 1.3,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            'PKR ${meal.mealCharge}',
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                              color: isSelected ? TColors.primary : TColors.third,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Container(
-                                      width: 32,
-                                      height: 32,
-                                      decoration: BoxDecoration(
-                                        color: isSelected ? TColors.primary : Colors.transparent,
-                                        border: isSelected ? null : Border.all(
-                                          color: TColors.grey.withOpacity(0.3),
-                                          width: 2,
-                                        ),
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      child: Icon(
-                                        isSelected ? Icons.check : Icons.add,
-                                        color: isSelected ? TColors.white : TColors.grey,
-                                        size: 20,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
+                        return _buildSelectionCard(
+                          icon: Icons.restaurant_menu,
+                          title: meal.mealName,
+                          subtitle: meal.mealDescription,
+                          price: 'PKR ${meal.mealCharge}',
+                          isSelected: isSelected,
+                          onTap: () => controller.toggleMeal(segmentCode, meal),
                         );
-                      }).toList(),
-                      const SizedBox(height: 120),
+                      }),
                     ],
                   ),
                 );
@@ -682,33 +439,25 @@ class AirArabiaRevalidationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSeatsTab() {
+  Widget _buildSeatsTab(AirArabiaRevalidationController controller) {
     final segments = controller.getFlightSegments();
-
+    
     return DefaultTabController(
       length: segments.length,
       child: Column(
         children: [
           if (segments.length > 1)
             Container(
-              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 color: TColors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: TColors.black.withOpacity(0.04),
-                    blurRadius: 15,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(12),
               ),
               child: TabBar(
                 isScrollable: true,
                 indicatorColor: TColors.primary,
                 labelColor: TColors.primary,
                 unselectedLabelColor: TColors.grey,
-                labelStyle: const TextStyle(fontWeight: FontWeight.w600),
                 tabs: segments.map((segment) {
                   final departure = segment.departureAirport['LocationCode'] ?? '';
                   final arrival = segment.arrivalAirport['LocationCode'] ?? '';
@@ -720,109 +469,7 @@ class AirArabiaRevalidationScreen extends StatelessWidget {
             child: TabBarView(
               children: segments.map((segment) {
                 final segmentCode = segment.attributes['SegmentCode'] ?? '';
-                final selectedSeat = controller.getSelectedSeat(segmentCode);
-
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Choose Your Seat',
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: TColors.primary,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Select your preferred seat for comfort',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: TColors.grey,
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Selected seat info
-                      if (selectedSeat != null)
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 24),
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: TColors.primary.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: TColors.primary.withOpacity(0.2),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: TColors.primary,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.airline_seat_recline_normal,
-                                  color: TColors.white,
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Selected: ${selectedSeat.seatNumber}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                        color: TColors.primary,
-                                      ),
-                                    ),
-                                    Text(
-                                      'PKR ${selectedSeat.seatCharge.toStringAsFixed(2)}',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: TColors.grey,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              IconButton(
-                                onPressed: () => controller.selectSeat(segmentCode, SeatOption(
-                                  seatNumber: '',
-                                  seatCharge: 0,
-                                  currencyCode: 'PKR',
-                                  seatAvailability: '',
-                                )),
-                                icon: const Icon(
-                                  Icons.close_rounded,
-                                  color: TColors.red,
-                                  size: 24,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                      // Aircraft layout
-                      _buildAircraftLayout(segmentCode, selectedSeat),
-
-                      const SizedBox(height: 120),
-                    ],
-                  ),
-                );
+                return _buildCompleteAircraftLayout(segmentCode, controller);
               }).toList(),
             ),
           ),
@@ -831,157 +478,421 @@ class AirArabiaRevalidationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAircraftLayout(String segmentCode, SeatOption? selectedSeat) {
-    final seatsByRow = controller.getSeatsByRowForSegment(segmentCode);
-    final sortedRows = seatsByRow.keys.toList()..sort((a, b) => int.parse(a).compareTo(int.parse(b)));
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: TColors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: TColors.black.withOpacity(0.06),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
+  Widget _buildCompleteAircraftLayout(String segmentCode, AirArabiaRevalidationController controller) {
+    final apiSeats = controller.getSeatsForSegment(segmentCode).isEmpty 
+        ? _generateDemoApiSeats() 
+        : controller.getSeatsForSegment(segmentCode);
+    
+    final selectedSeat = controller.getSelectedSeat(segmentCode);
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
       child: Column(
         children: [
-          // Aircraft nose
-          Container(
-            width: 60,
-            height: 30,
-            decoration: BoxDecoration(
-              color: TColors.primary.withOpacity(0.1),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(30),
-                topRight: Radius.circular(30),
+          const Text(
+            'Choose Your Seat',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: TColors.primary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Select your preferred seat',
+            style: TextStyle(
+              fontSize: 14,
+              color: TColors.grey,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Selected seat display
+          if (selectedSeat != null && selectedSeat.seatNumber.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: TColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: TColors.primary.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.airline_seat_recline_normal, color: TColors.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Seat ${selectedSeat.seatNumber}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            color: TColors.primary,
+                          ),
+                        ),
+                        Text(
+                          'PKR ${selectedSeat.seatCharge.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: TColors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => controller.selectSeat(segmentCode, SeatOption(
+                      seatNumber: '',
+                      seatCharge: 0,
+                      currencyCode: 'PKR',
+                      seatAvailability: '',
+                    )),
+                    icon: const Icon(Icons.close, color: TColors.red),
+                  ),
+                ],
               ),
             ),
-            child: Icon(
-              Icons.flight,
-              color: TColors.primary,
-              size: 20,
+          
+          // Aircraft layout
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: TColors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: TColors.black.withOpacity(0.06),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 16),
-
-          // Seat layout
-          Column(
-            children: sortedRows.map((rowNumber) {
-              final rowSeats = seatsByRow[rowNumber] ?? [];
-              rowSeats.sort((a, b) => a.seatNumber.compareTo(b.seatNumber));
-
-              return Container(
-                margin: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Row number
-                    SizedBox(
-                      width: 30,
-                      child: Text(
-                        rowNumber,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: TColors.grey,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
+            child: Column(
+              children: [
+                // Aircraft nose
+                Container(
+                  width: 40,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [TColors.primary.withOpacity(0.2), TColors.primary.withOpacity(0.1)],
                     ),
-                    const SizedBox(width: 8),
-
-                    // Left side seats (A, B, C)
-                    ...rowSeats.where((seat) => ['A', 'B', 'C'].contains(seat.seatNumber.substring(seat.seatNumber.length - 1)))
-                        .map((seat) => _buildSeatWidget(segmentCode, seat, selectedSeat)),
-
-                    // Aisle
-                    const SizedBox(width: 20),
-
-                    // Right side seats (D, E, F)
-                    ...rowSeats.where((seat) => ['D', 'E', 'F'].contains(seat.seatNumber.substring(seat.seatNumber.length - 1)))
-                        .map((seat) => _buildSeatWidget(segmentCode, seat, selectedSeat)),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.flight,
+                    color: TColors.primary,
+                    size: 16,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                
+                // Complete seat layout - 29 rows
+                Column(
+                  children: List.generate(29, (rowIndex) {
+                    final rowNumber = rowIndex + 1;
+                    return _buildSeatRow(rowNumber, apiSeats, selectedSeat, controller, segmentCode);
+                  }),
+                ),
+                
+                const SizedBox(height: 12),
+                
+                // Legend
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildLegendItem(TColors.grey.withOpacity(0.2), 'Available'),
+                    _buildLegendItem(TColors.primary, 'Selected'),
+                    _buildLegendItem(TColors.red.withOpacity(0.3), 'Occupied'),
                   ],
                 ),
-              );
-            }).toList(),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Legend
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildLegendItem(TColors.grey.withOpacity(0.2), 'Available'),
-              _buildLegendItem(TColors.primary, 'Selected'),
-              _buildLegendItem(TColors.red.withOpacity(0.2), 'Occupied'),
-            ],
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSeatWidget(String segmentCode, SeatOption seat, SeatOption? selectedSeat) {
-    final isSelected = selectedSeat?.seatNumber == seat.seatNumber;
-    final isOccupied = seat.seatAvailability != 'VAC' && seat.seatAvailability != 'Available';
+  Widget _buildSeatRow(int rowNumber, List<SeatOption> apiSeats, SeatOption? selectedSeat, 
+                      AirArabiaRevalidationController controller, String segmentCode) {
+    final columns = ['A', 'B', 'C', 'D', 'E', 'F'];
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 1),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Row number
+          SizedBox(
+            width: 20,
+            child: Text(
+              '$rowNumber',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: TColors.grey,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(width: 8),
+          
+          // Left side seats (A, B, C)
+          ...columns.take(3).map((column) {
+            final seatNumber = '$rowNumber$column';
+            return _buildSeat(seatNumber, apiSeats, selectedSeat, controller, segmentCode);
+          }),
+          
+          // Aisle
+          const SizedBox(width: 12),
+          
+          // Right side seats (D, E, F)
+          ...columns.skip(3).map((column) {
+            final seatNumber = '$rowNumber$column';
+            return _buildSeat(seatNumber, apiSeats, selectedSeat, controller, segmentCode);
+          }),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildSeat(String seatNumber, List<SeatOption> apiSeats, SeatOption? selectedSeat,
+                   AirArabiaRevalidationController controller, String segmentCode) {
+    
+    // Find if this seat exists in API data
+    final apiSeat = apiSeats.where((seat) => seat.seatNumber == seatNumber).firstOrNull;
+    
+    final isSelected = selectedSeat?.seatNumber == seatNumber;
+    final bool isOccupied;
+    final double price;
+    
+    if (apiSeat != null) {
+      // Seat exists in API data
+      isOccupied = apiSeat.seatAvailability == 'Occupied';
+      price = apiSeat.seatCharge;
+    } else {
+      // Seat doesn't exist in API - mark as occupied/reserved
+      isOccupied = true;
+      price = 0;
+    }
+    
+    Color seatColor;
+    if (isSelected) {
+      seatColor = TColors.primary;
+    } else if (isOccupied) {
+      seatColor = TColors.red.withOpacity(0.3);
+    } else {
+      seatColor = TColors.grey.withOpacity(0.15);
+    }
+    
     return GestureDetector(
-      onTap: isOccupied ? null : () => controller.selectSeat(segmentCode, seat),
+      onTap: (isOccupied || apiSeat == null) ? null : () {
+        controller.selectSeat(segmentCode, apiSeat);
+      },
       child: Container(
-        width: 32,
-        height: 36,
-        margin: const EdgeInsets.symmetric(horizontal: 2),
+        width: 24,
+        height: 28,
+        margin: const EdgeInsets.symmetric(horizontal: 1),
         decoration: BoxDecoration(
-          color: isOccupied
-              ? TColors.red.withOpacity(0.2)
-              : isSelected
-              ? TColors.primary
-              : TColors.grey.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(8),
+          color: seatColor,
+          borderRadius: BorderRadius.circular(4),
           border: Border.all(
-            color: isSelected
-                ? TColors.primary
-                : isOccupied
-                ? TColors.red.withOpacity(0.4)
-                : TColors.grey.withOpacity(0.3),
-            width: 1,
+            color: isSelected 
+                ? TColors.primary 
+                : isOccupied 
+                  ? TColors.red.withOpacity(0.4)
+                  : TColors.grey.withOpacity(0.2),
+            width: isSelected ? 2 : 1,
           ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              seat.seatNumber.substring(seat.seatNumber.length - 1),
+              seatNumber.substring(seatNumber.length - 1),
               style: TextStyle(
                 color: isSelected
                     ? TColors.white
                     : isOccupied
-                    ? TColors.red
+                    ? TColors.red.withOpacity(0.7)
                     : TColors.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                fontSize: 10,
               ),
             ),
-            if (seat.seatCharge > 0)
+            if (price > 0 && !isOccupied)
               Text(
-                '${seat.seatCharge.toStringAsFixed(0)}',
+                price < 1000 ? '${price.toInt()}' : '${(price/1000).toStringAsFixed(1)}k',
                 style: TextStyle(
                   color: isSelected
                       ? TColors.white.withOpacity(0.8)
-                      : isOccupied
-                      ? TColors.red.withOpacity(0.7)
-                      : TColors.grey,
-                  fontSize: 8,
+                      : TColors.grey.withOpacity(0.7),
+                  fontSize: 6,
                   fontWeight: FontWeight.w500,
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // Generate demo API seats (only seats that would come from API)
+  List<SeatOption> _generateDemoApiSeats() {
+    final List<SeatOption> seats = [];
+    final random = math.Random();
+    
+    // Generate seats only for specific rows that would be available from API
+    final availableRows = [10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 25, 26, 27];
+    final columns = ['A', 'B', 'C', 'D', 'E', 'F'];
+    
+    for (final row in availableRows) {
+      for (final column in columns) {
+        // Skip some seats in emergency rows or specific configurations
+        if (row == 14 && ['A', 'F'].contains(column)) continue;
+        if (row == 15 && ['A', 'F'].contains(column)) continue;
+        
+        final seatNumber = '$row$column';
+        double charge = 0;
+        
+        // Realistic pricing based on row position
+        if (row <= 12) {
+          charge = [3130, 2739, 1956, 1565].elementAt(random.nextInt(4)) as double;
+        } else if (row <= 20) {
+          charge = [1174, 783].elementAt(random.nextInt(2)) as double;
+        } else {
+          charge = random.nextBool() ? 783 : 0;
+        }
+        
+        seats.add(SeatOption(
+          seatNumber: seatNumber,
+          seatCharge: charge,
+          currencyCode: 'PKR',
+          seatAvailability: 'Available',
+        ));
+      }
+    }
+    
+    return seats;
+  }
+
+  Widget _buildSelectionCard({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required String price,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: TColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isSelected ? TColors.primary : TColors.grey.withOpacity(0.1),
+          width: isSelected ? 2 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isSelected 
+                ? TColors.primary.withOpacity(0.1) 
+                : TColors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: isSelected 
+                        ? TColors.primary.withOpacity(0.1) 
+                        : TColors.grey.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: isSelected ? TColors.primary : TColors.grey,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          color: TColors.primary,
+                        ),
+                      ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: TColors.grey,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 4),
+                      Text(
+                        price,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: isSelected ? TColors.primary : TColors.third,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: isSelected ? TColors.primary : Colors.transparent,
+                    border: isSelected ? null : Border.all(
+                      color: TColors.grey.withOpacity(0.3),
+                      width: 2,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: isSelected
+                      ? const Icon(
+                    Icons.check,
+                    color: TColors.white,
+                    size: 16,
+                  )
+                      : null,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -992,24 +903,19 @@ class AirArabiaRevalidationScreen extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 16,
-          height: 16,
+          width: 12,
+          height: 12,
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(
-              color: color == TColors.grey.withOpacity(0.2)
-                  ? TColors.grey.withOpacity(0.3)
-                  : color,
-              width: 1,
-            ),
+            borderRadius: BorderRadius.circular(2),
+            border: Border.all(color: color, width: 1),
           ),
         ),
         const SizedBox(width: 6),
         Text(
           label,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 11,
             color: TColors.grey,
             fontWeight: FontWeight.w500,
           ),
@@ -1018,161 +924,259 @@ class AirArabiaRevalidationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildModernBottomSummary() {
-    return Obx(() => Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: TColors.white,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(32),
-          topRight: Radius.circular(32),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: TColors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, -8),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: TColors.grey.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(2),
+  Widget _buildCollapsiblePriceBox(BuildContext context) {
+    return GetBuilder<AirArabiaRevalidationController>(
+      builder: (controller) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          height: _isExpanded ? 200 : 90,
+          decoration: BoxDecoration(
+            color: TColors.white,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
             ),
+            boxShadow: [
+              BoxShadow(
+                color: TColors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, -4),
+              ),
+            ],
           ),
-          const SizedBox(height: 24),
-
-          // Price breakdown
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: TColors.primary.withOpacity(0.04),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Base Fare',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: TColors.grey,
-                        fontWeight: FontWeight.w500,
+          child: Column(
+            children: [
+              // Collapsible header
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _isExpanded = !_isExpanded;
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      // Handle indicator
+                      Container(
+                        width: 32,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          color: TColors.grey.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
-                    ),
-                    Text(
-                      'PKR ${controller.basePrice.value.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: TColors.primary,
+                      const Spacer(),
+                      Obx(() => Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            'Total Amount',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: TColors.grey,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            'PKR ${controller.totalPrice.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: TColors.primary,
+                            ),
+                          ),
+                        ],
+                      )),
+                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: TColors.grey.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: AnimatedRotation(
+                          duration: const Duration(milliseconds: 200),
+                          turns: _isExpanded ? 0.5 : 0,
+                          child: Icon(
+                            Icons.expand_less,
+                            size: 16,
+                            color: TColors.grey,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Extras',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: TColors.grey,
-                        fontWeight: FontWeight.w500,
-                      ),
+              ),
+              
+              // Expandable content
+              if (_isExpanded)
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: Column(
+                      children: [
+                        // Price breakdown
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: TColors.grey.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Base Fare',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: TColors.grey,
+                                    ),
+                                  ),
+                                  Obx(() => Text(
+                                    'PKR ${controller.basePrice.value.toStringAsFixed(0)}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: TColors.primary,
+                                    ),
+                                  )),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Extras',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: TColors.grey,
+                                    ),
+                                  ),
+                                  Obx(() => Text(
+                                    'PKR ${controller.totalExtrasPrice.value.toStringAsFixed(0)}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: TColors.third,
+                                    ),
+                                  )),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        
+                        // Continue button
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                             final arguments = Get.arguments as Map<String, dynamic>?;
+                              final selectedFlight = arguments?['selectedFlight'] as AirArabiaFlight?;
+                              final selectedPackage = arguments?['selectedPackage'] as AirArabiaPackage?;
+                              
+                              if (selectedFlight != null && selectedPackage != null) {
+                                Get.to(() => AirArabiaReviewTripPage(
+                                  flight: selectedFlight,
+                                  selectedPackage: selectedPackage,
+                                  isReturn: false, // or true for round trips
+                                ));
+                              }else {
+                                Get.snackbar(
+                                  'Error',
+                                  'Missing flight or package information',
+                                  snackPosition: SnackPosition.BOTTOM,
+                                  backgroundColor: Colors.red,
+                                  colorText: TColors.white,
+                                  borderRadius: 10,
+                                  margin: const EdgeInsets.all(16),
+                                  duration: const Duration(seconds: 2),
+                                );
+                              };
+                            
+                              Get.snackbar(
+                                'Success',
+                                'Flight extras selected successfully!',
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: TColors.primary,
+                                colorText: TColors.white,
+                                borderRadius: 10,
+                                margin: const EdgeInsets.all(16),
+                                duration: const Duration(seconds: 2),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: TColors.primary,
+                              foregroundColor: TColors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: const Text(
+                              'Continue to Booking',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      'PKR ${controller.totalExtrasPrice.value.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: TColors.third,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
+                  ),
+                )
+              else
+                // Collapsed state - just the button
                 Container(
-                  height: 1,
-                  color: TColors.primary.withOpacity(0.1),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Total Amount',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: TColors.primary,
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Get.snackbar(
+                          'Success',
+                          'Flight extras selected successfully!',
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: TColors.primary,
+                          colorText: TColors.white,
+                          borderRadius: 10,
+                          margin: const EdgeInsets.all(16),
+                          duration: const Duration(seconds: 2),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: TColors.primary,
+                        foregroundColor: TColors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Continue to Booking',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                    Text(
-                      'PKR ${controller.totalPrice.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: TColors.primary,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ],
-            ),
+                SizedBox(height: 10,)
+            ],
           ),
-
-          const SizedBox(height: 20),
-
-          // Continue button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                Get.snackbar(
-                  'Success',
-                  'Flight extras selected successfully!',
-                  snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: TColors.primary,
-                  colorText: TColors.white,
-                  borderRadius: 12,
-                  margin: const EdgeInsets.all(16),
-                  animationDuration: const Duration(milliseconds: 800),
-                );
-                // Navigate to booking screen
-                // Get.to(() => BookingConfirmationScreen());
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: TColors.primary,
-                foregroundColor: TColors.white,
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 0,
-                shadowColor: TColors.primary.withOpacity(0.3),
-              ),
-              child: const Text(
-                'Continue to Booking',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    ));
+        );
+      },
+    );
   }
 }

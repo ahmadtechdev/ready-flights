@@ -21,7 +21,11 @@ class AirArabiaRevalidationResponse {
 
 class AirArabiaRevalidationData {
   final PricingInfo pricing;
-  final ExtrasInfo extras;
+  
+  
+  
+  
+    final ExtrasInfo extras;
   final MetaInfo meta;
 
   AirArabiaRevalidationData({
