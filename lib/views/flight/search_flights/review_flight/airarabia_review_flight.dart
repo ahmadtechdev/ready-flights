@@ -4,6 +4,7 @@ import 'dart:async';
 
 import '../../../../utility/colors.dart';
 import '../../../../widgets/travelers_selection_bottom_sheet.dart';
+import '../../booking_flight/airarabia/airarabia_booking_flight.dart';
 import '../airarabia/airarabia_flight_model.dart';
 import '../airarabia/airarabia_flight_controller.dart';
 import '../airarabia/validation_data/validation_controller.dart';
@@ -406,7 +407,7 @@ class AirArabiaReviewTripPageState extends State<AirArabiaReviewTripPage> {
                                 Icons.luggage,
                                 'Extra Baggage',
                                 baggage.baggageDescription,
-                                baggage.baggageCharge as double,
+                                double.parse(baggage.baggageCharge),
                               );
                             }).toList(),
                           
@@ -418,7 +419,7 @@ class AirArabiaReviewTripPageState extends State<AirArabiaReviewTripPage> {
                                   Icons.restaurant,
                                   'Meal',
                                   meal.mealName,
-                                  meal.mealCharge as double,
+                                  double.parse(meal.mealCharge),
                                 );
                               });
                             }).toList(),
@@ -545,12 +546,12 @@ class AirArabiaReviewTripPageState extends State<AirArabiaReviewTripPage> {
                   child: ElevatedButton(
                     onPressed: () {
                       // Navigate to AirArabiaBookingFlight with all selected data
-                      // Get.to(() => AirArabiaBookingFlight(
-                      //   flight: widget.flight,
-                      //   selectedPackage: widget.selectedPackage,
-                      //   totalPrice: flightPrice + packagePrice + revalidationController.totalExtrasPrice.value,
-                      //   currency: currency,
-                      // ));
+                      Get.to(() => AirArabiaBookingFlight(
+                        flight: widget.flight,
+                        selectedPackage: widget.selectedPackage,
+                        totalPrice: flightPrice + packagePrice + revalidationController.totalExtrasPrice.value,
+                        currency: currency,
+                      ));
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: TColors.primary,
