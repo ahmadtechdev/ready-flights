@@ -365,10 +365,7 @@ class FlightBookingPage extends StatelessWidget {
         itemCount: airArabiaController.filteredFlights.length,
         itemBuilder: (context, index) {
           final flight = airArabiaController.filteredFlights[index];
-          return GestureDetector(
-            onTap: () => airArabiaController.handleAirArabiaFlightSelection(flight),
-            child: AirArabiaFlightCard(flight: flight),
-          );
+          return AirArabiaFlightCard(flight: flight);
         },
       );
     });
