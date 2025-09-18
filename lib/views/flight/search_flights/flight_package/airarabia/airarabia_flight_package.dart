@@ -37,11 +37,33 @@ class _AirArabiaPackageSelectionDialogState extends State<AirArabiaPackageSelect
   final airArabiaController = Get.find<AirArabiaFlightController>();
   final apiService = Get.find<ApiServiceAirArabia>();
 
+  // Static Basic Package
+  late final AirArabiaPackage staticBasicPackage;
+
   @override
   void initState() {
     super.initState();
+    _initializeStaticBasicPackage();
     _loadPackages();
     _prefetchMarginData();
+  }
+
+  void _initializeStaticBasicPackage() {
+    staticBasicPackage = AirArabiaPackage(
+      packageType: 'Basic',
+      packageName: 'Basic',
+      basePrice: 0.0, // No additional cost for basic package
+      totalPrice: 0.0,
+      baggageAllowance: 'Charges Apply',
+      mealInfo: 'Charges Apply',
+      seatInfo: 'Charges Apply',
+      modificationPolicy: 'Charges Apply',
+      cancellationPolicy: 'Charges Apply',
+      currency: '',
+      cabinClass: '',
+      isRefundable: false,
+      rawData: {},
+    );
   }
 
   @override
@@ -230,28 +252,9 @@ class _AirArabiaPackageSelectionDialogState extends State<AirArabiaPackageSelect
         );
       }
 
-      final packages = packageResponse.value?.packages ?? [];
-
-      if (packages.isEmpty) {
-        return const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.warning_amber_rounded, size: 48, color: Colors.amber),
-              SizedBox(height: 16),
-              Text(
-                'No packages available for this flight',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Please select another flight',
-                style: TextStyle(fontSize: 14, color: TColors.grey),
-              ),
-            ],
-          ),
-        );
-      }
+      // Combine static basic package with dynamic packages
+      final dynamicPackages = packageResponse.value?.packages ?? [];
+      final allPackages = [staticBasicPackage, ...dynamicPackages];
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,11 +273,11 @@ class _AirArabiaPackageSelectionDialogState extends State<AirArabiaPackageSelect
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: packages.length,
+              itemCount: allPackages.length,
               itemBuilder: (context, index) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 16),
-                  child: _buildPackageCard(packages[index], index),
+                  child: _buildPackageCard(allPackages[index], index),
                 );
               },
             ),
@@ -286,8 +289,17 @@ class _AirArabiaPackageSelectionDialogState extends State<AirArabiaPackageSelect
 
   Widget _buildPackageCard(AirArabiaPackage package, int index) {
     final headerColor = _getPackageColor(package.packageType);
-    final price = finalPrices['${package.packageType}-${package.packageName}']?.value ??
-        (package.totalPrice + widget.flight.price);
+    
+    // For static basic package, use flight price. For others, calculate as before
+    final double price;
+    if (package.packageType == 'Basic' && package.basePrice == 0.0) {
+      // This is our static basic package
+      price = widget.flight.price;
+    } else {
+      // This is a dynamic package from API
+      price = finalPrices['${package.packageType}-${package.packageName}']?.value ??
+          (package.totalPrice + widget.flight.price);
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -364,7 +376,7 @@ class _AirArabiaPackageSelectionDialogState extends State<AirArabiaPackageSelect
                 _buildPackageDetail(
                   Icons.work_outline_rounded,
                   'Hand Baggage',
-                  '10 KG',
+                  '7 Kg', // Static value for basic package
                 ),
                 const SizedBox(height: 12),
                 _buildPackageDetail(
@@ -508,12 +520,15 @@ class _AirArabiaPackageSelectionDialogState extends State<AirArabiaPackageSelect
     try {
       isLoading.value = true;
 
-      final packages = packageResponse.value?.packages ?? [];
-      if (selectedPackageIndex >= packages.length) {
+      // Get all packages (static + dynamic)
+      final dynamicPackages = packageResponse.value?.packages ?? [];
+      final allPackages = [staticBasicPackage, ...dynamicPackages];
+      
+      if (selectedPackageIndex >= allPackages.length) {
         throw Exception('Invalid package selection');
       }
 
-      final selectedPackage = packages[selectedPackageIndex];
+      final selectedPackage = allPackages[selectedPackageIndex];
 
       // Store the selected package and flight in the controller
       airArabiaController.selectedPackage = selectedPackage;

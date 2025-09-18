@@ -99,6 +99,7 @@ class ApiServiceAirArabia {
 
       print("*************** AirArabia Packages Response *********");
       // print(response);
+    debugPrint(jsonEncode(response.data), wrapWidth: 1024);
 
       if (response.statusCode == 200) {
         // Ensure the response is parsed as Map
@@ -170,6 +171,8 @@ class ApiServiceAirArabia {
     }
   }
 
+// Updated createAirArabiaBooking method in ApiServiceAirArabia class
+// Updated createAirArabiaBooking method parameters in ApiServiceAirArabia class
 Future<Map<String, dynamic>> createAirArabiaBooking({
   required String email,
   required String finalKey,
@@ -182,9 +185,9 @@ Future<Map<String, dynamic>> createAirArabiaBooking({
   required List<int> stopsSector,
   required String bkIdArray,
   required String bkIdArray3,
-  required List<List<dynamic>> adultBaggage,
-  required List<List<List<String>>> adultMeal,
-  required List<List<List<String>>> adultSeat,
+  required List<List<String>> adultBaggage,           // CORRECTED TYPE: 2D array
+  required List<List<List<String>>> adultMeal,        // CORRECTED TYPE: 3D array  
+  required List<List<List<String>>> adultSeat,        // CORRECTED TYPE: 3D array
   required List<dynamic> childBaggage,
   required List<dynamic> childMeal,
   required List<dynamic> childSeat,
@@ -225,9 +228,9 @@ Future<Map<String, dynamic>> createAirArabiaBooking({
       "stops_sector": stopsSector,
       "bk_id_array": bkIdArray,
       "bk_id_array3": bkIdArray3,
-      "adult_baggage": adultBaggage,
-      "adult_meal": adultMeal,
-      "adult_seat": adultSeat,
+      "adult_baggage": adultBaggage,    // Now correctly 2D array
+      "adult_meal": adultMeal,          // Now correctly 3D array
+      "adult_seat": adultSeat,          // Now correctly 3D array
       "child_baggage": childBaggage,
       "child_meal": childMeal,
       "child_seat": childSeat,
@@ -254,7 +257,6 @@ Future<Map<String, dynamic>> createAirArabiaBooking({
     print("AirArabia Booking Request *********************");
     debugPrint(jsonEncode(data), wrapWidth: 1024);
 
-
     final response = await _dio.request(
       'https://onerooftravel.net/api/air-arabia-create-booking',
       options: Options(
@@ -279,9 +281,6 @@ Future<Map<String, dynamic>> createAirArabiaBooking({
     print('Error creating Air Arabia booking: $e');
     rethrow;
   }
-
-
-
 }
 
 Map<String, dynamic> _convertXmlToJson(String xmlString) {

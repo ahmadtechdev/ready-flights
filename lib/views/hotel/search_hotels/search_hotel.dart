@@ -599,7 +599,7 @@ class HotelCard extends StatelessWidget {
                 controller.filterhotler();
                 Get.to(() => HotelInfoScreen(
                   hotelId: hotel['hotelCode'],
-                  hotelData: hotel,
+                  hotelData: hotel as Map<String, dynamic>,
                 ));
               },
               style: ElevatedButton.styleFrom(
@@ -906,7 +906,7 @@ class _MapScreenState extends State<MapScreen> {
     return degrees * pi / 180;
   }
 
- void _showHotelDetails(Map hotel, double distance, {bool isSelected = false}) {
+void _showHotelDetails(Map hotel, double distance, {bool isSelected = false}) {
   double hotelPrice = double.tryParse(
     hotel['price'].toString().replaceAll(',', '').trim(),
   ) ?? 0.0;
@@ -927,69 +927,96 @@ class _MapScreenState extends State<MapScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Hotel Image and Name Row
-            Row(
-              children: [
-                // Hotel Image on left side
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: _buildSmallHotelImage(hotel),
+            // Make the entire hotel info container clickable
+            GestureDetector(
+              onTap: () {
+                // Close the bottom sheet first
+                Get.back();
+                
+                // Navigate to hotel details
+                _navigateToHotelDetails(hotel);
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(width: 12),
-                // Hotel details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        hotel['name'] ?? 'Unknown Hotel',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        hotel['address'] ?? 'Address not available',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (!isSelected && distance > 0) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          '${distance.toStringAsFixed(1)} km away',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey[500],
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    // Hotel Image on left side - also clickable
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: _buildSmallHotelImage(hotel),
+                    ),
+                    const SizedBox(width: 12),
+                    // Hotel details
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            hotel['name'] ?? 'Unknown Hotel',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
+                          const SizedBox(height: 4),
+                          Text(
+                            hotel['address'] ?? 'Address not available',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (!isSelected && distance > 0) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              '${distance.toStringAsFixed(1)} km away',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    // Arrow icon to indicate clickability and selected badge
+                    Column(
+                      children: [
+                        if (isSelected)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.green,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'Selected',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: 8),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          color: TColors.primary,
+                          size: 16,
                         ),
                       ],
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                if (isSelected)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'Selected',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-              ],
+              ),
             ),
             const SizedBox(height: 16),
             
@@ -1028,7 +1055,7 @@ class _MapScreenState extends State<MapScreen> {
                     Text(
                       'PKR $pricePerNight',
                       style: TextStyle(
-                        fontSize: 22, // Increased font size
+                        fontSize: 22,
                         color: TColors.primary,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1045,36 +1072,33 @@ class _MapScreenState extends State<MapScreen> {
               ],
             ),
             
-            // View Details Button (if not selected hotel)
-          //   if (!isSelected) ...[
-          //     const SizedBox(height: 16),
-          //     SizedBox(
-          //       width: double.infinity,
-          //       child: ElevatedButton(
-          //         onPressed: () {
-          //           Get.back(); // Close the bottom sheet
-          //           // Navigate back to hotel list and scroll to this hotel
-          //           // You can implement this functionality as needed
-          //         },
-          //         style: ElevatedButton.styleFrom(
-          //           backgroundColor: TColors.primary,
-          //           foregroundColor: Colors.white,
-          //           shape: RoundedRectangleBorder(
-          //             borderRadius: BorderRadius.circular(12),
-          //           ),
-          //           padding: const EdgeInsets.symmetric(vertical: 12),
-          //         ),
-          //         child: const Text(
-          //           'View Details',
-          //           style: TextStyle(
-          //             fontSize: 16,
-          //             fontWeight: FontWeight.bold,
-          //           ),
-          //         ),
-          //       ),
-          //     ),
-          //   ],
-          // 
+            const SizedBox(height: 16),
+            
+            // View Details Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Get.back(); // Close the bottom sheet
+                  _navigateToHotelDetails(hotel);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: TColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: const Text(
+                  'View Details',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       );
@@ -1082,6 +1106,28 @@ class _MapScreenState extends State<MapScreen> {
   );
 }
 
+// Add this new method to handle navigation to hotel details
+void _navigateToHotelDetails(Map hotel) {
+  // Update controller values with selected hotel data
+  controller.ratingstar.value = (hotel['rating'] as double).toInt();
+  controller.hotelCode.value = hotel['hotelCode'];
+  controller.hotelCity.value = hotel['hotelCity'];
+  controller.lat.value = hotel['latitude'];
+  controller.lon.value = hotel['longitude'];
+  controller.hotelAddress.value = hotel['address'] ?? "";
+  
+  // Clear previous room data
+  controller.roomsdata.clear();
+
+  // Fetch hotel details and navigate
+  ApiServiceHotel().fetchHotelDetails(hotel['hotelCode']);
+  controller.filterhotler();
+  
+  Get.off(() => HotelInfoScreen(
+    hotelId: hotel['hotelCode'],
+    hotelData: hotel as Map<String, dynamic>,
+  ));
+}
 // Helper method to build small hotel image
 Widget _buildSmallHotelImage(Map hotel) {
   String imageUrl = hotel['image'] ?? '';

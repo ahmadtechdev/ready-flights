@@ -62,7 +62,7 @@ class _ImportantBookingDetailsCardState
     final searchHomeController = Get.find<SearchHotelController>();
     final hotelDateController = Get.find<HotelDateController>();
     final guestsController = Get.find<GuestsController>();
-    final slectroomcontroller = Get.find<SelectRoomController>();
+    final selectRoomController = Get.find<SelectRoomController>();
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
@@ -123,6 +123,11 @@ class _ImportantBookingDetailsCardState
               '',
             ),
             const Divider(height: 24),
+            
+            // Selected Rooms Section
+            Obx(() => _buildSelectedRoomsSection(selectRoomController)),
+            const Divider(height: 24),
+            
             _buildInfoRow(
               Icons.calendar_today,
               'Check-in',
@@ -144,10 +149,85 @@ class _ImportantBookingDetailsCardState
               '${guestsController.roomCount.toString()} Room',
             ),
             const Divider(height: 24),
-            _buildPriceSection(slectroomcontroller.totalPrice.value.toStringAsFixed(0)),
+            Obx(() => _buildPriceSection(selectRoomController.totalPrice.value.toStringAsFixed(0))),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSelectedRoomsSection(SelectRoomController selectRoomController) {
+    if (selectRoomController.roomNames.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: TColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.meeting_room, color: TColors.primary, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                      'Selected Rooms',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                    ),
+            ),
+            ],
+        ),
+         Column(
+           crossAxisAlignment: CrossAxisAlignment.start,
+           children: [
+             
+             const SizedBox(height: 8),
+             ...selectRoomController.roomNames.entries.map((entry) {
+               int roomIndex = entry.key;
+               String roomName = entry.value;
+               
+               return Container(
+                 margin: const EdgeInsets.only(bottom: 8),
+                 padding: const EdgeInsets.all(12),
+                 decoration: BoxDecoration(
+                   color: Colors.grey.shade50,
+                   borderRadius: BorderRadius.circular(8),
+                   border: Border.all(color: Colors.grey.shade200),
+                 ),
+                 child: Column(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                     Row(
+                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                       children: [
+                         Expanded(
+                           child: Text(
+                             'Room ${roomIndex + 1}: $roomName',
+                             style: const TextStyle(
+                               fontWeight: FontWeight.bold,
+                               fontSize: 15,
+                             ),
+                           ),
+                         ),
+                        
+                       ],
+                     ),
+                       ],
+                 ),
+               );
+             }).toList(),
+           ],
+         ),
+         
+      ],
     );
   }
 
@@ -185,10 +265,11 @@ class _ImportantBookingDetailsCardState
                   fontSize: 16,
                 ),
               ),
-              Text(
-                secondaryInfo,
-                style: TextStyle(color: Colors.grey[600], fontSize: 14),
-              ),
+              if (secondaryInfo.isNotEmpty)
+                Text(
+                  secondaryInfo,
+                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                ),
             ],
           ),
         ),
@@ -196,7 +277,7 @@ class _ImportantBookingDetailsCardState
     );
   }
 
-  Widget _buildPriceSection(price) {
+  Widget _buildPriceSection(String price) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -212,7 +293,7 @@ class _ImportantBookingDetailsCardState
             child: _buildBadge("Refundable"),
           ),
           const Divider(height: 16),
-          _buildPriceRow('Price', 'PKR $price', isTotal: true),
+          _buildPriceRow('Total Price', 'PKR $price', isTotal: true),
         ],
       ),
     );

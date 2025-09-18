@@ -71,6 +71,7 @@ class RoomCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Container(
+                    height: 600,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: TColors.background,
@@ -120,302 +121,309 @@ class RoomCard extends StatelessWidget {
                               return const SizedBox.shrink();
                             }
 
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children:
-                                  conditions.map((condition) {
-                                    final fromDate = DateTime.tryParse(
-                                      condition['fromDate'] ?? '',
-                                    );
-                                    final toDate = DateTime.tryParse(
-                                      condition['toDate'] ?? '',
-                                    );
-                                    final percentage = condition['percentage'];
-                                    final timezone = condition['timezone'];
-
-                                    return Padding(
-                                      padding: const EdgeInsets.only(
-                                        bottom: 12,
-                                      ),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          color: TColors.background2,
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                          border: Border.all(
-                                            color: TColors.primary.withOpacity(
-                                              0.1,
-                                            ),
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: TColors.primary
-                                                  .withOpacity(0.05),
-                                              blurRadius: 10,
-                                              offset: const Offset(0, 4),
-                                            ),
-                                          ],
+                            return Container(
+                              color: TColors.white,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children:
+                                    conditions.map((condition) {
+                                      final fromDate = DateTime.tryParse(
+                                        condition['fromDate'] ?? '',
+                                      );
+                                      final toDate = DateTime.tryParse(
+                                        condition['toDate'] ?? '',
+                                      );
+                                      final percentage = condition['percentage'];
+                                      final timezone = condition['timezone'];
+                              
+                                      return Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 12,
                                         ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            // Date Range Section
-                                            if (fromDate != null &&
-                                                toDate != null)
-                                              Row(
-                                                children: [
-                                                  Container(
-                                                    padding:
-                                                        const EdgeInsets.all(8),
-                                                    decoration: BoxDecoration(
-                                                      color: TColors.primary
-                                                          .withOpacity(0.1),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            8,
-                                                          ),
-                                                    ),
-                                                    child: const Icon(
-                                                      Icons.calendar_today,
-                                                      color: TColors.primary,
-                                                      size: 20,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 12),
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        const Text(
-                                                          'Valid Period',
-                                                          style: TextStyle(
-                                                            color: TColors.grey,
-                                                            fontSize: 12,
-                                                            fontWeight:
-                                                                FontWeight.w500,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 4,
-                                                        ),
-                                                        Text(
-                                                          '${DateFormat('MMM dd, yyyy').format(fromDate)} - ${DateFormat('MMM dd, yyyy').format(toDate)}',
-                                                          style:
-                                                              const TextStyle(
-                                                                color:
-                                                                    TColors
-                                                                        .text,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w600,
-                                                                fontSize: 14,
-                                                              ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
+                                        child: Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            color: TColors.white,
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            border: Border.all(
+                                              color: TColors.primary.withOpacity(
+                                                0.1,
                                               ),
-
-                                            if (fromDate != null)
-                                              const SizedBox(height: 16),
-
-                                            // Time Section
-                                            if (condition['fromTime'] != null &&
-                                                condition['toTime'] != null)
-                                              Row(
-                                                children: [
-                                                  Container(
-                                                    padding:
-                                                        const EdgeInsets.all(8),
-                                                    decoration: BoxDecoration(
-                                                      color: TColors.primary
-                                                          .withOpacity(0.1),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            8,
-                                                          ),
-                                                    ),
-                                                    child: const Icon(
-                                                      Icons.access_time,
-                                                      color: TColors.primary,
-                                                      size: 20,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 12),
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        const Text(
-                                                          'Time Window',
-                                                          style: TextStyle(
-                                                            color: TColors.grey,
-                                                            fontSize: 12,
-                                                            fontWeight:
-                                                                FontWeight.w500,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 4,
-                                                        ),
-                                                        Text(
-                                                          '${condition['fromTime']} - ${condition['toTime']}',
-                                                          style:
-                                                              const TextStyle(
-                                                                color:
-                                                                    TColors
-                                                                        .text,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w600,
-                                                                fontSize: 14,
-                                                              ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: TColors.primary
+                                                    .withOpacity(0.05),
+                                                blurRadius: 10,
+                                                offset: const Offset(0, 4),
                                               ),
-
-                                            if (condition['fromTime'] != null)
-                                              const SizedBox(height: 16),
-
-                                            // Cancellation Amount Section
-                                            Row(
+                                            ],
+                                          ),
+                                          child: Container(
+                                                      color: TColors.white,
+                              
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
-                                                Container(
-                                                  padding: const EdgeInsets.all(
-                                                    8,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: TColors.primary
-                                                        .withOpacity(0.1),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          8,
-                                                        ),
-                                                  ),
-                                                  child: const Icon(
-                                                    Icons.payments_outlined,
-                                                    color: TColors.primary,
-                                                    size: 20,
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 12),
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
+                                                // Date Range Section
+                                                if (fromDate != null &&
+                                                    toDate != null)
+                                                  Row(
                                                     children: [
-                                                      const Text(
-                                                        'Refund Amount',
-                                                        style: TextStyle(
+                                                      Container(
+                                                        padding:
+                                                            const EdgeInsets.all(8),
+                                                        decoration: BoxDecoration(
+                                                          color: TColors.primary
+                                                              .withOpacity(0.1),
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                8,
+                                                              ),
+                                                        ),
+                                                        child: const Icon(
+                                                          Icons.calendar_today,
+                                                          color: TColors.primary,
+                                                          size: 20,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 12),
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            const Text(
+                                                              'Valid Period',
+                                                              style: TextStyle(
+                                                                color: TColors.grey,
+                                                                fontSize: 12,
+                                                                fontWeight:
+                                                                    FontWeight.w500,
+                                                              ),
+                                                            ),
+                                                            const SizedBox(
+                                                              height: 4,
+                                                            ),
+                                                            Text(
+                                                              '${DateFormat('MMM dd, yyyy').format(fromDate)} - ${DateFormat('MMM dd, yyyy').format(toDate)}',
+                                                              style:
+                                                                  const TextStyle(
+                                                                    color:
+                                                                        TColors
+                                                                            .text,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w600,
+                                                                    fontSize: 14,
+                                                                  ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                            
+                                                if (fromDate != null)
+                                                  const SizedBox(height: 16),
+                                            
+                                                // Time Section
+                                                if (condition['fromTime'] != null &&
+                                                    condition['toTime'] != null)
+                                                  Row(
+                                                    children: [
+                                                      Container(
+                                                        padding:
+                                                            const EdgeInsets.all(8),
+                                                        decoration: BoxDecoration(
+                                                          color: TColors.primary
+                                                              .withOpacity(0.1),
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                8,
+                                                              ),
+                                                        ),
+                                                        child: const Icon(
+                                                          Icons.access_time,
+                                                          color: TColors.primary,
+                                                          size: 20,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 12),
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            const Text(
+                                                              'Time Window',
+                                                              style: TextStyle(
+                                                                color: TColors.grey,
+                                                                fontSize: 12,
+                                                                fontWeight:
+                                                                    FontWeight.w500,
+                                                              ),
+                                                            ),
+                                                            const SizedBox(
+                                                              height: 4,
+                                                            ),
+                                                            Text(
+                                                              '${condition['fromTime']} - ${condition['toTime']}',
+                                                              style:
+                                                                  const TextStyle(
+                                                                    color:
+                                                                        TColors
+                                                                            .text,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w600,
+                                                                    fontSize: 14,
+                                                                  ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                            
+                                                if (condition['fromTime'] != null)
+                                                  const SizedBox(height: 16),
+                                            
+                                                // Cancellation Amount Section
+                                                Row(
+                                                  children: [
+                                                    Container(
+                                                      padding: const EdgeInsets.all(
+                                                        8,
+                                                      ),
+                                                      decoration: BoxDecoration(
+                                                        color: TColors.primary
+                                                            .withOpacity(0.1),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              8,
+                                                            ),
+                                                      ),
+                                                      child: const Icon(
+                                                        Icons.payments_outlined,
+                                                        color: TColors.primary,
+                                                        size: 20,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 12),
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          const Text(
+                                                            'Refund Amount',
+                                                            style: TextStyle(
+                                                              color: TColors.grey,
+                                                              fontSize: 12,
+                                                              fontWeight:
+                                                                  FontWeight.w500,
+                                                            ),
+                                                          ),
+                                                          const SizedBox(height: 4),
+                                                          Row(
+                                                            children: [
+                                                              Container(
+                                                                padding:
+                                                                    const EdgeInsets.symmetric(
+                                                                      horizontal: 8,
+                                                                      vertical: 4,
+                                                                    ),
+                                                                decoration: BoxDecoration(
+                                                                  color:
+                                                                      percentage ==
+                                                                              '100'
+                                                                          ? Colors
+                                                                              .green
+                                                                              .withOpacity(
+                                                                                0.1,
+                                                                              )
+                                                                          : percentage ==
+                                                                              '0'
+                                                                          ? TColors
+                                                                              .third
+                                                                              .withOpacity(
+                                                                                0.1,
+                                                                              )
+                                                                          : TColors
+                                                                              .primary
+                                                                              .withOpacity(
+                                                                                0.1,
+                                                                              ),
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                        4,
+                                                                      ),
+                                                                ),
+                                                                child: Text(
+                                                                  '$percentage% Return',
+                                                                  style: TextStyle(
+                                                                    color:
+                                                                        percentage ==
+                                                                                '100'
+                                                                            ? Colors
+                                                                                .green
+                                                                            : percentage ==
+                                                                                '0'
+                                                                            ? TColors
+                                                                                .third
+                                                                            : TColors
+                                                                                .primary,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w600,
+                                                                    fontSize: 14,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                            
+                                                if (timezone != null) ...[
+                                                  const SizedBox(height: 12),
+                                                  Row(
+                                                    children: [
+                                                      const Icon(
+                                                        Icons.public,
+                                                        size: 16,
+                                                        color: TColors.grey,
+                                                      ),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        'Timezone: $timezone',
+                                                        style: const TextStyle(
                                                           color: TColors.grey,
                                                           fontSize: 12,
                                                           fontWeight:
                                                               FontWeight.w500,
                                                         ),
                                                       ),
-                                                      const SizedBox(height: 4),
-                                                      Row(
-                                                        children: [
-                                                          Container(
-                                                            padding:
-                                                                const EdgeInsets.symmetric(
-                                                                  horizontal: 8,
-                                                                  vertical: 4,
-                                                                ),
-                                                            decoration: BoxDecoration(
-                                                              color:
-                                                                  percentage ==
-                                                                          '100'
-                                                                      ? Colors
-                                                                          .green
-                                                                          .withOpacity(
-                                                                            0.1,
-                                                                          )
-                                                                      : percentage ==
-                                                                          '0'
-                                                                      ? TColors
-                                                                          .third
-                                                                          .withOpacity(
-                                                                            0.1,
-                                                                          )
-                                                                      : TColors
-                                                                          .primary
-                                                                          .withOpacity(
-                                                                            0.1,
-                                                                          ),
-                                                              borderRadius:
-                                                                  BorderRadius.circular(
-                                                                    4,
-                                                                  ),
-                                                            ),
-                                                            child: Text(
-                                                              '$percentage% Return',
-                                                              style: TextStyle(
-                                                                color:
-                                                                    percentage ==
-                                                                            '100'
-                                                                        ? Colors
-                                                                            .green
-                                                                        : percentage ==
-                                                                            '0'
-                                                                        ? TColors
-                                                                            .third
-                                                                        : TColors
-                                                                            .primary,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w600,
-                                                                fontSize: 14,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
                                                     ],
                                                   ),
-                                                ),
+                                                ],
                                               ],
                                             ),
-
-                                            if (timezone != null) ...[
-                                              const SizedBox(height: 12),
-                                              Row(
-                                                children: [
-                                                  const Icon(
-                                                    Icons.public,
-                                                    size: 16,
-                                                    color: TColors.grey,
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    'Timezone: $timezone',
-                                                    style: const TextStyle(
-                                                      color: TColors.grey,
-                                                      fontSize: 12,
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ],
+                                          ),
                                         ),
-                                      ),
-                                    );
-                                  }).toList(),
+                                      );
+                                    }).toList(),
+                              ),
                             );
                           }).toList(),
                         const SizedBox(height: 16),
@@ -480,6 +488,7 @@ class RoomCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Container(
+                  height: 600,
                   constraints: BoxConstraints(
                     maxHeight: MediaQuery.of(context).size.height * 0.8,
                   ),
@@ -527,11 +536,22 @@ class RoomCard extends StatelessWidget {
                             child: Column(
                               children: [
                                 // Summary Section
+
+
+
+
+
+
+
+
+
+
+
                                 Container(
                                   margin: const EdgeInsets.only(bottom: 16),
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: TColors.background2,
+                                    color: TColors.white,
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                       color: TColors.primary.withOpacity(0.1),
@@ -577,7 +597,7 @@ class RoomCard extends StatelessWidget {
                                     margin: const EdgeInsets.only(bottom: 12),
                                     padding: const EdgeInsets.all(16),
                                     decoration: BoxDecoration(
-                                      color: TColors.background2,
+                                      color: TColors.white,
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
                                         color: TColors.primary.withOpacity(
@@ -802,7 +822,7 @@ Widget _buildSummaryRow(String label, String value, IconData icon) {
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
                               showBookNowButton
-                                  ? Colors.green
+                                  ? TColors.primary
                                   : (isSelected
                                       ? Colors.green
                                       : TColors.primary),

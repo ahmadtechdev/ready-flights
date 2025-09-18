@@ -43,7 +43,7 @@ class _GuestsFieldState extends State<GuestsField> {
       context: context,
       builder: (ctx) {
         return FractionallySizedBox(
-          heightFactor: 0.7,
+          heightFactor: 0.9,
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(

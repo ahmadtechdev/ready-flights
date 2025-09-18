@@ -1265,6 +1265,8 @@ String _getFeesFromRevalidation() {
 // Add this method to create the booking API call - FIXED VERSION
 // Updated _createAirArabiaBooking method with proper bkIdArray handling
 // Updated _createAirArabiaBooking method with new format
+// Updated _createAirArabiaBooking method with CORRECTED format for baggage, meals, and seats
+// Updated _createAirArabiaBooking method with CORRECTED array nesting
 Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
   try {
     // Get API service
@@ -1287,83 +1289,77 @@ Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
     String bkIdArray = '';
     String bkIdArray3 = '';
     
-    // if (selectedPackageIndex >= 0) {
-    //   final rawData = widget.selectedPackage.rawData;
-    //   bkIdArray = rawData['bkIdArray'] ?? '';
-    //   bkIdArray3 = rawData['bkIdArray3'] ?? '';
-      
-      if (bkIdArray.isEmpty && bkIdArray3.isEmpty) {
-        bkIdArray = "${selectedPackageIndex}_19905-";
-        bkIdArray3 = "${selectedPackageIndex}!19905_";
-      }
-    // }
+    if (bkIdArray.isEmpty && bkIdArray3.isEmpty) {
+      bkIdArray = "${selectedPackageIndex}_0-"; // FIXED: Changed from 19905 to 0
+      bkIdArray3 = "${selectedPackageIndex}!0_"; // FIXED: Changed from 19905 to 0
+    }
 
     // Prepare passenger data in NEW FORMAT
     final List<Map<String, dynamic>> adultPassengers = [];
-final basicFarePerAdult = _getBasicFareFromRevalidation();
-final taxPerAdult = _getTaxFromRevalidation();
-final feesPerAdult = _getFeesFromRevalidation();
+    final basicFarePerAdult = _getBasicFareFromRevalidation();
+    final taxPerAdult = _getTaxFromRevalidation();
+    final feesPerAdult = _getFeesFromRevalidation();
 
-for (int i = 0; i < bookingController.adults.length; i++) {
-  final adult = bookingController.adults[i];
-  adultPassengers.add({
-    'title': adult.titleController.text,
-    'given_name': adult.firstNameController.text.toUpperCase(),
-    'surname': adult.lastNameController.text.toUpperCase(),
-    'dob': adult.dateOfBirthController.text,
-    'nationality': '${adult.nationalityController.text}-${adult.nationalityCountry.value?.countryCode ?? 'PK'}',
-    'passport_no': adult.passportCnicController.text,
-    'passport_exp': adult.passportExpiryController.text,
-    'basic_fare': basicFarePerAdult.toStringAsFixed(2),
-    'tax': taxPerAdult.toStringAsFixed(2),
-    'fees': feesPerAdult, // Will be empty string if no fees available
-  });
-}
+    for (int i = 0; i < bookingController.adults.length; i++) {
+      final adult = bookingController.adults[i];
+      adultPassengers.add({
+        'title': adult.titleController.text,
+        'given_name': adult.firstNameController.text.toUpperCase(),
+        'surname': adult.lastNameController.text.toUpperCase(),
+        'dob': adult.dateOfBirthController.text,
+        'nationality': '${adult.nationalityController.text}-${adult.nationalityCountry.value?.countryCode ?? 'PK'}',
+        'passport_no': adult.passportCnicController.text,
+        'passport_exp': adult.passportExpiryController.text,
+        'basic_fare': basicFarePerAdult.toStringAsFixed(2),
+        'tax': taxPerAdult.toStringAsFixed(2),
+        'fees': feesPerAdult, // Will be empty string if no fees available
+      });
+    }
 
-// Replace the child passengers section with this:
-final List<Map<String, dynamic>> childPassengers = [];
-final basicFarePerChild = basicFarePerAdult * 0.75; // Children typically 75% of adult fare
-final taxPerChild = taxPerAdult * 0.75;
-final feesPerChild = feesPerAdult.isEmpty ? "" : (double.tryParse(feesPerAdult)! * 0.75).toStringAsFixed(2);
+    // Child passengers
+    final List<Map<String, dynamic>> childPassengers = [];
+    final basicFarePerChild = basicFarePerAdult * 0.75; // Children typically 75% of adult fare
+    final taxPerChild = taxPerAdult * 0.75;
+    final feesPerChild = feesPerAdult.isEmpty ? "" : (double.tryParse(feesPerAdult)! * 0.75).toStringAsFixed(2);
 
-for (int i = 0; i < bookingController.children.length; i++) {
-  final child = bookingController.children[i];
-  childPassengers.add({
-    'title': child.titleController.text,
-    'given_name': child.firstNameController.text.toUpperCase(),
-    'surname': child.lastNameController.text.toUpperCase(),
-    'dob': child.dateOfBirthController.text,
-    'nationality': '${child.nationalityController.text}-${child.nationalityCountry.value?.countryCode ?? 'PK'}',
-    'passport_no': child.passportCnicController.text,
-    'passport_exp': child.passportExpiryController.text,
-    'basic_fare': basicFarePerChild.toStringAsFixed(2),
-    'tax': taxPerChild.toStringAsFixed(2),
-    'fees': feesPerChild, // Will be empty string if no fees available
-  });
-}
+    for (int i = 0; i < bookingController.children.length; i++) {
+      final child = bookingController.children[i];
+      childPassengers.add({
+        'title': child.titleController.text,
+        'given_name': child.firstNameController.text.toUpperCase(),
+        'surname': child.lastNameController.text.toUpperCase(),
+        'dob': child.dateOfBirthController.text,
+        'nationality': '${child.nationalityController.text}-${child.nationalityCountry.value?.countryCode ?? 'PK'}',
+        'passport_no': child.passportCnicController.text,
+        'passport_exp': child.passportExpiryController.text,
+        'basic_fare': basicFarePerChild.toStringAsFixed(2),
+        'tax': taxPerChild.toStringAsFixed(2),
+        'fees': feesPerChild, // Will be empty string if no fees available
+      });
+    }
 
-// Replace the infant passengers section with this:
-final List<Map<String, dynamic>> infantPassengers = [];
-final basicFarePerInfant = basicFarePerAdult * 0.1; // Infants typically 10% of adult fare
-final taxPerInfant = taxPerAdult * 0.1;
-final feesPerInfant = feesPerAdult.isEmpty ? "" : (double.tryParse(feesPerAdult)! * 0.1).toStringAsFixed(2);
+    // Infant passengers
+    final List<Map<String, dynamic>> infantPassengers = [];
+    final basicFarePerInfant = basicFarePerAdult * 0.1; // Infants typically 10% of adult fare
+    final taxPerInfant = taxPerAdult * 0.1;
+    final feesPerInfant = feesPerAdult.isEmpty ? "" : (double.tryParse(feesPerAdult)! * 0.1).toStringAsFixed(2);
 
-for (int i = 0; i < bookingController.infants.length; i++) {
-  final infant = bookingController.infants[i];
-  infantPassengers.add({
-    'title': infant.titleController.text,
-    'given_name': infant.firstNameController.text.toUpperCase(),
-    'surname': infant.lastNameController.text.toUpperCase(),
-    'dob': infant.dateOfBirthController.text,
-    'nationality': '${infant.nationalityController.text}-${infant.nationalityCountry.value?.countryCode ?? 'PK'}',
-    'basic_fare': basicFarePerInfant.toStringAsFixed(2),
-    'tax': taxPerInfant.toStringAsFixed(2),
-    'fees': feesPerInfant, // Will be empty string if no fees available
-    // No passport fields for infants
-  });
-}
+    for (int i = 0; i < bookingController.infants.length; i++) {
+      final infant = bookingController.infants[i];
+      infantPassengers.add({
+        'title': infant.titleController.text,
+        'given_name': infant.firstNameController.text.toUpperCase(),
+        'surname': infant.lastNameController.text.toUpperCase(),
+        'dob': infant.dateOfBirthController.text,
+        'nationality': '${infant.nationalityController.text}-${infant.nationalityCountry.value?.countryCode ?? 'PK'}',
+        'basic_fare': basicFarePerInfant.toStringAsFixed(2),
+        'tax': taxPerInfant.toStringAsFixed(2),
+        'fees': feesPerInfant, // Will be empty string if no fees available
+        // No passport fields for infants
+      });
+    }
 
-    // Prepare flight details in NEW FORMAT
+    // Prepare flight details
     final List<Map<String, dynamic>> flightDetails = [];
     for (final segment in widget.flight.flightSegments) {
       final departureDateTime = DateTime.parse(segment['departure']['dateTime']);
@@ -1376,7 +1372,7 @@ for (int i = 0; i < bookingController.infants.length; i++) {
       final flightDuration = '${hours}h ${minutes}m';
       
       flightDetails.add({
-        'depart': segment['departure']['airport'], // Changed from departure object
+        'depart': segment['departure']['airport'],
         'depart_date': '${departureDateTime.year}-${departureDateTime.month.toString().padLeft(2, '0')}-${departureDateTime.day.toString().padLeft(2, '0')}',
         'depart_time': '${departureDateTime.hour.toString().padLeft(2, '0')}:${departureDateTime.minute.toString().padLeft(2, '0')}',
         'dep_terminal': segment['departure']['terminal'] ?? '',
@@ -1385,102 +1381,104 @@ for (int i = 0; i < bookingController.infants.length; i++) {
         'arr_time': '${arrivalDateTime.hour.toString().padLeft(2, '0')}:${arrivalDateTime.minute.toString().padLeft(2, '0')}',
         'arr_terminal': segment['arrival']['terminal'] ?? '',
         'flight_no': segment['flightNumber'],
-        'airline_code': segment['flightNumber'].substring(0, 2), // Extract airline code
+        'airline_code': segment['flightNumber'].substring(0, 2),
         'operating_flight_no': segment['flightNumber'],
         'operating_airline_code': segment['flightNumber'].substring(0, 2),
-        'class_cabin': 'Economy', // Default value
-        'sub_class': 'Y', // Default value
-        'hand_baggage': '7KG', // Default for Air Arabia
-        'check_baggage': '20KG', // Default for Air Arabia
-        'meal': 'Available', // Default value
-        'layover': '0h 0m', // Calculate if needed
+        'class_cabin': 'Economy',
+        'sub_class': 'Y',
+        'hand_baggage': '7KG',
+        'check_baggage': '20KG',
+        'meal': 'Available',
+        'layover': '0h 0m',
         'flight_duration': flightDuration,
-        'flight_type': 'Direct', // Default value
+        'flight_type': 'Direct',
         'fare_name': widget.selectedPackage.packageName,
       });
     }
 
-    // Handle baggage, meals, and seats based on selected package index
-    final List<List<String>> adultBaggage; // Changed to List<List<String>>
-final List<List<List<String>>> adultMeal;
-final List<List<List<String>>> adultSeat;
+    // FIXED: Handle baggage, meals, and seats with CORRECT nesting format matching first JSON
+    List<List<String>> adultBaggage; // CORRECTED TYPE: 2D array instead of 3D
+    List<List<List<String>>> adultMeal; // CORRECTED TYPE: 3D array instead of 4D  
+    List<List<List<String>>> adultSeat; // CORRECTED TYPE: 3D array instead of 4D
 
-if (selectedPackageIndex == 0) {
-  // When index is 0, pass empty lists for baggage, meals, and seats
-  adultBaggage = List.generate(bookingController.adults.length, (index) => <String>[]);
-  adultMeal = [];
-  adultSeat = [];
-} else {
-  // When index > 0, use selected baggage, meals, and seats
-  final selectedBaggage = revalidationController.selectedBaggage.values.toList();
-  final selectedMeals = revalidationController.selectedMeals.values
-      .expand((mealList) => mealList)
-      .toList();
-  final selectedSeats = revalidationController.selectedSeats.values.toList();
+    if (selectedPackageIndex == 7) {
+      // When index is 0, pass empty nested lists
+      adultBaggage = [];
+      adultMeal = [];
+      adultSeat = [];
+    } else {
+      // When index > 0, use selected baggage, meals, and seats with CORRECT formatting
+      final selectedBaggage = revalidationController.selectedBaggage.values.toList();
+      final selectedMeals = revalidationController.selectedMeals.values.toList();
+      final selectedSeats = revalidationController.selectedSeats.values.toList();
 
-  // FIXED: Properly format baggage data
-  if (selectedBaggage.isEmpty) {
-    adultBaggage = List.generate(bookingController.adults.length, (index) => <String>[]);
-  } else {
-    adultBaggage = [];
-    for (int i = 0; i < bookingController.adults.length; i++) {
-      if (i < selectedBaggage.length) {
-        final baggage = selectedBaggage[i];
-        // Format: "baggageCode--baggageDescription--baggageCharge"
-        adultBaggage.add([
-          "${baggage.baggageCode}--${baggage.baggageDescription}--${baggage.baggageCharge}"
-        ]);
+      // FIXED: Format baggage data to match first JSON: [[String]]
+      if (selectedBaggage.isEmpty) {
+        adultBaggage = [];
       } else {
-        adultBaggage.add(<String>[]);
-      }
-    }
-  }
-
-  // FIXED: Properly format meal data
-  if (selectedMeals.isEmpty) {
-    adultMeal = [];
-  } else {
-    adultMeal = [selectedMeals.map((meal) => [
-      "${meal.mealCode}--${meal.mealDescription}"
-    ]).toList()];
-  }
-
-  // FIXED: Properly format seat data  
-  if (selectedSeats.isEmpty) {
-    adultSeat = [];
-  } else {
-    adultSeat = [];
-    for (int i = 0; i < bookingController.adults.length; i++) {
-      if (i < selectedSeats.length) {
-        final seat = selectedSeats[i];
-        if (seat.seatNumber.isNotEmpty) {
-          adultSeat.add([["${seat.seatNumber}--${seat.seatNumber}"]]);
-        } else {
-          adultSeat.add([]);
+        adultBaggage = [];
+        for (int i = 0; i < bookingController.adults.length; i++) {
+          if (i < selectedBaggage.length && selectedBaggage[i].baggageDescription.isNotEmpty) {
+            // Format: Each adult gets their baggage description directly in array
+            adultBaggage.add([selectedBaggage[i].baggageDescription]);
+          } else {
+            adultBaggage.add(["No Baggage"]);
+          }
         }
+      }
+
+      // FIXED: Format meal data to match first JSON: [[[String]]]
+      if (selectedMeals.isEmpty) {
+        adultMeal = [];
       } else {
-        adultSeat.add([]);
+        adultMeal = [];
+        
+        for (int adultIndex = 0; adultIndex < bookingController.adults.length; adultIndex++) {
+          List<List<String>> adultMealList = [];
+          
+          // Add meals for this adult (if any selected)
+          if (adultIndex < selectedMeals.length && selectedMeals[adultIndex].isNotEmpty) {
+            List<String> mealCodes = [];
+            for (var meal in selectedMeals[adultIndex]) {
+              mealCodes.add("${meal.mealCode}--${meal.mealDescription}");
+            }
+            adultMealList.add(mealCodes);
+          }
+          
+          if (adultMealList.isNotEmpty) {
+            adultMeal.add(adultMealList);
+          }
+        }
+      }
+
+      // FIXED: Format seat data to match first JSON: [[[String]]]
+      if (selectedSeats.isEmpty) {
+        adultSeat = [];
+      } else {
+        adultSeat = [];
+        
+        for (int adultIndex = 0; adultIndex < bookingController.adults.length; adultIndex++) {
+          if (adultIndex < selectedSeats.length && selectedSeats[adultIndex].seatNumber.isNotEmpty) {
+            // Each adult gets their seat in the format [["seatNumber--seatNumber"]]
+            adultSeat.add([["${selectedSeats[adultIndex].seatNumber}--${selectedSeats[adultIndex].seatNumber}"]]);
+          }
+        }
       }
     }
-  }
-}
 
     // Determine flight type and stops
-    String flightType = 'OneWay'; // Changed from 'oneway' to match new format
-    List<int> stopsSector = [widget.flight.flightSegments.length - 1]; // Calculate based on segments
+    String flightType = 'OneWay';
+    List<int> stopsSector = [widget.flight.flightSegments.length ];
     
-    print('=== BOOKING PARAMETERS DEBUG ===');
+    print('=== FIXED BOOKING PARAMETERS DEBUG ===');
     print('Final Key: ${metaInfo.finalKey}');
     print('Selected Package Index: $selectedPackageIndex');
     print('bkIdArray: $bkIdArray');
     print('bkIdArray3: $bkIdArray3');
-    print('Flight segments: ${widget.flight.flightSegments.length}');
-    print('Flight type: $flightType');
-    print('Stops sector: $stopsSector');
-    print('Adult Baggage: $adultBaggage');
-    print('Adult Meals: $adultMeal');
-    print('Adult Seats: $adultSeat');
-    print('================================');
+    print('Adult Baggage Structure: $adultBaggage');
+    print('Adult Meals Structure: $adultMeal');
+    print('Adult Seats Structure: $adultSeat');
+    print('============================================');
 
     final response = await apiService.createAirArabiaBooking(
       email: bookingController.emailController.text,
@@ -1494,18 +1492,18 @@ if (selectedPackageIndex == 0) {
       stopsSector: stopsSector,
       bkIdArray: bkIdArray,
       bkIdArray3: bkIdArray3,
-      adultBaggage: adultBaggage,
-      adultMeal: adultMeal,
-      adultSeat: adultSeat,
-      childBaggage: [],
-      childMeal: [],
-      childSeat: [],
+      adultBaggage: adultBaggage, // FIXED: Now 2D array
+      adultMeal: adultMeal, // FIXED: Now 3D array
+      adultSeat: adultSeat, // FIXED: Now 3D array
+      childBaggage: [], // FIXED: Empty array instead of null
+      childMeal: [], // FIXED: Empty array instead of null
+      childSeat: [], // FIXED: Empty array instead of null
       bookerName: '${bookingController.firstNameController.text} ${bookingController.lastNameController.text}',
-      countryCode: bookingController.bookerPhoneCountry.value?.phoneCode ?? '92', // Changed format: now phone code instead of country code
-      simCode: bookingController.bookerPhoneCountry.value?.phoneCode ?? '92', // Keep as phone code
+      countryCode: bookingController.bookerPhoneCountry.value?.phoneCode ?? '92',
+      simCode: bookingController.bookerPhoneCountry.value?.phoneCode ?? '92',
       city: 'Unknown',
       address: 'Unknown',
-      phone: bookingController.phoneController.text, // Just the phone number without country code
+      phone: bookingController.phoneController.text,
       remarks: bookingController.remarksController.text,
       marginPer: 0.0,
       marginVal: 0.0,
