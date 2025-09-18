@@ -115,7 +115,176 @@ class ApiServiceAirArabia {
     }
   }
 
-  Map<String, dynamic> _convertXmlToJson(String xmlString) {
+  Future<Map<String, dynamic>> revalidateAirArabiaPackage({
+    required int type,
+    required int adult,
+    required int child,
+    required int infant,
+    required List<Map<String, dynamic>> sector,
+    required Map<String, dynamic> fare,
+    required int csId,
+  }) async {
+    try {
+      final headers = {
+        'Content-Type': 'application/json',
+        'Cookie': 'PHPSESSID=u1gagb79trmq6famf6dbsnt7a6'
+      };
+
+      final data = {
+        "type": type,
+        "adult": adult,
+        "child": child,
+        "infant": infant,
+        "sector": sector,
+        "fare": fare,
+        // "cs_id": csId,
+      };
+
+      print("AirArabia Package Revalidation Request *********************");
+      print(jsonEncode(data));
+
+      final response = await _dio.request(
+        'https://onerooftravel.net/api/air-arabia-package-revalidate',
+        options: Options(
+          method: 'POST',
+          headers: headers,
+        ),
+        data: data,
+      );
+
+      print("*************** AirArabia Package Revalidation Response 1 *********");
+      print(jsonEncode(response.data));
+      if (response.statusCode == 200) {
+        print("*************** AirArabia Package Revalidation Response *********");
+        print(jsonEncode(response.data));
+        if (response.data is String) {
+          return jsonDecode(response.data) as Map<String, dynamic>;
+        }
+        return response.data as Map<String, dynamic>;
+      } else {
+        throw Exception('Failed to revalidate Air Arabia package: ${response.statusMessage}');
+      }
+    } catch (e) {
+      print('Error revalidating Air Arabia package: $e');
+      rethrow;
+    }
+  }
+
+Future<Map<String, dynamic>> createAirArabiaBooking({
+  required String email,
+  required String finalKey,
+  required String echoToken,
+  required String transactionIdentifier,
+  required String jsession,
+  required int adults,
+  required int child,
+  required int infant,
+  required List<int> stopsSector,
+  required String bkIdArray,
+  required String bkIdArray3,
+  required List<List<dynamic>> adultBaggage,
+  required List<List<List<String>>> adultMeal,
+  required List<List<List<String>>> adultSeat,
+  required List<dynamic> childBaggage,
+  required List<dynamic> childMeal,
+  required List<dynamic> childSeat,
+  required String bookerName,
+  required String countryCode,
+  required String simCode,
+  required String city,
+  required String address,
+  required String phone,
+  required String remarks,
+  required double marginPer,
+  required double marginVal,
+  required double finalPrice,
+  required double totalPrice,
+  required String flightType,
+  required int csId,
+  required String csName,
+  required List<Map<String, dynamic>> adultPassengers,
+  required List<Map<String, dynamic>> childPassengers,
+  required List<Map<String, dynamic>> infantPassengers,
+  required List<Map<String, dynamic>> flightDetails,
+}) async {
+  try {
+    final headers = {
+      'Content-Type': 'application/json',
+      'Cookie': 'PHPSESSID=trfun4hl59lq621fvrhus9oti5'
+    };
+
+    final data = {
+      "email": email,
+      "final_key": finalKey,
+      "EchoToken": echoToken,
+      "TransactionIdentifier": transactionIdentifier,
+      "jsession": jsession,
+      "adults": adults,
+      "child": child,
+      "infant": infant,
+      "stops_sector": stopsSector,
+      "bk_id_array": bkIdArray,
+      "bk_id_array3": bkIdArray3,
+      "adult_baggage": adultBaggage,
+      "adult_meal": adultMeal,
+      "adult_seat": adultSeat,
+      "child_baggage": childBaggage,
+      "child_meal": childMeal,
+      "child_seat": childSeat,
+      "booker_name": bookerName,
+      "country_code": countryCode,
+      "sim_code": simCode,
+      "city": city,
+      "address": address,
+      "phone": phone,
+      "remarks": remarks,
+      "margin_per": marginPer,
+      "margin_val": marginVal,
+      "final_price": finalPrice,
+      "total_price": totalPrice,
+      "flight_type": flightType,
+      "cs_id": csId,
+      "cs_name": csName,
+      "adult_passengers": adultPassengers,
+      "child_passengers": childPassengers,
+      "infant_passengers": infantPassengers,
+      "flight_details": flightDetails,
+    };
+
+    print("AirArabia Booking Request *********************");
+    debugPrint(jsonEncode(data), wrapWidth: 1024);
+
+
+    final response = await _dio.request(
+      'https://onerooftravel.net/api/air-arabia-create-booking',
+      options: Options(
+        method: 'POST',
+        headers: headers,
+      ),
+      data: data,
+    );
+
+    print("******** AirArabia Booking Response ********");
+    debugPrint(jsonEncode(response.data), wrapWidth: 1024);
+
+    if (response.statusCode == 200) {
+      if (response.data is String) {
+        return jsonDecode(response.data) as Map<String, dynamic>;
+      }
+      return response.data as Map<String, dynamic>;
+    } else {
+      throw Exception('Failed to create Air Arabia booking: ${response.statusMessage}');
+    }
+  } catch (e) {
+    print('Error creating Air Arabia booking: $e');
+    rethrow;
+  }
+
+
+
+}
+
+Map<String, dynamic> _convertXmlToJson(String xmlString) {
     try {
       final transformer = Xml2Json();
       transformer.parse(xmlString);
@@ -126,7 +295,6 @@ class ApiServiceAirArabia {
       return {'error': 'Failed to parse XML response'};
     }
   }
-
 
   void printDebugData(String label, dynamic data) {
     // print('--- DEBUG: $label ---');
@@ -155,9 +323,6 @@ class ApiServiceAirArabia {
     // print('--- END DEBUG: $label ---\n');
   }
 
-  /// Converts XML string to JSON (Map)
-
-
   /// Prints JSON nicely with chunking
   void printJsonPretty(dynamic jsonData) {
     const int chunkSize = 1000;
@@ -172,61 +337,18 @@ class ApiServiceAirArabia {
       }
     }
   }
-  // Add this method to your ApiServiceAirArabia class
-
-Future<Map<String, dynamic>> revalidateAirArabiaPackage({
-  required int type,
-  required int adult,
-  required int child,
-  required int infant,
-  required List<Map<String, dynamic>> sector,
-  required Map<String, dynamic> fare,
-  required int csId,
-}) async {
-  try {
-    final headers = {
-      'Content-Type': 'application/json',
-      'Cookie': 'PHPSESSID=u1gagb79trmq6famf6dbsnt7a6'
-    };
-
-    final data = {
-      "type": type,
-      "adult": adult,
-      "child": child,
-      "infant": infant,
-      "sector": sector,
-      "fare": fare,
-      // "cs_id": csId,
-    };
-
-    print("AirArabia Package Revalidation Request *********************");
-    print(jsonEncode(data));
-
-    final response = await _dio.request(
-      'https://onerooftravel.net/api/air-arabia-package-revalidate',
-      options: Options(
-        method: 'POST',
-        headers: headers,
-      ),
-      data: data,
-    );
-
-    
-print("*************** AirArabia Package Revalidation Response 1 *********");
-    print(jsonEncode(response.data));
-    if (response.statusCode == 200) {
-      print("*************** AirArabia Package Revalidation Response *********");
-    print(jsonEncode(response.data));
-      if (response.data is String) {
-        return jsonDecode(response.data) as Map<String, dynamic>;
-      }
-      return response.data as Map<String, dynamic>;
-    } else {
-      throw Exception('Failed to revalidate Air Arabia package: ${response.statusMessage}');
-    }
-  } catch (e) {
-    print('Error revalidating Air Arabia package: $e');
-    rethrow;
-  }
 }
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

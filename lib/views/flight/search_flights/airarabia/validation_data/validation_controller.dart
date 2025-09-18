@@ -5,6 +5,7 @@ import 'package:ready_flights/views/flight/search_flights/airarabia/validation_d
 
 class AirArabiaRevalidationController extends GetxController {
   final ApiServiceAirArabia _apiService = Get.find<ApiServiceAirArabia>();
+  
 
   final RxBool isLoading = false.obs;
   final RxString errorMessage = ''.obs;

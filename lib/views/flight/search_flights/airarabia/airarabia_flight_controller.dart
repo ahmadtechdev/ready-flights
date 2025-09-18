@@ -8,6 +8,8 @@ import 'airarabia_flight_model.dart';
 
 class AirArabiaFlightController extends GetxController {
   final ApiServiceAirArabia apiService = Get.find<ApiServiceAirArabia>();
+   int selectedPackageIndex = 0;
+
 
   final RxList<AirArabiaFlight> flights = <AirArabiaFlight>[].obs;
   final RxList<AirArabiaFlight> filteredFlights = <AirArabiaFlight>[].obs;

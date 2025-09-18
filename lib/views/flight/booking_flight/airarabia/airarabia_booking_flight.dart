@@ -2,6 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:country_picker/country_picker.dart';
+import 'package:ready_flights/services/api_service_airarabia.dart';
+import 'package:ready_flights/views/flight/booking_flight/airarabia/airarabia_print_voucher.dart';
+import 'package:ready_flights/views/flight/search_flights/airarabia/validation_data/validation_controller.dart';
 
 import '../../../../../utility/colors.dart';
 import '../../../../../widgets/travelers_selection_bottom_sheet.dart';
@@ -1015,137 +1018,518 @@ class _AirArabiaBookingFlightState extends State<AirArabiaBookingFlight> {
     }
   }
 
-  Widget _buildBottomBar() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 8,
-            offset: const Offset(0, -2),
+Widget _buildBottomBar() {
+  return Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.grey.withOpacity(0.2),
+          spreadRadius: 1,
+          blurRadius: 8,
+          offset: const Offset(0, -2),
+        ),
+      ],
+    ),
+    child: SafeArea(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Total Amount',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${widget.currency} ${widget.totalPrice.toStringAsFixed(0)}',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: TColors.primary,
+                ),
+              ),
+            ],
+          ),
+          ElevatedButton(
+            onPressed: () => _handleBookNow(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: TColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 40,
+                vertical: 16,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 2,
+            ),
+            child: const Text(
+              'Book Now',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
-      child: SafeArea(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Total Amount',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${widget.currency} ${widget.totalPrice.toStringAsFixed(0)}',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: TColors.primary,
-                  ),
-                ),
-              ],
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (_formKey.currentState!.validate() && termsAccepted) {
-                  try {
-                    // Show loading
-                    Get.dialog(
-                      const Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            TColors.primary,
-                          ),
-                        ),
-                      ),
-                      barrierDismissible: false,
-                    );
+    ),
+  );
+}
+// Updated _handleBookNow method for airarabia_booking_flight.dart
+// Replace the existing _handleBookNow method with this updated version
 
-                    // TODO: Implement Air Arabia booking API call
-                    // This would be similar to the AirBlue implementation
-                    // but using Air Arabia's specific API endpoints
-
-                    // For now, just show a success message
-                    await Future.delayed(const Duration(seconds: 2));
-
-                    Get.back(); // Remove loading
-
-                    Get.snackbar(
-                      'Success',
-                      'Booking request submitted successfully',
-                      backgroundColor: Colors.green,
-                      colorText: Colors.white,
-                      snackPosition: SnackPosition.TOP,
-                    );
-
-                    // TODO: Navigate to booking confirmation screen
-
-                  } catch (e) {
-                    Get.back(); // Remove loading
-                    Get.snackbar(
-                      'Error',
-                      'Failed to submit booking: $e',
-                      backgroundColor: Colors.red,
-                      colorText: Colors.white,
-                      snackPosition: SnackPosition.TOP,
-                    );
-                  }
-                } else if (!termsAccepted) {
-                  Get.snackbar(
-                    'Error',
-                    'Please accept terms and conditions',
-                    backgroundColor: Colors.red,
-                    colorText: Colors.white,
-                    snackPosition: SnackPosition.TOP,
-                  );
-                } else {
-                  Get.snackbar(
-                    'Error',
-                    'Please fill all required fields',
-                    backgroundColor: Colors.red,
-                    colorText: Colors.white,
-                    snackPosition: SnackPosition.TOP,
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: TColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 40,
-                  vertical: 16,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 2,
-              ),
-              child: const Text(
-                'Book Now',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
+Future<void> _handleBookNow() async {
+  if (_formKey.currentState!.validate() && termsAccepted) {
+    try {
+      // Show loading
+      Get.dialog(
+        const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(TColors.primary),
+          ),
         ),
-      ),
+        barrierDismissible: false,
+      );
+
+      // Call Air Arabia booking API
+      final response = await _createAirArabiaBooking();
+      
+      Get.back(); // Remove loading
+
+      if (response != null && response['status'] == 200) {
+        // Print successful response for debugging
+        print('🎉 Booking Success Response:');
+        print('Status: ${response['status']}');
+        print('Message: ${response['message'] ?? 'Booking created successfully'}');
+        print('Data: ${response['data']}');
+        
+        // Show success snackbar
+        Get.snackbar(
+          'Success',
+          'Booking created successfully!',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 2),
+        );
+
+        // Navigate to Air Arabia booking confirmation screen
+        Get.off(() => AirArabiaBookingConfirmation(
+          flight: widget.flight,
+          selectedPackage: widget.selectedPackage,
+          bookingResponse: response,
+          totalPrice: widget.totalPrice,
+          currency: widget.currency,
+        ));
+        
+      } else {
+        // Handle API error response
+        print('❌ Booking Error Response:');
+        print('Full Response: $response');
+        
+        final errorMessage = response?['message'] ?? 'Unknown error occurred';
+        Get.snackbar(
+          'Booking Failed',
+          errorMessage,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 4),
+        );
+      }
+
+    } catch (e, stackTrace) {
+      Get.back(); // Remove loading
+      
+      print('❌ Booking Exception:');
+      print('Error: $e');
+      print('Stack Trace: $stackTrace');
+      
+      Get.snackbar(
+        'Error',
+        'Failed to create booking: ${e.toString()}',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 4),
+      );
+    }
+  } else if (!termsAccepted) {
+    Get.snackbar(
+      'Error',
+      'Please accept terms and conditions',
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
+      snackPosition: SnackPosition.TOP,
+      duration: const Duration(seconds: 3),
+    );
+  } else {
+    Get.snackbar(
+      'Error',
+      'Please fill all required fields',
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
+      snackPosition: SnackPosition.TOP,
+      duration: const Duration(seconds: 3),
     );
   }
+}
 
-  @override
-  void dispose() {
-    bookingController.dispose();
-    travelersController.dispose();
+// Don't forget to add the import at the top of your airarabia_booking_flight.dart file:
+// import 'air_arabia_booking_confirmation.dart';
+double _getBasicFareFromRevalidation() {
+  try {
+    final revalidationController = Get.put(AirArabiaRevalidationController());
+    final pricingInfo = revalidationController.revalidationResponse.value?.data?.pricing;
+    
+    if (pricingInfo?.ptcFareBreakdown.passengerFare?.baseFare?.attributes != null) {
+      final baseFareAttributes = pricingInfo!.ptcFareBreakdown.passengerFare!.baseFare!.attributes;
+      final amount = baseFareAttributes['Amount'];
+      if (amount != null) {
+        return double.tryParse(amount.toString()) ?? 0.0;
+      }
+    }
+    
+    // Fallback: calculate basic fare from total price (rough estimation)
+    final totalPrice = pricingInfo?.totalPrice ?? widget.totalPrice;
+    return totalPrice * 0.7; // Assuming basic fare is roughly 70% of total (adjust as needed)
+    
+  } catch (e) {
+    print('Error extracting basic fare: $e');
+    return widget.totalPrice * 0.7; // Fallback calculation
+  }
+}
+double _getTaxFromRevalidation() {
+  try {
+    final revalidationController = Get.find<AirArabiaRevalidationController>();
+    final pricingInfo = revalidationController.revalidationResponse.value?.data?.pricing;
+    
+    if (pricingInfo?.ptcFareBreakdown.passengerFare?.taxes?.taxes != null) {
+      final taxes = pricingInfo!.ptcFareBreakdown.passengerFare!.taxes!.taxes;
+      double totalTax = 0.0;
+      
+      for (final tax in taxes) {
+        final amount = tax.attributes['Amount'];
+        if (amount != null) {
+          totalTax += double.tryParse(amount.toString()) ?? 0.0;
+        }
+      }
+      return totalTax;
+    }
+    
+    // Fallback: estimate tax as percentage of total price
+    final totalPrice = pricingInfo?.totalPrice ?? widget.totalPrice;
+    return totalPrice * 0.2; // Assuming tax is roughly 20% of total
+    
+  } catch (e) {
+    print('Error extracting tax: $e');
+    return (widget.totalPrice * 0.2); // Fallback calculation
+  }
+}
+
+String _getFeesFromRevalidation() {
+  try {
+    final revalidationController = Get.find<AirArabiaRevalidationController>();
+    final pricingInfo = revalidationController.revalidationResponse.value?.data?.pricing;
+    
+    if (pricingInfo?.ptcFareBreakdown.passengerFare?.fees != null && 
+        pricingInfo!.ptcFareBreakdown.passengerFare!.fees.isNotEmpty) {
+      
+      double totalFees = 0.0;
+      for (final fee in pricingInfo.ptcFareBreakdown.passengerFare!.fees) {
+        if (fee is Map && fee['Amount'] != null) {
+          totalFees += double.tryParse(fee['Amount'].toString()) ?? 0.0;
+        }
+      }
+      
+      return totalFees > 0 ? totalFees.toStringAsFixed(2) : "";
+    }
+    
+    return ""; // Return empty string if no fees available
+    
+  } catch (e) {
+    print('Error extracting fees: $e');
+    return ""; // Return empty string on error
+  }
+}
+
+// Add this method to create the booking API call
+// Add this method to create the booking API call - FIXED VERSION
+// Updated _createAirArabiaBooking method with proper bkIdArray handling
+// Updated _createAirArabiaBooking method with new format
+Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
+  try {
+    // Get API service
+    final apiService = Get.put(ApiServiceAirArabia());
+
+    // Get revalidation controller and meta info
+    final revalidationController = Get.find<AirArabiaRevalidationController>();
+    final metaInfo = revalidationController.revalidationResponse.value?.data?.meta;
+    
+    if (metaInfo == null) {
+      throw Exception('No revalidation data found. Please revalidate flight first.');
+    }
+    final controller = Get.put(AirArabiaFlightController());
+
+    // Get the selected package index from the controller
+    final selectedPackageIndex = controller.selectedPackageIndex;
+    print("selected package index is $selectedPackageIndex");
+
+    // Prepare bkIdArray and bkIdArray3 based on the selected package index
+    String bkIdArray = '';
+    String bkIdArray3 = '';
+    
+    // if (selectedPackageIndex >= 0) {
+    //   final rawData = widget.selectedPackage.rawData;
+    //   bkIdArray = rawData['bkIdArray'] ?? '';
+    //   bkIdArray3 = rawData['bkIdArray3'] ?? '';
+      
+      if (bkIdArray.isEmpty && bkIdArray3.isEmpty) {
+        bkIdArray = "${selectedPackageIndex}_19905-";
+        bkIdArray3 = "${selectedPackageIndex}!19905_";
+      }
+    // }
+
+    // Prepare passenger data in NEW FORMAT
+    final List<Map<String, dynamic>> adultPassengers = [];
+final basicFarePerAdult = _getBasicFareFromRevalidation();
+final taxPerAdult = _getTaxFromRevalidation();
+final feesPerAdult = _getFeesFromRevalidation();
+
+for (int i = 0; i < bookingController.adults.length; i++) {
+  final adult = bookingController.adults[i];
+  adultPassengers.add({
+    'title': adult.titleController.text,
+    'given_name': adult.firstNameController.text.toUpperCase(),
+    'surname': adult.lastNameController.text.toUpperCase(),
+    'dob': adult.dateOfBirthController.text,
+    'nationality': '${adult.nationalityController.text}-${adult.nationalityCountry.value?.countryCode ?? 'PK'}',
+    'passport_no': adult.passportCnicController.text,
+    'passport_exp': adult.passportExpiryController.text,
+    'basic_fare': basicFarePerAdult.toStringAsFixed(2),
+    'tax': taxPerAdult.toStringAsFixed(2),
+    'fees': feesPerAdult, // Will be empty string if no fees available
+  });
+}
+
+// Replace the child passengers section with this:
+final List<Map<String, dynamic>> childPassengers = [];
+final basicFarePerChild = basicFarePerAdult * 0.75; // Children typically 75% of adult fare
+final taxPerChild = taxPerAdult * 0.75;
+final feesPerChild = feesPerAdult.isEmpty ? "" : (double.tryParse(feesPerAdult)! * 0.75).toStringAsFixed(2);
+
+for (int i = 0; i < bookingController.children.length; i++) {
+  final child = bookingController.children[i];
+  childPassengers.add({
+    'title': child.titleController.text,
+    'given_name': child.firstNameController.text.toUpperCase(),
+    'surname': child.lastNameController.text.toUpperCase(),
+    'dob': child.dateOfBirthController.text,
+    'nationality': '${child.nationalityController.text}-${child.nationalityCountry.value?.countryCode ?? 'PK'}',
+    'passport_no': child.passportCnicController.text,
+    'passport_exp': child.passportExpiryController.text,
+    'basic_fare': basicFarePerChild.toStringAsFixed(2),
+    'tax': taxPerChild.toStringAsFixed(2),
+    'fees': feesPerChild, // Will be empty string if no fees available
+  });
+}
+
+// Replace the infant passengers section with this:
+final List<Map<String, dynamic>> infantPassengers = [];
+final basicFarePerInfant = basicFarePerAdult * 0.1; // Infants typically 10% of adult fare
+final taxPerInfant = taxPerAdult * 0.1;
+final feesPerInfant = feesPerAdult.isEmpty ? "" : (double.tryParse(feesPerAdult)! * 0.1).toStringAsFixed(2);
+
+for (int i = 0; i < bookingController.infants.length; i++) {
+  final infant = bookingController.infants[i];
+  infantPassengers.add({
+    'title': infant.titleController.text,
+    'given_name': infant.firstNameController.text.toUpperCase(),
+    'surname': infant.lastNameController.text.toUpperCase(),
+    'dob': infant.dateOfBirthController.text,
+    'nationality': '${infant.nationalityController.text}-${infant.nationalityCountry.value?.countryCode ?? 'PK'}',
+    'basic_fare': basicFarePerInfant.toStringAsFixed(2),
+    'tax': taxPerInfant.toStringAsFixed(2),
+    'fees': feesPerInfant, // Will be empty string if no fees available
+    // No passport fields for infants
+  });
+}
+
+    // Prepare flight details in NEW FORMAT
+    final List<Map<String, dynamic>> flightDetails = [];
+    for (final segment in widget.flight.flightSegments) {
+      final departureDateTime = DateTime.parse(segment['departure']['dateTime']);
+      final arrivalDateTime = DateTime.parse(segment['arrival']['dateTime']);
+      
+      // Calculate flight duration
+      final duration = arrivalDateTime.difference(departureDateTime);
+      final hours = duration.inHours;
+      final minutes = duration.inMinutes % 60;
+      final flightDuration = '${hours}h ${minutes}m';
+      
+      flightDetails.add({
+        'depart': segment['departure']['airport'], // Changed from departure object
+        'depart_date': '${departureDateTime.year}-${departureDateTime.month.toString().padLeft(2, '0')}-${departureDateTime.day.toString().padLeft(2, '0')}',
+        'depart_time': '${departureDateTime.hour.toString().padLeft(2, '0')}:${departureDateTime.minute.toString().padLeft(2, '0')}',
+        'dep_terminal': segment['departure']['terminal'] ?? '',
+        'arr': segment['arrival']['airport'],
+        'arr_date': '${arrivalDateTime.year}-${arrivalDateTime.month.toString().padLeft(2, '0')}-${arrivalDateTime.day.toString().padLeft(2, '0')}',
+        'arr_time': '${arrivalDateTime.hour.toString().padLeft(2, '0')}:${arrivalDateTime.minute.toString().padLeft(2, '0')}',
+        'arr_terminal': segment['arrival']['terminal'] ?? '',
+        'flight_no': segment['flightNumber'],
+        'airline_code': segment['flightNumber'].substring(0, 2), // Extract airline code
+        'operating_flight_no': segment['flightNumber'],
+        'operating_airline_code': segment['flightNumber'].substring(0, 2),
+        'class_cabin': 'Economy', // Default value
+        'sub_class': 'Y', // Default value
+        'hand_baggage': '7KG', // Default for Air Arabia
+        'check_baggage': '20KG', // Default for Air Arabia
+        'meal': 'Available', // Default value
+        'layover': '0h 0m', // Calculate if needed
+        'flight_duration': flightDuration,
+        'flight_type': 'Direct', // Default value
+        'fare_name': widget.selectedPackage.packageName,
+      });
+    }
+
+    // Handle baggage, meals, and seats based on selected package index
+    final List<List<String>> adultBaggage; // Changed to List<List<String>>
+final List<List<List<String>>> adultMeal;
+final List<List<List<String>>> adultSeat;
+
+if (selectedPackageIndex == 0) {
+  // When index is 0, pass empty lists for baggage, meals, and seats
+  adultBaggage = List.generate(bookingController.adults.length, (index) => <String>[]);
+  adultMeal = [];
+  adultSeat = [];
+} else {
+  // When index > 0, use selected baggage, meals, and seats
+  final selectedBaggage = revalidationController.selectedBaggage.values.toList();
+  final selectedMeals = revalidationController.selectedMeals.values
+      .expand((mealList) => mealList)
+      .toList();
+  final selectedSeats = revalidationController.selectedSeats.values.toList();
+
+  // FIXED: Properly format baggage data
+  if (selectedBaggage.isEmpty) {
+    adultBaggage = List.generate(bookingController.adults.length, (index) => <String>[]);
+  } else {
+    adultBaggage = [];
+    for (int i = 0; i < bookingController.adults.length; i++) {
+      if (i < selectedBaggage.length) {
+        final baggage = selectedBaggage[i];
+        // Format: "baggageCode--baggageDescription--baggageCharge"
+        adultBaggage.add([
+          "${baggage.baggageCode}--${baggage.baggageDescription}--${baggage.baggageCharge}"
+        ]);
+      } else {
+        adultBaggage.add(<String>[]);
+      }
+    }
+  }
+
+  // FIXED: Properly format meal data
+  if (selectedMeals.isEmpty) {
+    adultMeal = [];
+  } else {
+    adultMeal = [selectedMeals.map((meal) => [
+      "${meal.mealCode}--${meal.mealDescription}"
+    ]).toList()];
+  }
+
+  // FIXED: Properly format seat data  
+  if (selectedSeats.isEmpty) {
+    adultSeat = [];
+  } else {
+    adultSeat = [];
+    for (int i = 0; i < bookingController.adults.length; i++) {
+      if (i < selectedSeats.length) {
+        final seat = selectedSeats[i];
+        if (seat.seatNumber.isNotEmpty) {
+          adultSeat.add([["${seat.seatNumber}--${seat.seatNumber}"]]);
+        } else {
+          adultSeat.add([]);
+        }
+      } else {
+        adultSeat.add([]);
+      }
+    }
+  }
+}
+
+    // Determine flight type and stops
+    String flightType = 'OneWay'; // Changed from 'oneway' to match new format
+    List<int> stopsSector = [widget.flight.flightSegments.length - 1]; // Calculate based on segments
+    
+    print('=== BOOKING PARAMETERS DEBUG ===');
+    print('Final Key: ${metaInfo.finalKey}');
+    print('Selected Package Index: $selectedPackageIndex');
+    print('bkIdArray: $bkIdArray');
+    print('bkIdArray3: $bkIdArray3');
+    print('Flight segments: ${widget.flight.flightSegments.length}');
+    print('Flight type: $flightType');
+    print('Stops sector: $stopsSector');
+    print('Adult Baggage: $adultBaggage');
+    print('Adult Meals: $adultMeal');
+    print('Adult Seats: $adultSeat');
+    print('================================');
+
+    final response = await apiService.createAirArabiaBooking(
+      email: bookingController.emailController.text,
+      finalKey: metaInfo.finalKey,
+      echoToken: metaInfo.echoToken,
+      transactionIdentifier: metaInfo.transactionId,
+      jsession: metaInfo.jsession,
+      adults: travelersController.adultCount.value,
+      child: travelersController.childrenCount.value,
+      infant: travelersController.infantCount.value,
+      stopsSector: stopsSector,
+      bkIdArray: bkIdArray,
+      bkIdArray3: bkIdArray3,
+      adultBaggage: adultBaggage,
+      adultMeal: adultMeal,
+      adultSeat: adultSeat,
+      childBaggage: [],
+      childMeal: [],
+      childSeat: [],
+      bookerName: '${bookingController.firstNameController.text} ${bookingController.lastNameController.text}',
+      countryCode: bookingController.bookerPhoneCountry.value?.phoneCode ?? '92', // Changed format: now phone code instead of country code
+      simCode: bookingController.bookerPhoneCountry.value?.phoneCode ?? '92', // Keep as phone code
+      city: 'Unknown',
+      address: 'Unknown',
+      phone: bookingController.phoneController.text, // Just the phone number without country code
+      remarks: bookingController.remarksController.text,
+      marginPer: 0.0,
+      marginVal: 0.0,
+      finalPrice: widget.totalPrice,
+      totalPrice: widget.totalPrice,
+      flightType: flightType,
+      csId: 1,
+      csName: 'Default Agent',
+      adultPassengers: adultPassengers,
+      childPassengers: childPassengers,
+      infantPassengers: infantPassengers,
+      flightDetails: flightDetails,
+    );
+
+    print('API Response received: $response');
+    return response;
+    
+  } catch (e, stackTrace) {
+    print('Error in _createAirArabiaBooking: $e');
+    print('Stack Trace: $stackTrace');
+    rethrow;
+  }
+}
+void dispose() {
     super.dispose();
   }
 }
