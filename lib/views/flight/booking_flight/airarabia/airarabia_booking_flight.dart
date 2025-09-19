@@ -1267,6 +1267,7 @@ String _getFeesFromRevalidation() {
 // Updated _createAirArabiaBooking method with new format
 // Updated _createAirArabiaBooking method with CORRECTED format for baggage, meals, and seats
 // Updated _createAirArabiaBooking method with CORRECTED array nesting
+// Updated _createAirArabiaBooking method with FIXED multi-segment handling
 Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
   try {
     // Get API service
@@ -1283,16 +1284,48 @@ Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
 
     // Get the selected package index from the controller
     final selectedPackageIndex = controller.selectedPackageIndex;
-    print("selected package index is $selectedPackageIndex");
+    print("Selected package index is $selectedPackageIndex");
 
-    // Prepare bkIdArray and bkIdArray3 based on the selected package index
+    // Calculate number of flight segments
+    final numberOfSegments = widget.flight.flightSegments.length;
+    print("Number of flight segments: $numberOfSegments");
+
+    // Add !ret! to final key if it's a return flight
+    String finalKey = metaInfo.finalKey;
+      // Check if !ret! is not already present to avoid duplication
+      if (!finalKey.endsWith('!ret!')) {
+        finalKey = finalKey + '!ret!';
+      }
+    
+    print("Original final key: ${metaInfo.finalKey}");
+    print("Modified final key: $finalKey");
+
+    // Prepare bkIdArray and bkIdArray3 based on the selected package index and segments
     String bkIdArray = '';
     String bkIdArray3 = '';
     
     if (bkIdArray.isEmpty && bkIdArray3.isEmpty) {
-      bkIdArray = "${selectedPackageIndex}_0-"; // FIXED: Changed from 19905 to 0
-      bkIdArray3 = "${selectedPackageIndex}!0_"; // FIXED: Changed from 19905 to 0
+      if (numberOfSegments == 1) {
+        // Direct flight
+        bkIdArray = "${selectedPackageIndex}_0-";
+        bkIdArray3 = "${selectedPackageIndex}!0_";
+      } else {
+        // Multi-segment flight (with stops)
+        List<String> bkIdArrayParts = [];
+        List<String> bkIdArray3Parts = [];
+        
+        for (int i = 0; i < numberOfSegments; i++) {
+          bkIdArrayParts.add("${selectedPackageIndex}_$i-");
+          bkIdArray3Parts.add("${selectedPackageIndex}!${i}_");
+        }
+        
+        bkIdArray = bkIdArrayParts.join("");
+        bkIdArray3 = bkIdArray3Parts.join("");
+      }
     }
+
+    print("Final bkIdArray: $bkIdArray");
+    print("Final bkIdArray3: $bkIdArray3");
 
     // Prepare passenger data in NEW FORMAT
     final List<Map<String, dynamic>> adultPassengers = [];
@@ -1361,7 +1394,8 @@ Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
 
     // Prepare flight details
     final List<Map<String, dynamic>> flightDetails = [];
-    for (final segment in widget.flight.flightSegments) {
+    for (int segmentIndex = 0; segmentIndex < widget.flight.flightSegments.length; segmentIndex++) {
+      final segment = widget.flight.flightSegments[segmentIndex];
       final departureDateTime = DateTime.parse(segment['departure']['dateTime']);
       final arrivalDateTime = DateTime.parse(segment['arrival']['dateTime']);
       
@@ -1370,6 +1404,17 @@ Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
       final hours = duration.inHours;
       final minutes = duration.inMinutes % 60;
       final flightDuration = '${hours}h ${minutes}m';
+      
+      // Calculate layover for next segment (if exists)
+      String layover = '0h 0m';
+      if (segmentIndex < widget.flight.flightSegments.length - 1) {
+        final nextSegment = widget.flight.flightSegments[segmentIndex + 1];
+        final nextDepartureDateTime = DateTime.parse(nextSegment['departure']['dateTime']);
+        final layoverDuration = nextDepartureDateTime.difference(arrivalDateTime);
+        final layoverHours = layoverDuration.inHours;
+        final layoverMinutes = layoverDuration.inMinutes % 60;
+        layover = '${layoverHours}h ${layoverMinutes}m';
+      }
       
       flightDetails.add({
         'depart': segment['departure']['airport'],
@@ -1389,100 +1434,116 @@ Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
         'hand_baggage': '7KG',
         'check_baggage': '20KG',
         'meal': 'Available',
-        'layover': '0h 0m',
+        'layover': layover,
         'flight_duration': flightDuration,
-        'flight_type': 'Direct',
+        'flight_type': numberOfSegments == 1 ? 'Direct' : 'Connect',
         'fare_name': widget.selectedPackage.packageName,
       });
     }
 
-    // FIXED: Handle baggage, meals, and seats with CORRECT nesting format matching first JSON
-    List<List<String>> adultBaggage; // CORRECTED TYPE: 2D array instead of 3D
-    List<List<List<String>>> adultMeal; // CORRECTED TYPE: 3D array instead of 4D  
-    List<List<List<String>>> adultSeat; // CORRECTED TYPE: 3D array instead of 4D
+    // FIXED: Handle baggage, meals, and seats with proper multi-segment support
+    // Remove package index condition - if user selected something, pass it; if not, send empty arrays
+    final selectedBaggage = revalidationController.selectedBaggage.values.toList();
+    final selectedMealsMap = revalidationController.selectedMeals;
+    final selectedSeatsMap = revalidationController.selectedSeats;
 
-    if (selectedPackageIndex == 7) {
-      // When index is 0, pass empty nested lists
-      adultBaggage = [];
-      adultMeal = [];
-      adultSeat = [];
-    } else {
-      // When index > 0, use selected baggage, meals, and seats with CORRECT formatting
-      final selectedBaggage = revalidationController.selectedBaggage.values.toList();
-      final selectedMeals = revalidationController.selectedMeals.values.toList();
-      final selectedSeats = revalidationController.selectedSeats.values.toList();
+    print("Selected meals map: $selectedMealsMap");
+    print("Selected seats map: $selectedSeatsMap");
+    print("Number of segments: $numberOfSegments");
 
-      // FIXED: Format baggage data to match first JSON: [[String]]
-      if (selectedBaggage.isEmpty) {
-        adultBaggage = [];
-      } else {
-        adultBaggage = [];
-        for (int i = 0; i < bookingController.adults.length; i++) {
-          if (i < selectedBaggage.length && selectedBaggage[i].baggageDescription.isNotEmpty) {
-            // Format: Each adult gets their baggage description directly in array
-            adultBaggage.add([selectedBaggage[i].baggageDescription]);
-          } else {
-            adultBaggage.add(["No Baggage"]);
-          }
+    // Format baggage data to match API format
+    List<List<String>> adultBaggage = [];
+    if (selectedBaggage.isNotEmpty) {
+      for (int i = 0; i < bookingController.adults.length; i++) {
+        if (i < selectedBaggage.length && selectedBaggage[i].baggageDescription.isNotEmpty) {
+          adultBaggage.add([selectedBaggage[i].baggageDescription]);
         }
       }
+    }
 
-      // FIXED: Format meal data to match first JSON: [[[String]]]
-      if (selectedMeals.isEmpty) {
-        adultMeal = [];
-      } else {
-        adultMeal = [];
+    // Format meal data for multi-segment flights
+    List<List<List<String>>> adultMeal = [];
+    
+    print("DEBUG: selectedMealsMap contents:");
+    selectedMealsMap.forEach((key, value) {
+      print("Key: '$key', Values: ${value.map((m) => m.mealName).toList()}");
+    });
+    
+    if (selectedMealsMap.isNotEmpty) {
+      for (int adultIndex = 0; adultIndex < bookingController.adults.length; adultIndex++) {
+        List<List<String>> adultMealForAllSegments = [];
         
-        for (int adultIndex = 0; adultIndex < bookingController.adults.length; adultIndex++) {
-          List<List<String>> adultMealList = [];
-          
-          // Add meals for this adult (if any selected)
-          if (adultIndex < selectedMeals.length && selectedMeals[adultIndex].isNotEmpty) {
-            List<String> mealCodes = [];
-            for (var meal in selectedMeals[adultIndex]) {
-              mealCodes.add("${meal.mealCode}--${meal.mealDescription}");
+        // Try to get meals from all available segment keys
+        // The controller might store them with different key patterns
+        for (final entry in selectedMealsMap.entries) {
+          if (entry.value.isNotEmpty) {
+            List<String> segmentMeals = [];
+            for (var meal in entry.value) {
+              segmentMeals.add("${meal.mealCode}--${meal.mealDescription}");
             }
-            adultMealList.add(mealCodes);
-          }
-          
-          if (adultMealList.isNotEmpty) {
-            adultMeal.add(adultMealList);
+            if (segmentMeals.isNotEmpty) {
+              adultMealForAllSegments.add(segmentMeals);
+            }
           }
         }
-      }
-
-      // FIXED: Format seat data to match first JSON: [[[String]]]
-      if (selectedSeats.isEmpty) {
-        adultSeat = [];
-      } else {
-        adultSeat = [];
         
-        for (int adultIndex = 0; adultIndex < bookingController.adults.length; adultIndex++) {
-          if (adultIndex < selectedSeats.length && selectedSeats[adultIndex].seatNumber.isNotEmpty) {
-            // Each adult gets their seat in the format [["seatNumber--seatNumber"]]
-            adultSeat.add([["${selectedSeats[adultIndex].seatNumber}--${selectedSeats[adultIndex].seatNumber}"]]);
+        // Add meals for this adult if any were selected
+        if (adultMealForAllSegments.isNotEmpty) {
+          adultMeal.add(adultMealForAllSegments);
+          print("DEBUG: Added meals for adult $adultIndex: $adultMealForAllSegments");
+        }
+      }
+    }
+
+    // Format seat data for multi-segment flights  
+    List<List<List<String>>> adultSeat = [];
+    
+    print("DEBUG: selectedSeatsMap contents:");
+    selectedSeatsMap.forEach((key, value) {
+      print("Key: '$key', Seat: ${value.seatNumber}");
+    });
+    
+    if (selectedSeatsMap.isNotEmpty) {
+      for (int adultIndex = 0; adultIndex < bookingController.adults.length; adultIndex++) {
+        List<List<String>> adultSeatForAllSegments = [];
+        
+        // Try to get seats from all available segment keys
+        // The controller might store them with different key patterns
+        for (final entry in selectedSeatsMap.entries) {
+          if (entry.value.seatNumber.isNotEmpty) {
+            final seat = entry.value;
+            adultSeatForAllSegments.add(["${seat.seatNumber}--${seat.seatNumber}"]);
           }
+        }
+        
+        // Add seats for this adult if any were selected
+        if (adultSeatForAllSegments.isNotEmpty) {
+          adultSeat.add(adultSeatForAllSegments);
+          print("DEBUG: Added seats for adult $adultIndex: $adultSeatForAllSegments");
         }
       }
     }
 
     // Determine flight type and stops
     String flightType = 'OneWay';
-    List<int> stopsSector = [widget.flight.flightSegments.length ];
-    
-    print('=== FIXED BOOKING PARAMETERS DEBUG ===');
+    List<int> stopsSector = [numberOfSegments - 1]; // Number of segments minus 1 = number of stops
+
+    print('=== MULTI-SEGMENT BOOKING PARAMETERS DEBUG ===');
+    print('Number of Segments: $numberOfSegments');
     print('Final Key: ${metaInfo.finalKey}');
     print('Selected Package Index: $selectedPackageIndex');
     print('bkIdArray: $bkIdArray');
     print('bkIdArray3: $bkIdArray3');
+    print('Stops Sector: $stopsSector');
     print('Adult Baggage Structure: $adultBaggage');
     print('Adult Meals Structure: $adultMeal');
     print('Adult Seats Structure: $adultSeat');
+    print('Flight Details Count: ${flightDetails.length}');
     print('============================================');
 
     final response = await apiService.createAirArabiaBooking(
       email: bookingController.emailController.text,
-      finalKey: metaInfo.finalKey,
+      finalKey: finalKey, // Use the modified final key with !ret! if needed
       echoToken: metaInfo.echoToken,
       transactionIdentifier: metaInfo.transactionId,
       jsession: metaInfo.jsession,
@@ -1492,12 +1553,12 @@ Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
       stopsSector: stopsSector,
       bkIdArray: bkIdArray,
       bkIdArray3: bkIdArray3,
-      adultBaggage: adultBaggage, // FIXED: Now 2D array
-      adultMeal: adultMeal, // FIXED: Now 3D array
-      adultSeat: adultSeat, // FIXED: Now 3D array
-      childBaggage: [], // FIXED: Empty array instead of null
-      childMeal: [], // FIXED: Empty array instead of null
-      childSeat: [], // FIXED: Empty array instead of null
+      adultBaggage: adultBaggage,
+      adultMeal: adultMeal,
+      adultSeat: adultSeat,
+      childBaggage: [],
+      childMeal: [],
+      childSeat: [],
       bookerName: '${bookingController.firstNameController.text} ${bookingController.lastNameController.text}',
       countryCode: bookingController.bookerPhoneCountry.value?.phoneCode ?? '92',
       simCode: bookingController.bookerPhoneCountry.value?.phoneCode ?? '92',

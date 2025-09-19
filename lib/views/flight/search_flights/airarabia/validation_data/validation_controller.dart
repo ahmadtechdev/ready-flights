@@ -93,33 +93,37 @@ class AirArabiaRevalidationController extends GetxController {
     }
   }
 
-  void _processResponseData() {
-    try {
-      final data = revalidationResponse.value?.data;
-      if (data == null) {
-        print('No data in revalidation response');
-        return;
-      }
-
-      // Set base price and currency
-      basePrice.value = data.pricing.totalPrice;
-      currency.value = data.pricing.currency;
-
-      // Process baggage options
-      _processBaggageOptions(data.extras.baggage);
-
-      // Process meal options
-      _processMealOptions(data.extras.meal);
-
-      // Process seat options
-      _processSeatOptions(data.extras.seat);
-    } catch (e) {
-      print('Error processing response data: $e');
-      errorMessage.value = 'Error processing flight data';
+ 
+void _processResponseData() {
+  try {
+    final data = revalidationResponse.value?.data;
+    if (data == null) {
+      print('No data in revalidation response');
+      return;
     }
-  }
 
-  void _processBaggageOptions(BaggageInfo baggageInfo) {
+    // Set base price and currency - handle both single and multiple passengers
+    final passengerFare = data.pricing.ptcFareBreakdown.passengerFare;
+    if (passengerFare != null) {
+      final totalFareAmount = passengerFare.totalFare?.attributes['Amount']?.toString() ?? '0';
+      basePrice.value = double.tryParse(totalFareAmount) ?? 0.0;
+      currency.value = passengerFare.totalFare?.attributes['CurrencyCode']?.toString() ?? 'PKR';
+    }
+
+    // Process baggage options
+    _processBaggageOptions(data.extras.baggage);
+
+    // Process meal options
+    _processMealOptions(data.extras.meal);
+
+    // Process seat options
+    _processSeatOptions(data.extras.seat);
+  } catch (e) {
+    print('Error processing response data: $e');
+    errorMessage.value = 'Error processing flight data: ${e.toString()}';
+  }
+}
+ void _processBaggageOptions(BaggageInfo baggageInfo) {
     try {
       // Safe navigation with null checks
       final baggageDetails = baggageInfo.body.aaBaggageDetailsRS;

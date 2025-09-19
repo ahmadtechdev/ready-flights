@@ -74,14 +74,14 @@ class PTCFareBreakdown {
   final PassengerTypeQuantity? passengerTypeQuantity;
   final FareBasisCodes? fareBasisCodes;
   final PassengerFare? passengerFare;
-  final TravelerRefNumber? travelerRefNumber;
+  final List<TravelerRefNumber> travelerRefNumber; // Changed to List
 
   PTCFareBreakdown({
     required this.attributes,
     this.passengerTypeQuantity,
     this.fareBasisCodes,
     this.passengerFare,
-    this.travelerRefNumber,
+    required this.travelerRefNumber, // Changed to required List
   });
 
   factory PTCFareBreakdown.fromJson(Map<String, dynamic> json) {
@@ -96,9 +96,7 @@ class PTCFareBreakdown {
       passengerFare: json['PassengerFare'] != null
           ? PassengerFare.fromJson(json['PassengerFare'])
           : null,
-      travelerRefNumber: json['TravelerRefNumber'] != null
-          ? TravelerRefNumber.fromJson(json['TravelerRefNumber'])
-          : null,
+      travelerRefNumber: _parseTravelerRefNumberList(json['TravelerRefNumber']), // Fixed
     );
   }
 }
@@ -627,18 +625,20 @@ class PassengerTypeQuantity {
 }
 
 class FareBasisCodes {
-  final String fareBasisCode;
+  final List<String> fareBasisCodes; // Changed to List
 
   FareBasisCodes({
-    required this.fareBasisCode,
+    required this.fareBasisCodes,
   });
 
   factory FareBasisCodes.fromJson(Map<String, dynamic> json) {
     return FareBasisCodes(
-      fareBasisCode: json['FareBasisCode']?.toString() ?? '',
+      fareBasisCodes: _parseFareBasisCodes(json['FareBasisCode']), // Fixed
     );
   }
 }
+
+
 
 class PassengerFare {
   final Map<String, dynamic> attributes;
@@ -662,12 +662,13 @@ class PassengerFare {
       attributes: Map<String, dynamic>.from(json['@attributes'] ?? {}),
       baseFare: json['BaseFare'] != null ? BaseFare.fromJson(json['BaseFare']) : null,
       equiBaseFare: json['EquiBaseFare'] != null ? EquiBaseFare.fromJson(json['EquiBaseFare']) : null,
-      taxes: json['Taxes'] != null ? Taxes.fromJson(json['Taxes']) : null,
+      taxes: json['Taxes'] != null ? Taxes.fromJson(json['Taxes']) : null, // Fixed
       fees: _parseList(json['Fees']),
       totalFare: json['TotalFare'] != null ? TotalFare.fromJson(json['TotalFare']) : null,
     );
   }
 }
+
 
 class BaseFare {
   final Map<String, dynamic> attributes;
@@ -706,7 +707,7 @@ class Taxes {
 
   factory Taxes.fromJson(Map<String, dynamic> json) {
     return Taxes(
-      taxes: _parseTaxItemList(json['Tax']),
+      taxes: _parseTaxItemList(json['Tax']), // Fixed
     );
   }
 }
@@ -851,6 +852,27 @@ List<AirSeat> _parseAirSeatList(dynamic value) {
   }
   return [];
 }
+List<TravelerRefNumber> _parseTravelerRefNumberList(dynamic value) {
+  if (value == null) return [];
+  if (value is List) {
+    return value.map((x) => TravelerRefNumber.fromJson(x as Map<String, dynamic>)).toList();
+  }
+  if (value is Map<String, dynamic>) {
+    return [TravelerRefNumber.fromJson(value)];
+  }
+  return [];
+}
+
+List<String> _parseFareBasisCodes(dynamic value) {
+  if (value == null) return [];
+  if (value is List) {
+    return value.map((x) => x.toString()).toList();
+  }
+  if (value is String) {
+    return [value];
+  }
+  return [value.toString()];
+}
 
 List<TaxItem> _parseTaxItemList(dynamic value) {
   if (value == null) return [];
@@ -862,3 +884,4 @@ List<TaxItem> _parseTaxItemList(dynamic value) {
   }
   return [];
 }
+  

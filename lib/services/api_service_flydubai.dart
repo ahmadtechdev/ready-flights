@@ -12,8 +12,9 @@ class ApiServiceFlyDubai {
   static const String password = 'Ag3n@tPk!FLyDuB@1';
   static const String baseUrl = 'https://api.flydubai.com/res/v3';
 
-  // Access token for API calls
-  String? _accessToken;
+  // Access token for API calls - make it static to persist across instances
+  static String? _accessToken;
+  static DateTime? _tokenExpiry;
 
   // Authenticate with FlyDubai API
   Future<bool> authenticate() async {
@@ -38,6 +39,10 @@ class ApiServiceFlyDubai {
         final Map<String, dynamic> tokenData = json.decode(response.body);
         if (tokenData.containsKey('access_token')) {
           _accessToken = tokenData['access_token'];
+
+          // Set token expiry (assuming 1 hour expiration, adjust if API provides expires_in)
+          _tokenExpiry = DateTime.now().add(Duration(hours: 1));
+
           print('FlyDubai Authentication successful');
           return true;
         }
@@ -51,7 +56,21 @@ class ApiServiceFlyDubai {
     }
   }
 
-  // Search FlyDubai flights
+  // Check if token is expired
+  bool _isTokenExpired() {
+    return _tokenExpiry == null || _tokenExpiry!.isBefore(DateTime.now());
+  }
+
+  // Get valid access token (only authenticate if needed)
+  Future<String?> getValidToken() async {
+    if (_accessToken == null || _isTokenExpired()) {
+      final authSuccess = await authenticate();
+      return authSuccess ? _accessToken : null;
+    }
+    return _accessToken;
+  }
+
+  // Search FlyDubai flights - this is the only method that can initiate authentication
   Future<Map<String, dynamic>> searchFlights({
     required int type,
     required String origin,
@@ -68,7 +87,8 @@ class ApiServiceFlyDubai {
       print('Trip Type: $type (${_getTripTypeName(type)})');
       print('Raw depDate: "$depDate"');
 
-      if (_accessToken == null) {
+      // Only authenticate here if no valid token exists
+      if (_accessToken == null || _isTokenExpired()) {
         final authSuccess = await authenticate();
         if (!authSuccess) {
           return {
@@ -79,6 +99,7 @@ class ApiServiceFlyDubai {
         }
       }
 
+      // Rest of the searchFlights method remains the same...
       Map<String, dynamic>? searchParams;
 
       if (type == 2 && multiCitySegments != null && multiCitySegments.isNotEmpty) {
@@ -166,6 +187,8 @@ class ApiServiceFlyDubai {
         };
       }
 
+      print("Using access token in search flight: $_accessToken");
+
       // Make API request
       final response = await http.post(
         Uri.parse('$baseUrl/pricing/flightswithfares'),
@@ -194,6 +217,7 @@ class ApiServiceFlyDubai {
       } else if (response.statusCode == 401) {
         // Token expired
         _accessToken = null;
+        _tokenExpiry = null;
         final authSuccess = await authenticate();
         if (authSuccess) {
           return await searchFlights(
@@ -225,6 +249,245 @@ class ApiServiceFlyDubai {
       };
     }
   }
+
+  // Add to cart function - uses existing token, doesn't authenticate
+  Future<Map<String, dynamic>> addToCart({
+    required List<String> bookingIds,
+    required Map<String, dynamic> flightData,
+  }) async {
+    try {
+      // Use existing token, don't authenticate here
+      if (_accessToken == null) {
+        return {
+          'success': false,
+          'error': 'No valid token available. Please search flights first.',
+          'details': 'Authentication required before adding to cart'
+        };
+      }
+
+      print("Using access token in add to cart: $_accessToken");
+
+      print('=== FLYDUBAI ADD TO CART STARTED ===');
+      print('Booking IDs: $bookingIds');
+
+      // Parse the flight data and build the request
+      final requestBody = _buildAddToCartRequest(bookingIds, flightData);
+
+      print("+++++++++++++++++++Add top cart Request+++++++++++++++++++++++");
+      printJsonPretty(requestBody);
+
+      // Log the request
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      print('Add to Cart Request: ${json.encode(requestBody)}');
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/order/cart'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_accessToken',
+          'Cookie': 'visid_incap_3059742=mt0fc3JTQDStXbDmAKotlet1zGUAAAAAQUIPAAAAAAA/4nh9vwd+842orxzMj3FS',
+          'Accept-Encoding': 'gzip, deflate',
+        },
+        body: json.encode(requestBody),
+      );
+
+      print("+++++++++++++++++++Add top cart Response+++++++++++++++++++++++");
+      printJsonPretty(response.body);
+
+      print('Add to Cart Response Status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        print('Add to Cart successful');
+        return {
+          'success': true,
+          'data': responseData,
+        };
+      } else if (response.statusCode == 401) {
+        // Token expired - but we won't re-authenticate here
+        _accessToken = null;
+        _tokenExpiry = null;
+        return {
+          'success': false,
+          'error': 'Token expired. Please search flights again to get a new token.',
+          'response': response.body,
+        };
+      }
+
+      return {
+        'success': false,
+        'error': 'Add to Cart failed with status: ${response.statusCode}',
+        'response': response.body,
+      };
+    } catch (e) {
+      print('Add to Cart error: $e');
+      return {
+        'success': false,
+        'error': 'Add to Cart failed: $e',
+      };
+    }
+  }
+
+  // Create PNR - uses existing token, doesn't authenticate
+  Future<Map<String, dynamic>> createPNR({
+    required List<TravelerInfo> adults,
+    required List<TravelerInfo> children,
+    required List<TravelerInfo> infants,
+    required String clientEmail,
+    required String clientPhone,
+    required String countryCode,
+    required String simCode,
+    required String city,
+    required String flightType,
+    required List<Map<String, dynamic>> segmentArray,
+    required Map<String, dynamic> cartData,
+  }) async {
+    try {
+      // Use existing token, don't authenticate here
+      if (_accessToken == null) {
+        return {
+          'success': false,
+          'error': 'No valid token available. Please search flights first.',
+          'details': 'Authentication required before creating PNR'
+        };
+      }
+
+      print('=== CREATING PNR FOR FLYDUBAI ===');
+      print('Using access token: $_accessToken');
+
+      // Rest of the createPNR method remains the same...
+      // Build the PNR request body
+      final requestBody = _buildPNRRequest(
+        adults: adults,
+        children: children,
+        infants: infants,
+        clientEmail: clientEmail,
+        clientPhone: clientPhone,
+        countryCode: countryCode,
+        simCode: simCode,
+        city: city,
+        flightType: flightType,
+        segmentArray: segmentArray,
+        cartData: cartData,
+      );
+
+      print('PNR Request Body:');
+      printJsonPretty(requestBody);
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/cp/summaryPNR?accural=true'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_accessToken',
+          'Cookie': 'visid_incap_3059742=mt0fc3JTQDStXbDmAKotlet1zGUAAAAAQUIPAAAAAAA/4nh9vwd+842orxzMj3FS',
+          'Accept-Encoding': 'gzip, deflate',
+        },
+        body: json.encode(requestBody),
+      );
+
+      print('PNR Creation Response Status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        print('✅ PNR created successfully');
+
+        final success = responseData['Success'] == true ||
+            responseData['ConfirmationNumber'] != null;
+
+        return {
+          'success': success,
+          'data': responseData,
+          'confirmationNumber': responseData['ConfirmationNumber']?.toString(),
+          'message': success ? 'PNR created successfully' : 'PNR creation failed',
+          'rawResponse': responseData,
+        };
+      } else if (response.statusCode == 401) {
+        // Token expired - but we won't re-authenticate here
+        _accessToken = null;
+        _tokenExpiry = null;
+        return {
+          'success': false,
+          'error': 'Token expired. Please search flights again to get a new token.',
+          'response': response.body,
+        };
+      }
+
+      return {
+        'success': false,
+        'error': 'PNR creation failed with status: ${response.statusCode}',
+        'response': response.body,
+      };
+    } catch (e, stackTrace) {
+      print('❌ PNR creation error: $e');
+      print('Stack trace: $stackTrace');
+      return {
+        'success': false,
+        'error': 'PNR creation failed: $e',
+      };
+    }
+  }
+
+  // Revalidate flight pricing - uses existing token, doesn't authenticate
+  Future<Map<String, dynamic>> revalidateFlight({
+    required String bookingId,
+    required Map<String, dynamic> flightData,
+  }) async {
+    try {
+      // Use existing token, don't authenticate here
+      if (_accessToken == null) {
+        return {
+          'success': false,
+          'error': 'No valid token available. Please search flights first.',
+          'details': 'Authentication required before revalidation'
+        };
+      }
+
+      // For FlyDubai, revalidation is typically done through addToCart
+      final result = await addToCart(
+        bookingIds: [bookingId],
+        flightData: flightData,
+      );
+
+      if (result['success'] == true) {
+        return {
+          'success': true,
+          'updatedPrice': _extractUpdatedPrice(result['data']),
+          'cartData': result['data'],
+        };
+      }
+
+      return result;
+    } catch (e) {
+      print('Revalidation error: $e');
+      return {
+        'success': false,
+        'error': 'Revalidation failed: $e',
+      };
+    }
+  }
+
+  // Helper method to get trip type name
+  String _getTripTypeName(int type) {
+    switch (type) {
+      case 0:
+        return 'One-Way';
+      case 1:
+        return 'Round-Trip';
+      case 2:
+        return 'Multi-City';
+      default:
+        return 'Unknown';
+    }
+  }
+
+  // Rest of your helper methods remain unchanged...
+  // _buildOneWayRequest, _buildRoundTripRequest, _buildMultiCityRequest,
+  // _buildAddToCartRequest, _extractArray, _extractUpdatedPrice,
+  // _buildPNRRequest, _calculateAge, _buildSegmentsFromCartData,
+  // _buildSpecialServices, _buildSeats, printJsonPretty
+
+
+
   // Build one-way search request
   Map<String, dynamic> _buildOneWayRequest({
     required String origin,
@@ -439,98 +702,7 @@ class ApiServiceFlyDubai {
     };
   }
 
-  // Helper method to get trip type name
-  String _getTripTypeName(int type) {
-    switch (type) {
-      case 0:
-        return 'One-Way';
-      case 1:
-        return 'Round-Trip';
-      case 2:
-        return 'Multi-City';
-      default:
-        return 'Unknown';
-    }
-  }
 
-
-  // Add these methods to your ApiServiceFlyDubai class
-
-// Add to cart function
-  Future<Map<String, dynamic>> addToCart({
-    required List<String> bookingIds,
-    required Map<String, dynamic> flightData,
-  }) async {
-    try {
-      if (_accessToken == null) {
-        final authSuccess = await authenticate();
-        if (!authSuccess) {
-          return {
-            'success': false,
-            'error': 'Authentication failed',
-            'details': 'Could not authenticate with FlyDubai API'
-          };
-        }
-      }
-
-      print('=== FLYDUBAI ADD TO CART STARTED ===');
-      print('Booking IDs: $bookingIds');
-
-      // Parse the flight data and build the request
-      final requestBody = _buildAddToCartRequest(bookingIds, flightData);
-
-      print("+++++++++++++++++++Add top cart Request+++++++++++++++++++++++");
-      printJsonPretty(requestBody);
-
-      // Log the request
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      print('Add to Cart Request: ${json.encode(requestBody)}');
-
-      final response = await http.post(
-        Uri.parse('$baseUrl/order/cart'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_accessToken',
-          'Cookie': 'visid_incap_3059742=mt0fc3JTQDStXbDmAKotlet1zGUAAAAAQUIPAAAAAAA/4nh9vwd+842orxzMj3FS',
-          'Accept-Encoding': 'gzip, deflate',
-        },
-        body: json.encode(requestBody),
-      );
-
-      print("+++++++++++++++++++Add top cart Response+++++++++++++++++++++++");
-      printJsonPretty(response.body);
-
-      print('Add to Cart Response Status: ${response.statusCode}');
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
-        print('Add to Cart successful');
-        return {
-          'success': true,
-          'data': responseData,
-        };
-      } else if (response.statusCode == 401) {
-        // Token expired
-        _accessToken = null;
-        final authSuccess = await authenticate();
-        if (authSuccess) {
-          return await addToCart(bookingIds: bookingIds, flightData: flightData);
-        }
-      }
-
-      return {
-        'success': false,
-        'error': 'Add to Cart failed with status: ${response.statusCode}',
-        'response': response.body,
-      };
-    } catch (e) {
-      print('Add to Cart error: $e');
-      return {
-        'success': false,
-        'error': 'Add to Cart failed: $e',
-      };
-    }
-  }
 
 // Build add to cart request
   Map<String, dynamic> _buildAddToCartRequest(
@@ -605,6 +777,7 @@ class ApiServiceFlyDubai {
 
       final fareArray = fareTypes is List ? fareTypes[fare] : fareTypes;
       final fareTypeId = fareArray['FareTypeID'];
+
       final fareTypeName = fareArray['FareTypeName'];
 
       final fareInfos = _extractArray(fareArray['FareInfos']?['FareInfo']);
@@ -624,6 +797,8 @@ class ApiServiceFlyDubai {
 
           final fareData = paxList is List ? paxList[0] : paxList;
           final id = fareData['ID']?.toString() ?? '1';
+
+
           final fareId = fareData['FareID'];
           final fbCode = fareData['FBCode'] ?? '';
           final cabin = fareData['Cabin'] ?? 'ECONOMY';
@@ -915,36 +1090,6 @@ class ApiServiceFlyDubai {
     return [data];
   }
 
-// Revalidate flight pricing
-  Future<Map<String, dynamic>> revalidateFlight({
-    required String bookingId,
-    required Map<String, dynamic> flightData,
-  }) async {
-    try {
-      // For FlyDubai, revalidation is typically done through addToCart
-      // which returns updated pricing information
-      final result = await addToCart(
-        bookingIds: [bookingId],
-        flightData: flightData,
-      );
-
-      if (result['success'] == true) {
-        return {
-          'success': true,
-          'updatedPrice': _extractUpdatedPrice(result['data']),
-          'cartData': result['data'],
-        };
-      }
-
-      return result;
-    } catch (e) {
-      print('Revalidation error: $e');
-      return {
-        'success': false,
-        'error': 'Revalidation failed: $e',
-      };
-    }
-  }
 
 // Extract updated price from addToCart response
   double _extractUpdatedPrice(Map<String, dynamic> cartData) {
@@ -988,135 +1133,6 @@ class ApiServiceFlyDubai {
 
 
 
-// Update the createPNR method in ApiServiceFlyDubai
-  Future<Map<String, dynamic>> createPNR({
-    required List<TravelerInfo> adults,
-    required List<TravelerInfo> children,
-    required List<TravelerInfo> infants,
-    required String clientEmail,
-    required String clientPhone,
-    required String countryCode,
-    required String simCode,
-    required String city,
-    required String flightType,
-    required List<Map<String, dynamic>> segmentArray,
-    required Map<String, dynamic> cartData,
-  }) async {
-    try {
-      print('=== CREATING PNR FOR FLYDUBAI ===');
-      print('Adults: ${adults.length}, Children: ${children.length}, Infants: ${infants.length}');
-      print('Client Email: $clientEmail, Phone: $clientPhone');
-      print('Country Code: $countryCode, SIM Code: $simCode');
-      print('City: $city, Flight Type: $flightType');
-      print('Segment Array: ${segmentArray.length} segments');
-
-      if (_accessToken == null) {
-        final authSuccess = await authenticate();
-        if (!authSuccess) {
-          return {
-            'success': false,
-            'error': 'Authentication failed',
-            'details': 'Could not authenticate with FlyDubai API'
-          };
-        }
-      }
-
-      // Build the PNR request body
-      final requestBody = _buildPNRRequest(
-        adults: adults,
-        children: children,
-        infants: infants,
-        clientEmail: clientEmail,
-        clientPhone: clientPhone,
-        countryCode: countryCode,
-        simCode: simCode,
-        city: city,
-        flightType: flightType,
-        segmentArray: segmentArray,
-        cartData: cartData,
-      );
-
-      print('PNR Request Body:');
-      printJsonPretty(requestBody);
-
-      // Log the request to file (simulating PHP behavior)
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      print('PNR Request Timestamp: $timestamp');
-
-      final response = await http.post(
-        Uri.parse('$baseUrl/cp/summaryPNR?accural=true'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_accessToken',
-          'Cookie': 'visid_incap_3059742=mt0fc3JTQDStXbDmAKotlet1zGUAAAAAQUIPAAAAAAA/4nh9vwd+842orxzMj3FS',
-          'Accept-Encoding': 'gzip, deflate',
-        },
-        body: json.encode(requestBody),
-      );
-
-      print('PNR Creation Response Status: ${response.statusCode}');
-      print('PNR Creation Response Body:');
-      printJsonPretty(response.body);
-
-      // Log response to file (simulating PHP behavior)
-      print('PNR Response Timestamp: $timestamp');
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
-        print('✅ PNR created successfully');
-
-        // Check for success in response
-        final success = responseData['Success'] == true ||
-            responseData['ConfirmationNumber'] != null;
-
-        return {
-          'success': success,
-          'data': responseData,
-          'confirmationNumber': responseData['ConfirmationNumber']?.toString(),
-          'message': success ? 'PNR created successfully' : 'PNR creation failed',
-          'rawResponse': responseData,
-        };
-      } else if (response.statusCode == 401) {
-        // Token expired
-        print('❌ Token expired, re-authenticating...');
-        _accessToken = null;
-        final authSuccess = await authenticate();
-        if (authSuccess) {
-          return await createPNR(
-            adults: adults,
-            children: children,
-            infants: infants,
-            clientEmail: clientEmail,
-            clientPhone: clientPhone,
-            countryCode: countryCode,
-            simCode: simCode,
-            city: city,
-            flightType: flightType,
-            segmentArray: segmentArray,
-            cartData: cartData,
-          );
-        }
-        return {
-          'success': false,
-          'error': 'Re-authentication failed',
-          'response': response.body,
-        };
-      }
-
-      return {
-        'success': false,
-        'error': 'PNR creation failed with status: ${response.statusCode}',
-        'response': response.body,
-      };
-    } catch (e, stackTrace) {
-      print('❌ PNR creation error: $e');
-      print('Stack trace: $stackTrace');
-      return {
-        'success': false,
-        'error': 'PNR creation failed: $e',
-      };
-    }
-  }
 // Update the _buildPNRRequest method
   Map<String, dynamic> _buildPNRRequest({
     required List<TravelerInfo> adults,
