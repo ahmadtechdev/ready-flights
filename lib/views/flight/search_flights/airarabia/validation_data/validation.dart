@@ -18,6 +18,7 @@ class AirArabiaRevalidationScreen extends StatefulWidget {
 
 class _AirArabiaRevalidationScreenState extends State<AirArabiaRevalidationScreen> {
   bool _isExpanded = false;
+   int _selectedPassengerIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -323,7 +324,7 @@ class _AirArabiaRevalidationScreenState extends State<AirArabiaRevalidationScree
     );
   }
 
-  Widget _buildBaggageTab(AirArabiaRevalidationController controller) {
+Widget _buildBaggageTab(AirArabiaRevalidationController controller) {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
       child: Column(
@@ -339,25 +340,65 @@ class _AirArabiaRevalidationScreenState extends State<AirArabiaRevalidationScree
           ),
           const SizedBox(height: 8),
           Text(
-            'Select additional baggage for your journey',
+            'Select additional baggage for each passenger',
             style: TextStyle(
               fontSize: 14,
               color: TColors.grey,
             ),
           ),
           const SizedBox(height: 16),
-          Obx(() => Column(
-            children: controller.availableBaggage.map((baggage) {
-              final isSelected = controller.selectedBaggage['default']?.baggageCode == baggage.baggageCode;
-              return _buildSelectionCard(
-                icon: Icons.luggage,
-                title: baggage.baggageDescription,
-                price: 'PKR ${baggage.baggageCharge}',
-                isSelected: isSelected,
-                onTap: () => controller.selectBaggage('default', baggage),
-              );
-            }).toList(),
-          )),
+          
+          // Passenger tabs for baggage selection
+         if (controller.adultPassengers.value > 1) // Changed from totalPassengers
+  Container(
+    height: 40,
+    margin: const EdgeInsets.only(bottom: 16),
+    child: ListView.builder(
+      scrollDirection: Axis.horizontal,
+      itemCount: controller.adultPassengers.value, // Changed from totalPassengers
+      itemBuilder: (context, index) {
+        final passengerId = controller.passengerIds[index];
+        return Container(
+          margin: const EdgeInsets.only(right: 8),
+          child: FilterChip(
+            label: Text(controller.getPassengerDisplayName(index)),
+            selected: _selectedPassengerIndex == index,
+            onSelected: (selected) {
+              setState(() {
+                _selectedPassengerIndex = selected ? index : 0;
+              });
+            },
+            selectedColor: TColors.primary.withOpacity(0.2),
+            labelStyle: TextStyle(
+              color: _selectedPassengerIndex == index ? TColors.primary : TColors.grey,
+              fontWeight: _selectedPassengerIndex == index ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        );
+      },
+    ),
+  ),
+
+
+          // Baggage options for selected passenger
+          Obx(() {
+            final passengerId = controller.passengerIds.isNotEmpty 
+                ? controller.passengerIds[_selectedPassengerIndex] 
+                : 'passenger_0';
+            
+            return Column(
+              children: controller.availableBaggage.map((baggage) {
+                final isSelected = controller.selectedBaggage[passengerId]?.baggageCode == baggage.baggageCode;
+                return _buildSelectionCard(
+                  icon: Icons.luggage,
+                  title: baggage.baggageDescription,
+                  price: 'PKR ${baggage.baggageCharge}',
+                  isSelected: isSelected,
+                  onTap: () => controller.selectBaggage(passengerId, baggage),
+                );
+              }).toList(),
+            );
+          }),
         ],
       ),
     );
@@ -389,6 +430,36 @@ class _AirArabiaRevalidationScreenState extends State<AirArabiaRevalidationScree
                 }).toList(),
               ),
             ),
+          
+          // Passenger selection for meals
+         if (controller.adultPassengers.value > 1) // Changed from totalPassengers
+  Container(
+    height: 40,
+    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    child: ListView.builder(
+      scrollDirection: Axis.horizontal,
+      itemCount: controller.adultPassengers.value, // Changed from totalPassengers
+      itemBuilder: (context, index) {
+        return Container(
+          margin: const EdgeInsets.only(right: 8),
+          child: FilterChip(
+            label: Text(controller.getPassengerDisplayName(index)),
+            selected: _selectedPassengerIndex == index,
+            onSelected: (selected) {
+              setState(() {
+                _selectedPassengerIndex = selected ? index : 0;
+              });
+            },
+            selectedColor: TColors.primary.withOpacity(0.2),
+            labelStyle: TextStyle(
+              color: _selectedPassengerIndex == index ? TColors.primary : TColors.grey,
+              fontWeight: _selectedPassengerIndex == index ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        );
+      },
+    ),
+  ),
           Expanded(
             child: TabBarView(
               children: segments.map((segment) {
@@ -417,15 +488,24 @@ class _AirArabiaRevalidationScreenState extends State<AirArabiaRevalidationScree
                         ),
                       ),
                       const SizedBox(height: 16),
-                      ...meals.map((meal) {
-                        final isSelected = controller.isMealSelected(segmentCode, meal);
-                        return _buildSelectionCard(
-                          icon: Icons.restaurant_menu,
-                          title: meal.mealName,
-                          subtitle: meal.mealDescription,
-                          price: 'PKR ${meal.mealCharge}',
-                          isSelected: isSelected,
-                          onTap: () => controller.toggleMeal(segmentCode, meal),
+                      
+                      Obx(() {
+                        final passengerId = controller.passengerIds.isNotEmpty 
+                            ? controller.passengerIds[_selectedPassengerIndex] 
+                            : 'passenger_0';
+                            
+                        return Column(
+                          children: meals.map((meal) {
+                            final isSelected = controller.isMealSelected(segmentCode, passengerId, meal);
+                            return _buildSelectionCard(
+                              icon: Icons.restaurant_menu,
+                              title: meal.mealName,
+                              subtitle: meal.mealDescription,
+                              price: 'PKR ${meal.mealCharge}',
+                              isSelected: isSelected,
+                              onTap: () => controller.toggleMeal(segmentCode, passengerId, meal),
+                            );
+                          }).toList(),
                         );
                       }),
                     ],
@@ -465,6 +545,37 @@ class _AirArabiaRevalidationScreenState extends State<AirArabiaRevalidationScree
                 }).toList(),
               ),
             ),
+          
+          // Passenger selection for seats
+          if (controller.adultPassengers.value > 1) // Changed from totalPassengers
+  Container(
+    height: 40,
+    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    child: ListView.builder(
+      scrollDirection: Axis.horizontal,
+      itemCount: controller.adultPassengers.value, // Changed from totalPassengers
+      itemBuilder: (context, index) {
+        return Container(
+          margin: const EdgeInsets.only(right: 8),
+          child: FilterChip(
+            label: Text(controller.getPassengerDisplayName(index)),
+            selected: _selectedPassengerIndex == index,
+            onSelected: (selected) {
+              setState(() {
+                _selectedPassengerIndex = selected ? index : 0;
+              });
+            },
+            selectedColor: TColors.primary.withOpacity(0.2),
+            labelStyle: TextStyle(
+              color: _selectedPassengerIndex == index ? TColors.primary : TColors.grey,
+              fontWeight: _selectedPassengerIndex == index ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        );
+      },
+    ),
+  ),
+
           Expanded(
             child: TabBarView(
               children: segments.map((segment) {
@@ -476,152 +587,171 @@ class _AirArabiaRevalidationScreenState extends State<AirArabiaRevalidationScree
         ],
       ),
     );
-  }
-
-  Widget _buildCompleteAircraftLayout(String segmentCode, AirArabiaRevalidationController controller) {
+  } 
+Widget _buildCompleteAircraftLayout(String segmentCode, AirArabiaRevalidationController controller) {
     final apiSeats = controller.getSeatsForSegment(segmentCode).isEmpty 
         ? _generateDemoApiSeats() 
         : controller.getSeatsForSegment(segmentCode);
     
-    final selectedSeat = controller.getSelectedSeat(segmentCode);
-    
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-      child: Column(
-        children: [
-          const Text(
-            'Choose Your Seat',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: TColors.primary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Select your preferred seat',
-            style: TextStyle(
-              fontSize: 14,
-              color: TColors.grey,
-            ),
-          ),
-          const SizedBox(height: 16),
-          
-          // Selected seat display
-          if (selectedSeat != null && selectedSeat.seatNumber.isNotEmpty)
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: TColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: TColors.primary.withOpacity(0.3)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.airline_seat_recline_normal, color: TColors.primary),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Seat ${selectedSeat.seatNumber}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            color: TColors.primary,
-                          ),
-                        ),
-                        Text(
-                          'PKR ${selectedSeat.seatCharge.toStringAsFixed(0)}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: TColors.grey,
-                          ),
-                        ),
-                      ],
+      child: Obx(() {
+        final passengerId = controller.passengerIds.isNotEmpty 
+            ? controller.passengerIds[_selectedPassengerIndex] 
+            : 'passenger_0';
+        final selectedSeat = controller.getSelectedSeat(segmentCode, passengerId);
+        
+        return Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Choose Your Seat',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: TColors.primary,
                     ),
                   ),
-                  IconButton(
-                    onPressed: () => controller.selectSeat(segmentCode, SeatOption(
-                      seatNumber: '',
-                      seatCharge: 0,
-                      currencyCode: 'PKR',
-                      seatAvailability: '',
-                    )),
-                    icon: const Icon(Icons.close, color: TColors.red),
+                ),
+                if (controller.adultPassengers.value > 1) // Changed from totalPassengers
+  Text(
+    controller.getPassengerDisplayName(_selectedPassengerIndex),
+    style: TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
+      color: TColors.primary,
+    ),
+  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Select your preferred seat',
+              style: TextStyle(
+                fontSize: 14,
+                color: TColors.grey,
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // Selected seat display
+            if (selectedSeat != null && selectedSeat.seatNumber.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: TColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: TColors.primary.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.airline_seat_recline_normal, color: TColors.primary),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Seat ${selectedSeat.seatNumber}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                              color: TColors.primary,
+                            ),
+                          ),
+                          Text(
+                            'PKR ${selectedSeat.seatCharge.toStringAsFixed(0)}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: TColors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => controller.selectSeat(segmentCode, passengerId, SeatOption(
+                        seatNumber: '',
+                        seatCharge: 0,
+                        currencyCode: 'PKR',
+                        seatAvailability: '',
+                      )),
+                      icon: const Icon(Icons.close, color: TColors.red),
+                    ),
+                  ],
+                ),
+              ),
+            
+            // Aircraft layout
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: TColors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: TColors.black.withOpacity(0.06),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  // Aircraft nose
+                  Container(
+                    width: 40,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [TColors.primary.withOpacity(0.2), TColors.primary.withOpacity(0.1)],
+                      ),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.flight,
+                      color: TColors.primary,
+                      size: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Complete seat layout - 29 rows
+                  Column(
+                    children: List.generate(29, (rowIndex) {
+                      final rowNumber = rowIndex + 1;
+                      return _buildSeatRow(rowNumber, apiSeats, selectedSeat, controller, segmentCode, passengerId);
+                    }),
+                  ),
+                  
+                  const SizedBox(height: 12),
+                  
+                  // Legend
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildLegendItem(TColors.grey.withOpacity(0.2), 'Available'),
+                      _buildLegendItem(TColors.primary, 'Selected'),
+                      _buildLegendItem(TColors.red.withOpacity(0.3), 'Occupied'),
+                      _buildLegendItem(Colors.orange.withOpacity(0.3), 'Other Passenger'),
+                    ],
                   ),
                 ],
               ),
             ),
-          
-          // Aircraft layout
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: TColors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: TColors.black.withOpacity(0.06),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                // Aircraft nose
-                Container(
-                  width: 40,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [TColors.primary.withOpacity(0.2), TColors.primary.withOpacity(0.1)],
-                    ),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.flight,
-                    color: TColors.primary,
-                    size: 16,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                
-                // Complete seat layout - 29 rows
-                Column(
-                  children: List.generate(29, (rowIndex) {
-                    final rowNumber = rowIndex + 1;
-                    return _buildSeatRow(rowNumber, apiSeats, selectedSeat, controller, segmentCode);
-                  }),
-                ),
-                
-                const SizedBox(height: 12),
-                
-                // Legend
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildLegendItem(TColors.grey.withOpacity(0.2), 'Available'),
-                    _buildLegendItem(TColors.primary, 'Selected'),
-                    _buildLegendItem(TColors.red.withOpacity(0.3), 'Occupied'),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+          ],
+        );
+      }),
     );
   }
-
-  Widget _buildSeatRow(int rowNumber, List<SeatOption> apiSeats, SeatOption? selectedSeat, 
-                      AirArabiaRevalidationController controller, String segmentCode) {
+   Widget _buildSeatRow(int rowNumber, List<SeatOption> apiSeats, SeatOption? selectedSeat, 
+                      AirArabiaRevalidationController controller, String segmentCode, String passengerId) {
     final columns = ['A', 'B', 'C', 'D', 'E', 'F'];
     
     return Container(
@@ -647,7 +777,7 @@ class _AirArabiaRevalidationScreenState extends State<AirArabiaRevalidationScree
           // Left side seats (A, B, C)
           ...columns.take(3).map((column) {
             final seatNumber = '$rowNumber$column';
-            return _buildSeat(seatNumber, apiSeats, selectedSeat, controller, segmentCode);
+            return _buildSeat(seatNumber, apiSeats, selectedSeat, controller, segmentCode, passengerId);
           }),
           
           // Aisle
@@ -656,7 +786,7 @@ class _AirArabiaRevalidationScreenState extends State<AirArabiaRevalidationScree
           // Right side seats (D, E, F)
           ...columns.skip(3).map((column) {
             final seatNumber = '$rowNumber$column';
-            return _buildSeat(seatNumber, apiSeats, selectedSeat, controller, segmentCode);
+            return _buildSeat(seatNumber, apiSeats, selectedSeat, controller, segmentCode, passengerId);
           }),
         ],
       ),
@@ -664,12 +794,13 @@ class _AirArabiaRevalidationScreenState extends State<AirArabiaRevalidationScree
   }
 
   Widget _buildSeat(String seatNumber, List<SeatOption> apiSeats, SeatOption? selectedSeat,
-                   AirArabiaRevalidationController controller, String segmentCode) {
+                   AirArabiaRevalidationController controller, String segmentCode, String passengerId) {
     
     // Find if this seat exists in API data
     final apiSeat = apiSeats.where((seat) => seat.seatNumber == seatNumber).firstOrNull;
     
     final isSelected = selectedSeat?.seatNumber == seatNumber;
+    final isOccupiedByOtherPassenger = controller.isSeatOccupiedByOtherPassenger(segmentCode, passengerId, apiSeat ?? SeatOption(seatNumber: seatNumber, seatCharge: 0, currencyCode: 'PKR', seatAvailability: 'Occupied'));
     final bool isOccupied;
     final double price;
     
@@ -686,6 +817,8 @@ class _AirArabiaRevalidationScreenState extends State<AirArabiaRevalidationScree
     Color seatColor;
     if (isSelected) {
       seatColor = TColors.primary;
+    } else if (isOccupiedByOtherPassenger) {
+      seatColor = Colors.orange.withOpacity(0.3);
     } else if (isOccupied) {
       seatColor = TColors.red.withOpacity(0.3);
     } else {
@@ -693,8 +826,8 @@ class _AirArabiaRevalidationScreenState extends State<AirArabiaRevalidationScree
     }
     
     return GestureDetector(
-      onTap: (isOccupied || apiSeat == null) ? null : () {
-        controller.selectSeat(segmentCode, apiSeat);
+      onTap: (isOccupied || apiSeat == null || isOccupiedByOtherPassenger) ? null : () {
+        controller.selectSeat(segmentCode, passengerId, apiSeat);
       },
       child: Container(
         width: 24,
@@ -706,9 +839,11 @@ class _AirArabiaRevalidationScreenState extends State<AirArabiaRevalidationScree
           border: Border.all(
             color: isSelected 
                 ? TColors.primary 
-                : isOccupied 
-                  ? TColors.red.withOpacity(0.4)
-                  : TColors.grey.withOpacity(0.2),
+                : isOccupiedByOtherPassenger
+                  ? Colors.orange.withOpacity(0.4)
+                  : isOccupied 
+                    ? TColors.red.withOpacity(0.4)
+                    : TColors.grey.withOpacity(0.2),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -720,6 +855,8 @@ class _AirArabiaRevalidationScreenState extends State<AirArabiaRevalidationScree
               style: TextStyle(
                 color: isSelected
                     ? TColors.white
+                    : isOccupiedByOtherPassenger
+                    ? Colors.orange.withOpacity(0.7)
                     : isOccupied
                     ? TColors.red.withOpacity(0.7)
                     : TColors.primary,
@@ -727,7 +864,7 @@ class _AirArabiaRevalidationScreenState extends State<AirArabiaRevalidationScree
                 fontSize: 10,
               ),
             ),
-            if (price > 0 && !isOccupied)
+            if (price > 0 && !isOccupied && !isOccupiedByOtherPassenger)
               Text(
                 price < 1000 ? '${price.toInt()}' : '${(price/1000).toStringAsFixed(1)}k',
                 style: TextStyle(
@@ -743,8 +880,7 @@ class _AirArabiaRevalidationScreenState extends State<AirArabiaRevalidationScree
       ),
     );
   }
-
-  // Generate demo API seats (only seats that would come from API)
+            // Generate demo API seats (only seats that would come from API)
   List<SeatOption> _generateDemoApiSeats() {
     final List<SeatOption> seats = [];
     final random = math.Random();

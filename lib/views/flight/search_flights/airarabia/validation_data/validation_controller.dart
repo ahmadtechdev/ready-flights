@@ -5,12 +5,20 @@ import 'package:ready_flights/views/flight/search_flights/airarabia/validation_d
 
 class AirArabiaRevalidationController extends GetxController {
   final ApiServiceAirArabia _apiService = Get.find<ApiServiceAirArabia>();
+final RxInt adultPassengers = 1.obs; // Add this line
+final RxInt childPassengers = 0.obs; // Add this line
+final RxInt infantPassengers = 0.obs;
   
-
+  
+  
   final RxBool isLoading = false.obs;
   final RxString errorMessage = ''.obs;
   final Rx<AirArabiaRevalidationResponse?> revalidationResponse =
   Rx<AirArabiaRevalidationResponse?>(null);
+
+  // Passenger information
+  final RxInt totalPassengers = 1.obs;
+  final RxList<String> passengerIds = <String>[].obs;
 
   // Extras data
   final RxList<BaggageOption> availableBaggage = <BaggageOption>[].obs;
@@ -19,10 +27,10 @@ class AirArabiaRevalidationController extends GetxController {
   final RxList<SeatOption> availableSeats = <SeatOption>[].obs;
   final RxMap<String, List<SeatOption>> seatsBySegment = <String, List<SeatOption>>{}.obs;
 
-  // Selected extras
+  // Selected extras - now per passenger
   final RxMap<String, BaggageOption> selectedBaggage = <String, BaggageOption>{}.obs;
-  final RxMap<String, List<MealOption>> selectedMeals = <String, List<MealOption>>{}.obs;
-  final RxMap<String, SeatOption> selectedSeats = <String, SeatOption>{}.obs;
+  final RxMap<String, RxMap<String, List<MealOption>>> selectedMeals = <String, RxMap<String, List<MealOption>>>{}.obs;
+  final RxMap<String, RxMap<String, SeatOption>> selectedSeats = <String, RxMap<String, SeatOption>>{}.obs;
 
   // Pricing
   final RxDouble basePrice = 0.0.obs;
@@ -42,16 +50,46 @@ class AirArabiaRevalidationController extends GetxController {
   }
 
   Future<void> _autoRevalidate(Map<String, dynamic> args) async {
-    await revalidatePackage(
-      type: args['type'] ?? 0,
-      adult: args['adult'] ?? 1,
-      child: args['child'] ?? 0,
-      infant: args['infant'] ?? 0,
-      sector: args['sector'] ?? [],
-      fare: args['fare'] ?? {},
-      csId: args['csId'] ?? 15,
-    );
+  // Set passenger count from arguments
+  final adults = args['adult'] ?? 1;
+  final children = args['child'] ?? 0;
+  final infants = args['infant'] ?? 0;
+  
+  adultPassengers.value = adults; // Add this line
+  childPassengers.value = children; // Add this line
+  infantPassengers.value = infants; // Add this line
+  totalPassengers.value = adults + children + infants;
+  
+  // Initialize passenger IDs
+  _initializePassengerIds();
+
+  await revalidatePackage(
+    type: args['type'] ?? 0,
+    adult: adults,
+    child: children,
+    infant: infants,
+    sector: args['sector'] ?? [],
+    fare: args['fare'] ?? {},
+    csId: args['csId'] ?? 15,
+  );
+}
+
+void _initializePassengerIds() {
+  passengerIds.clear();
+  // Only create IDs for adult passengers for baggage/meal/seat selection
+  for (int i = 0; i < adultPassengers.value; i++) {
+    passengerIds.add('passenger_$i');
+    // Initialize meal and seat maps for each adult passenger
+    selectedMeals['passenger_$i'] = <String, List<MealOption>>{}.obs;
+    selectedSeats['passenger_$i'] = <String, SeatOption>{}.obs;
   }
+}
+
+// Get passenger display name - updated to show only adults
+String getPassengerDisplayName(int index) {
+  if (adultPassengers.value == 1) return 'Adult';
+  return 'Adult ${index + 1}';
+}
 
   Future<bool> revalidatePackage({
     required int type,
@@ -93,50 +131,55 @@ class AirArabiaRevalidationController extends GetxController {
     }
   }
 
- 
-void _processResponseData() {
-  try {
-    final data = revalidationResponse.value?.data;
-    if (data == null) {
-      print('No data in revalidation response');
-      return;
-    }
-
-    // Set base price and currency - handle both single and multiple passengers
-    final passengerFare = data.pricing.ptcFareBreakdown.passengerFare;
-    if (passengerFare != null) {
-      final totalFareAmount = passengerFare.totalFare?.attributes['Amount']?.toString() ?? '0';
-      basePrice.value = double.tryParse(totalFareAmount) ?? 0.0;
-      currency.value = passengerFare.totalFare?.attributes['CurrencyCode']?.toString() ?? 'PKR';
-    }
-
-    // Process baggage options
-    _processBaggageOptions(data.extras.baggage);
-
-    // Process meal options
-    _processMealOptions(data.extras.meal);
-
-    // Process seat options
-    _processSeatOptions(data.extras.seat);
-  } catch (e) {
-    print('Error processing response data: $e');
-    errorMessage.value = 'Error processing flight data: ${e.toString()}';
-  }
-}
- void _processBaggageOptions(BaggageInfo baggageInfo) {
+  void _processResponseData() {
     try {
-      // Safe navigation with null checks
+      final data = revalidationResponse.value?.data;
+      if (data == null) {
+        print('No data in revalidation response');
+        return;
+      }
+
+      // Set base price and currency - handle multiple PTC fare breakdowns
+      final ptcBreakdowns = data.pricing.ptcFareBreakdowns;
+      double totalBasePrice = 0.0;
+      
+      for (final breakdown in ptcBreakdowns) {
+        final passengerFare = breakdown.passengerFare;
+        if (passengerFare != null && passengerFare.totalFare != null) {
+          final totalFareAmount = passengerFare.totalFare!.attributes['Amount']?.toString() ?? '0';
+          final quantity = int.tryParse(breakdown.passengerTypeQuantity?.attributes['Quantity'] ?? '1') ?? 1;
+          totalBasePrice += (double.tryParse(totalFareAmount) ?? 0.0) * quantity;
+        }
+      }
+      
+      basePrice.value = totalBasePrice;
+      currency.value = ptcBreakdowns.isNotEmpty 
+          ? ptcBreakdowns.first.passengerFare?.totalFare?.attributes['CurrencyCode']?.toString() ?? 'PKR'
+          : 'PKR';
+
+      // Process baggage options
+      _processBaggageOptions(data.extras.baggage);
+
+      // Process meal options
+      _processMealOptions(data.extras.meal);
+
+      // Process seat options
+      _processSeatOptions(data.extras.seat);
+      
+    } catch (e) {
+      print('Error processing response data: $e');
+      errorMessage.value = 'Error processing flight data: ${e.toString()}';
+    }
+  } void _processBaggageOptions(BaggageInfo baggageInfo) {
+    try {
       final baggageDetails = baggageInfo.body.aaBaggageDetailsRS;
       final baggageResponses = baggageDetails.baggageDetailsResponses;
       final onDBaggageResponse = baggageResponses.onDBaggageDetailsResponse;
 
-      // Get baggage list safely
       final baggageOptions = onDBaggageResponse.baggage;
-
       availableBaggage.value = baggageOptions;
 
       if (baggageOptions.isNotEmpty) {
-        // Set default "No Bag" option or first available option
         final noBagOption = baggageOptions.firstWhere(
               (bag) => bag.baggageCode.toLowerCase().contains('no bag') ||
               bag.baggageCode.toLowerCase().contains('nobag') ||
@@ -144,11 +187,14 @@ void _processResponseData() {
           orElse: () => baggageOptions.first,
         );
 
-        selectedBaggage['default'] = noBagOption;
+        // Set default baggage for all passengers
+        for (String passengerId in passengerIds) {
+          selectedBaggage[passengerId] = noBagOption;
+        }
       }
     } catch (e) {
       print('Error processing baggage options: $e');
-      availableBaggage.value = []; // Ensure empty list on error
+      availableBaggage.value = [];
     }
   }
 
@@ -160,7 +206,6 @@ void _processResponseData() {
       mealsBySegment.clear();
 
       for (final response in mealResponses) {
-        // Generate segment code more safely
         final segmentCode = response.flightSegmentInfo.attributes['SegmentCode']?.toString() ??
             response.flightSegmentInfo.attributes['RPH']?.toString() ??
             'segment_${mealResponses.indexOf(response)}';
@@ -184,12 +229,10 @@ void _processResponseData() {
       seatsBySegment.clear();
 
       for (final response in seatResponses) {
-        // Generate segment code more safely
         final segmentCode = response.flightSegmentInfo.attributes['SegmentCode']?.toString() ??
             response.flightSegmentInfo.attributes['RPH']?.toString() ??
             'segment_${seatResponses.indexOf(response)}';
 
-        // Extract seats from the response
         final seats = _extractSeatsFromResponse(response);
         seatsBySegment[segmentCode] = seats;
         availableSeats.addAll(seats);
@@ -214,7 +257,7 @@ void _processResponseData() {
         for (final airSeat in airSeats) {
           final seatAvailability = airSeat.attributes['SeatAvailability']?.toString() ?? '';
           final seatLetter = airSeat.attributes['SeatNumber']?.toString() ?? '';
-          final seatNumber = '$rowNumber$seatLetter'; // Combine row number with seat letter
+          final seatNumber = '$rowNumber$seatLetter';
 
           if (seatAvailability == 'VAC' || seatAvailability == 'Available') {
             seats.add(SeatOption(
@@ -233,22 +276,36 @@ void _processResponseData() {
     return seats;
   }
 
-  // FIXED: Seat selection logic to select only one specific seat
-  void selectSeat(String segmentCode, SeatOption seat) {
-    // If seat number is empty, remove selection
+  // Updated methods to handle per-passenger selection
+
+  void selectSeat(String segmentCode, String passengerId, SeatOption seat) {
+    if (!selectedSeats.containsKey(passengerId)) {
+      selectedSeats[passengerId] = <String, SeatOption>{}.obs;
+    }
+    
     if (seat.seatNumber.isEmpty) {
-      selectedSeats.remove(segmentCode);
+      selectedSeats[passengerId]!.remove(segmentCode);
     } else {
-      // Select only the specific seat (not all seats with same letter)
-      selectedSeats[segmentCode] = seat;
+      selectedSeats[passengerId]![segmentCode] = seat;
     }
     _updateExtrasPrice();
   }
 
-  // Check if a specific seat is selected (not just by letter)
-  bool isSeatSelected(String segmentCode, SeatOption seat) {
-    final selectedSeat = selectedSeats[segmentCode];
+  bool isSeatSelected(String segmentCode, String passengerId, SeatOption seat) {
+    final selectedSeat = selectedSeats[passengerId]?[segmentCode];
     return selectedSeat?.seatNumber == seat.seatNumber;
+  }
+
+  bool isSeatOccupiedByOtherPassenger(String segmentCode, String currentPassengerId, SeatOption seat) {
+    for (String passengerId in passengerIds) {
+      if (passengerId != currentPassengerId) {
+        final selectedSeat = selectedSeats[passengerId]?[segmentCode];
+        if (selectedSeat?.seatNumber == seat.seatNumber) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   void selectBaggage(String passengerId, BaggageOption baggage) {
@@ -256,12 +313,15 @@ void _processResponseData() {
     _updateExtrasPrice();
   }
 
-  void toggleMeal(String segmentCode, MealOption meal) {
-    if (!selectedMeals.containsKey(segmentCode)) {
-      selectedMeals[segmentCode] = [];
+  void toggleMeal(String segmentCode, String passengerId, MealOption meal) {
+    if (!selectedMeals.containsKey(passengerId)) {
+      selectedMeals[passengerId] = <String, List<MealOption>>{}.obs;
+    }
+    if (!selectedMeals[passengerId]!.containsKey(segmentCode)) {
+      selectedMeals[passengerId]![segmentCode] = [];
     }
 
-    final currentMeals = selectedMeals[segmentCode]!;
+    final currentMeals = selectedMeals[passengerId]![segmentCode]!;
     final existingIndex = currentMeals.indexWhere((m) => m.mealCode == meal.mealCode);
 
     if (existingIndex >= 0) {
@@ -270,28 +330,32 @@ void _processResponseData() {
       currentMeals.add(meal);
     }
 
-    selectedMeals.refresh();
+    selectedMeals[passengerId]!.refresh();
     _updateExtrasPrice();
   }
 
   void _updateExtrasPrice() {
     double extrasTotal = 0.0;
 
-    // Add baggage charges
+    // Add baggage charges for all passengers
     for (final baggage in selectedBaggage.values) {
       extrasTotal += double.tryParse(baggage.baggageCharge) ?? 0.0;
     }
 
-    // Add meal charges
-    for (final mealList in selectedMeals.values) {
-      for (final meal in mealList) {
-        extrasTotal += double.tryParse(meal.mealCharge) ?? 0.0;
+    // Add meal charges for all passengers
+    for (final passengerMeals in selectedMeals.values) {
+      for (final mealList in passengerMeals.values) {
+        for (final meal in mealList) {
+          extrasTotal += double.tryParse(meal.mealCharge) ?? 0.0;
+        }
       }
     }
 
-    // Add seat charges
-    for (final seat in selectedSeats.values) {
-      extrasTotal += seat.seatCharge;
+    // Add seat charges for all passengers
+    for (final passengerSeats in selectedSeats.values) {
+      for (final seat in passengerSeats.values) {
+        extrasTotal += seat.seatCharge;
+      }
     }
 
     totalExtrasPrice.value = extrasTotal;
@@ -301,12 +365,12 @@ void _processResponseData() {
     return basePrice.value + totalExtrasPrice.value;
   }
 
-  bool isMealSelected(String segmentCode, MealOption meal) {
-    return selectedMeals[segmentCode]?.any((m) => m.mealCode == meal.mealCode) ?? false;
+  bool isMealSelected(String segmentCode, String passengerId, MealOption meal) {
+    return selectedMeals[passengerId]?[segmentCode]?.any((m) => m.mealCode == meal.mealCode) ?? false;
   }
 
-  SeatOption? getSelectedSeat(String segmentCode) {
-    return selectedSeats[segmentCode];
+  SeatOption? getSelectedSeat(String segmentCode, String passengerId) {
+    return selectedSeats[passengerId]?[segmentCode];
   }
 
   List<FlightSegmentInfo> getFlightSegments() {
@@ -327,27 +391,8 @@ void _processResponseData() {
     return seatsBySegment[segmentCode] ?? [];
   }
 
-  // Get seats organized by rows for better UI display
-  Map<String, List<SeatOption>> getSeatsByRowForSegment(String segmentCode) {
-    final seats = getSeatsForSegment(segmentCode);
-    final Map<String, List<SeatOption>> seatsByRow = {};
-
-    for (final seat in seats) {
-      // Extract row number from seat number (e.g., "1A" -> "1")
-      final rowNumber = seat.seatNumber.replaceAll(RegExp(r'[A-Z]'), '');
-      if (!seatsByRow.containsKey(rowNumber)) {
-        seatsByRow[rowNumber] = [];
-      }
-      seatsByRow[rowNumber]!.add(seat);
-    }
-
-    // Sort seats within each row by letter
-    seatsByRow.forEach((row, seats) {
-      seats.sort((a, b) => a.seatNumber.compareTo(b.seatNumber));
-    });
-
-    return seatsByRow;
-  }
+  // Get passenger display name
+  
 
   void reset() {
     revalidationResponse.value = null;
@@ -359,6 +404,8 @@ void _processResponseData() {
     selectedBaggage.clear();
     selectedMeals.clear();
     selectedSeats.clear();
+    passengerIds.clear();
+    totalPassengers.value = 1;
     basePrice.value = 0.0;
     totalExtrasPrice.value = 0.0;
     currency.value = 'PKR';
@@ -371,20 +418,25 @@ void _processResponseData() {
       'extras_price': totalExtrasPrice.value,
       'total_price': totalPrice,
       'currency': currency.value,
+      'total_passengers': totalPassengers.value,
       'baggage': selectedBaggage.map((key, value) => MapEntry(key, {
         'description': value.baggageDescription,
         'charge': value.baggageCharge,
       })),
-      'meals': selectedMeals.map((key, value) => MapEntry(key,
-          value.map((meal) => {
-            'name': meal.mealName,
-            'charge': meal.mealCharge,
-          }).toList()
+      'meals': selectedMeals.map((passengerId, passengerMeals) => MapEntry(passengerId,
+          passengerMeals.map((segmentCode, mealList) => MapEntry(segmentCode,
+              mealList.map((meal) => {
+                'name': meal.mealName,
+                'charge': meal.mealCharge,
+              }).toList()
+          ))
       )),
-      'seats': selectedSeats.map((key, value) => MapEntry(key, {
-        'number': value.seatNumber,
-        'charge': value.seatCharge,
-      })),
+      'seats': selectedSeats.map((passengerId, passengerSeats) => MapEntry(passengerId,
+          passengerSeats.map((segmentCode, seat) => MapEntry(segmentCode, {
+            'number': seat.seatNumber,
+            'charge': seat.seatCharge,
+          }))
+      )),
     };
   }
 }

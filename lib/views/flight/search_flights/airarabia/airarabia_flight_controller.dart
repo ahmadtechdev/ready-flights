@@ -7,6 +7,7 @@ import '../flight_package/airarabia/airarabia_flight_package.dart';
 import 'airarabia_flight_model.dart';
 
 class AirArabiaFlightController extends GetxController {
+  
   final ApiServiceAirArabia apiService = Get.find<ApiServiceAirArabia>();
    int selectedPackageIndex = 0;
 

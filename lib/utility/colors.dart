@@ -8,6 +8,7 @@ class TColors {
   // static const Color secondary = Color(0xFF3D9BD5);
   static const Color third = Color(0xFF365180);
   static const Color red = Color(0xFFFF0000);
+  static const Color orange = Color(0xFFFF9800); // A nice material orange
   static const Color white = Color(0xFFFFFFFF);
   static const Color background = Color(0xFFFFFFFF);
   static const Color text = Color(0xFF333333);
@@ -19,8 +20,8 @@ class TColors {
     0xFFFFF6E9,
   ); // Add this for the header background
   static const Color background4 = Color(0xFF0A1C32);
+  static const Color lightGrey = Color(0xFFD3D3D3);
 
   // Additional colors for login and register screens
   static const Color inputFieldBackground = Color(0xFFEDE7F6); // Light purple background
 }
-

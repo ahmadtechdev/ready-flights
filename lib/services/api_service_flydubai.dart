@@ -1616,6 +1616,518 @@ class ApiServiceFlyDubai {
   }
 
 
+  // Add these methods to ApiServiceFlyDubai class
+
+// Get seat options
+  Future<Map<String, dynamic>> getSeatOptions({
+    required List<String> bookingIds,
+    required Map<String, dynamic> flightData,
+  }) async {
+    try {
+      if (_accessToken == null) {
+        return {
+          'success': false,
+          'error': 'No valid token available. Please search flights first.',
+        };
+      }
+
+      print('=== FLYDUBAI GET SEAT OPTIONS STARTED ===');
+      print('Booking IDs: $bookingIds');
+
+      final requestBody = _buildSeatRequest(bookingIds, flightData);
+
+      print('Seat Request Body:');
+      printJsonPretty(requestBody);
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/pricing/seats'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_accessToken',
+          'Cookie': 'visid_incap_3059742=mt0fc3JTQDStXbDmAKotlet1zGUAAAAAQUIPAAAAAAA/4nh9vwd+842orxzMj3FS',
+        },
+        body: json.encode(requestBody),
+      );
+
+      print('Seat Options Response Status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        return {
+          'success': true,
+          'data': responseData,
+        };
+      } else if (response.statusCode == 401) {
+        _accessToken = null;
+        _tokenExpiry = null;
+        return {
+          'success': false,
+          'error': 'Token expired. Please search flights again.',
+        };
+      }
+
+      return {
+        'success': false,
+        'error': 'Failed to get seat options: ${response.statusCode}',
+      };
+    } catch (e) {
+      print('Get seat options error: $e');
+      return {
+        'success': false,
+        'error': 'Failed to get seat options: $e',
+      };
+    }
+  }
+
+// Get baggage options
+  Future<Map<String, dynamic>> getBaggageOptions({
+    required List<String> bookingIds,
+    required Map<String, dynamic> flightData,
+  }) async {
+    try {
+      if (_accessToken == null) {
+        return {
+          'success': false,
+          'error': 'No valid token available. Please search flights first.',
+        };
+      }
+
+      print('=== FLYDUBAI GET BAGGAGE OPTIONS STARTED ===');
+      print('Booking IDs: $bookingIds');
+
+      final requestBody = _buildBaggageRequest(bookingIds, flightData);
+
+      print('Baggage Request Body:');
+      printJsonPretty(requestBody);
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/offers/bags'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_accessToken',
+          'Cookie': 'visid_incap_3059742=mt0fc3JTQDStXbDmAKotlet1zGUAAAAAQUIPAAAAAAA/4nh9vwd+842orxzMj3FS',
+        },
+        body: json.encode(requestBody),
+      );
+
+      print('Baggage Options Response Status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        return {
+          'success': true,
+          'data': responseData,
+        };
+      } else if (response.statusCode == 401) {
+        _accessToken = null;
+        _tokenExpiry = null;
+        return {
+          'success': false,
+          'error': 'Token expired. Please search flights again.',
+        };
+      }
+
+      return {
+        'success': false,
+        'error': 'Failed to get baggage options: ${response.statusCode}',
+      };
+    } catch (e) {
+      print('Get baggage options error: $e');
+      return {
+        'success': false,
+        'error': 'Failed to get baggage options: $e',
+      };
+    }
+  }
+
+// Get meal options
+  Future<Map<String, dynamic>> getMealOptions({
+    required List<String> bookingIds,
+    required Map<String, dynamic> flightData,
+  }) async {
+    try {
+      if (_accessToken == null) {
+        return {
+          'success': false,
+          'error': 'No valid token available. Please search flights first.',
+        };
+      }
+
+      print('=== FLYDUBAI GET MEAL OPTIONS STARTED ===');
+      print('Booking IDs: $bookingIds');
+
+      final requestBody = _buildMealRequest(bookingIds, flightData);
+
+      print('Meal Request Body:');
+      printJsonPretty(requestBody);
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/offers/mealsife'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_accessToken',
+          'Cookie': 'visid_incap_3059742=mt0fc3JTQDStXbDmAKotlet1zGUAAAAAQUIPAAAAAAA/4nh9vwd+842orxzMj3FS',
+        },
+        body: json.encode(requestBody),
+      );
+
+      print('Meal Options Response Status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        return {
+          'success': true,
+          'data': responseData,
+        };
+      } else if (response.statusCode == 401) {
+        _accessToken = null;
+        _tokenExpiry = null;
+        return {
+          'success': false,
+          'error': 'Token expired. Please search flights again.',
+        };
+      }
+
+      return {
+        'success': false,
+        'error': 'Failed to get meal options: ${response.statusCode}',
+      };
+    } catch (e) {
+      print('Get meal options error: $e');
+      return {
+        'success': false,
+        'error': 'Failed to get meal options: $e',
+      };
+    }
+  }
+
+// Helper method to build seat request
+  Map<String, dynamic> _buildSeatRequest(List<String> bookingIds, Map<String, dynamic> flightData) {
+    debugPrint("🔍 Starting _buildSeatRequest...");
+    debugPrint("➡️ bookingIds: $bookingIds");
+
+    final retrieveResult = flightData['RetrieveFareQuoteDateRangeResponse']?['RetrieveFareQuoteDateRangeResult'];
+    if (retrieveResult == null) {
+      debugPrint("❌ retrieveResult is null! Invalid flightData structure");
+      throw Exception('Invalid flight data structure');
+    }
+    debugPrint("✅ retrieveResult extracted successfully");
+
+    final segmentDetails = _extractArray(retrieveResult['SegmentDetails']?['SegmentDetail']);
+    debugPrint("✅ segmentDetails extracted: ${segmentDetails.runtimeType}");
+
+    final List<Map<String, dynamic>> flights = [];
+
+    for (int i = 0; i < bookingIds.length; i++) {
+      final bk = bookingIds[i];
+      debugPrint("➡️ Processing bookingId[$i]: $bk");
+
+      final bkIdArray = bk.split('_');
+      if (bkIdArray.length < 2) {
+        debugPrint("⚠️ bookingId[$i] skipped (invalid format)");
+        continue;
+      }
+
+      final main = int.tryParse(bkIdArray[0]) ?? 0;
+      debugPrint("   main index: $main");
+
+      final segment = _findSegmentByIndex(segmentDetails, main);
+      if (segment == null) {
+        debugPrint("❌ No segment found for main index $main (bookingId[$i])");
+        continue;
+      }
+
+      final lfid = segment['LFID']?.toString() ?? '';
+      final origin = segment['Origin']?.toString() ?? '';
+      final destination = segment['Destination']?.toString() ?? '';
+      final flightNum = segment['FlightNum']?.toString() ?? '';
+      final sellingCarrier = segment['SellingCarrier']?.toString() ?? 'FZ';
+      final operatingCarrier = segment['OperatingCarrier']?.toString() ?? 'FZ';
+      final departureDate = segment['DepartureDate']?.toString() ?? '';
+
+      // Extract date part only
+      String checkDep = departureDate;
+      if (departureDate.contains('T')) {
+        checkDep = '${departureDate.split('T')[0]}T00:00:00';
+      }
+
+      debugPrint("   Segment found: LFID=$lfid, FlightNum=$flightNum, Origin=$origin, Dest=$destination, Dep=$checkDep");
+
+      flights.add({
+        'lfID': lfid,
+        'flightNum': flightNum,
+        'depDate': checkDep,
+        'origin': origin,
+        'dest': destination,
+        'category': null,
+        'services': null,
+        'currency': 'PKR',
+        'UTCOffset': 0,
+        'operatingCarrierCode': operatingCarrier,
+        'marketingCarrierCode': sellingCarrier,
+        'channel': 'TPAPI',
+      });
+      debugPrint("✅ Flight added for bookingId[$i]");
+    }
+
+    final result = {'flights': flights};
+    debugPrint("🎯 Final SeatRequest built with ${flights.length} flights");
+    debugPrint(result.toString());
+
+    return result;
+  }
+
+  Map<String, dynamic> _buildBaggageMealRequest(
+      List<String> bookingIds, Map<String, dynamic> flightData) {
+    debugPrint("🔍 Starting _buildBaggageMealRequest...");
+    debugPrint("➡️ bookingIds: $bookingIds");
+
+    final retrieveResult =
+    flightData['RetrieveFareQuoteDateRangeResponse']?['RetrieveFareQuoteDateRangeResult'];
+    if (retrieveResult == null) {
+      debugPrint("❌ retrieveResult is null! Invalid flightData structure");
+      throw Exception('Invalid flight data structure');
+    }
+
+    final basicArray = _extractArray(retrieveResult['FlightSegments']?['FlightSegment']);
+    final legDetails = _extractArray(retrieveResult['LegDetails']?['LegDetail']);
+    final segmentDetails = _extractArray(retrieveResult['SegmentDetails']?['SegmentDetail']);
+
+    debugPrint("✅ Extracted Arrays:");
+    debugPrint("   basicArray: ${basicArray.runtimeType}");
+    debugPrint("   legDetails: ${legDetails.runtimeType}");
+    debugPrint("   segmentDetails: ${segmentDetails.runtimeType}");
+
+    final List<Map<String, dynamic>> originDestinations = [];
+
+    for (int i = 0; i < bookingIds.length; i++) {
+      final bk = bookingIds[i];
+      debugPrint("➡️ Processing bookingId[$i]: $bk");
+
+      final bkIdArray = bk.split('_');
+      if (bkIdArray.length < 2) {
+        debugPrint("⚠️ bookingId[$i] skipped (invalid format)");
+        continue;
+      }
+
+      final main = int.tryParse(bkIdArray[0]) ?? 0;
+      final fare = int.tryParse(bkIdArray[1]) ?? 0;
+      debugPrint("   main index: $main, fare index: $fare");
+
+      // Get the segment data
+      dynamic arrayStart;
+      if (basicArray is List && basicArray.isNotEmpty) {
+        arrayStart = main < basicArray.length ? basicArray[main] : basicArray[0];
+      } else if (basicArray is Map) {
+        arrayStart = basicArray;
+      }
+
+      if (arrayStart == null) {
+        debugPrint("❌ arrayStart is null for bookingId[$i]");
+        continue;
+      }
+
+      final lfid1 = arrayStart['LFID'];
+      final fareTypes = _extractArray(arrayStart['FareTypes']?['FareType']);
+      debugPrint("   lfid1: $lfid1, fareTypes type: ${fareTypes.runtimeType}");
+
+      if (fareTypes == null || (fareTypes is List && fare >= fareTypes.length)) {
+        debugPrint("⚠️ Skipping bookingId[$i]: Invalid fareTypes or index out of range");
+        continue;
+      }
+
+      final fareArray = fareTypes is List ? fareTypes[fare] : fareTypes;
+      final fareTypeName = fareArray['FareTypeName']?.toString() ?? '';
+      debugPrint("   fareTypeName: $fareTypeName");
+
+      final fareInfos = _extractArray(fareArray['FareInfos']?['FareInfo']);
+      final List<Map<String, dynamic>> paxFareDetails = [];
+      final List<Map<String, dynamic>> legDetailList = [];
+
+      // Find segment info
+      Map<String, dynamic> segmentInfo = {};
+      if (segmentDetails is List && segmentDetails.isNotEmpty) {
+        for (final item in segmentDetails) {
+          if (item is Map && item['LFID'] == lfid1) {
+            segmentInfo = {
+              'origin': item['Origin'] ?? '',
+              'destination': item['Destination'] ?? '',
+              'departureDate': item['DepartureDate'] ?? '',
+            };
+            debugPrint("   segmentInfo found: $segmentInfo");
+            break;
+          }
+        }
+      }
+
+      // Build leg details
+      final bookingCodes =
+      _extractArray(fareArray['FareInfos']?['FareInfo']?[0]?['Pax']?[0]?['BookingCodes']?['Bookingcode']);
+      if (bookingCodes != null) {
+        final bookingCodesList = bookingCodes is List ? bookingCodes : [bookingCodes];
+        debugPrint("   bookingCodes found: ${bookingCodesList.length}");
+
+        for (final bkcode in bookingCodesList) {
+          if (bkcode is! Map) continue;
+
+          if (legDetails != null) {
+            final legDetailsList = legDetails is List ? legDetails : [legDetails];
+
+            for (final leg in legDetailsList) {
+              if (leg is! Map) continue;
+
+              final pfid = leg['PFID'];
+              final departureDate = leg['DepartureDate']?.toString() ?? '';
+              final bkcodePfid = bkcode['PFID'];
+              final bkcodeDepartureDate = bkcode['DepartureDate']?.toString() ?? '';
+
+              if (pfid == bkcodePfid && departureDate == bkcodeDepartureDate) {
+                debugPrint("   Matching leg found: PFID=$pfid, Departure=$departureDate");
+                legDetailList.add({
+                  'flightID': pfid?.toString() ?? '',
+                  'board': leg['Origin']?.toString() ?? '',
+                  'off': leg['Destination']?.toString() ?? '',
+                  'depDateTime': departureDate,
+                  'aircraftType': leg['EQP']?.toString() ?? 'B737',
+                  'marketingFlt': {
+                    'carrier': leg['MarketingCarrier']?.toString() ?? 'FZ',
+                    'fltNum': leg['MarketingFlightNum']?.toString() ?? '',
+                  },
+                  'operatingFlt': {
+                    'carrier': leg['OperatingCarrier']?.toString() ?? 'FZ',
+                    'fltNum': leg['FlightNum']?.toString() ?? '',
+                  },
+                });
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      // Build pax fare details
+      if (fareInfos != null) {
+        final fareInfosList = fareInfos is List ? fareInfos : [fareInfos];
+
+        for (final fareInfo in fareInfosList) {
+          if (fareInfo is! Map) continue;
+
+          final paxList = _extractArray(fareInfo['Pax']);
+          if (paxList == null || (paxList is List && paxList.isEmpty)) {
+            continue;
+          }
+
+          final fareData = paxList is List ? paxList[0] : paxList;
+
+          paxFareDetails.add({
+            'fareClass': '',
+            'FBC': fareData['FBCode']?.toString() ?? '',
+            'pax': [fareData['PaxCount'] ?? 1],
+            'baseFareAmt': fareData['BaseFareAmt']?.toString() ?? '0',
+            'fareBrand': fareTypeName,
+            'cabin': fareData['Cabin']?.toString() ?? 'ECONOMY',
+          });
+        }
+        debugPrint("   paxFareDetails added: ${paxFareDetails.length}");
+      }
+
+      originDestinations.add({
+        'lfID': lfid1?.toString() ?? '',
+        'origin': segmentInfo['origin'] ?? '',
+        'dest': segmentInfo['destination'] ?? '',
+        'depDateTime': segmentInfo['departureDate'] ?? '',
+        'legDetails': {
+          'legDetail': legDetailList,
+        },
+        'paxFareDetails': paxFareDetails,
+      });
+      debugPrint("✅ Added originDestination for bookingId[$i]");
+    }
+
+    final result = {
+      'AncillaryPricingRequest': {
+        'GUID': '',
+        'saleInfo': {
+          'POS': 'KW',
+          'currency': 'PKR',
+          'channel': 'TPAPI',
+          'IATA': '2730402T',
+        },
+        'paxDetails': [
+          {
+            'paxID': '1',
+            'PTC': 'ADT',
+            'dob': '',
+            'customerID': 12345,
+            'tier': 12345,
+          }
+        ],
+        'journey': {
+          'originDestination': originDestinations,
+        },
+      },
+    };
+
+    debugPrint("🎯 Final AncillaryPricingRequest built successfully!");
+    debugPrint(result.toString());
+
+    return result;
+  }
+
+// Alias for meal request (same structure as baggage)
+  Map<String, dynamic> _buildMealRequest(List<String> bookingIds, Map<String, dynamic> flightData) {
+    return _buildBaggageMealRequest(bookingIds, flightData);
+  }
+
+// Alias for baggage request
+  Map<String, dynamic> _buildBaggageRequest(List<String> bookingIds, Map<String, dynamic> flightData) {
+    return _buildBaggageMealRequest(bookingIds, flightData);
+  }
+
+// Helper to find segment by index
+// Helper to find segment by index
+// Helper to find segment by LFID
+  Map<String, dynamic>? _findSegmentByIndex(dynamic segmentDetails, int lfid) {
+    debugPrint("🔍 _findSegmentByIndex called with LFID=$lfid, type=${segmentDetails.runtimeType}");
+
+    if (segmentDetails == null) {
+      debugPrint("❌ segmentDetails is null");
+      return null;
+    }
+
+    if (segmentDetails is List) {
+      debugPrint("➡️ segmentDetails is a List with length=${segmentDetails.length}");
+      try {
+        for (var seg in segmentDetails) {
+          if (seg is Map && seg["LFID"] == lfid) {
+            debugPrint("✅ Found matching segment with LFID=$lfid");
+            return Map<String, dynamic>.from(seg);
+          }
+        }
+        debugPrint("⚠️ No segment found with LFID=$lfid in the list");
+        return null;
+      } catch (e) {
+        debugPrint("🔥 Error while searching segment list: $e");
+        return null;
+      }
+    } else if (segmentDetails is Map) {
+      debugPrint("➡️ segmentDetails is a single Map");
+      if (segmentDetails["LFID"] == lfid) {
+        debugPrint("✅ Single segment matches LFID=$lfid");
+        return Map<String, dynamic>.from(segmentDetails);
+      } else {
+        debugPrint("⚠️ Single segment does not match LFID=$lfid (found ${segmentDetails["LFID"]})");
+        return null;
+      }
+    }
+
+    debugPrint("⚠️ segmentDetails is neither List nor Map (type=${segmentDetails.runtimeType})");
+    return null;
+  }
+
+
+
+
   /// Prints JSON nicely with chunking
   void printJsonPretty(dynamic jsonData) {
     const int chunkSize = 1000;

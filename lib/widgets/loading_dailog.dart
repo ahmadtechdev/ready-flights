@@ -7,7 +7,7 @@ class LoadingDialog extends StatefulWidget {
 
   const LoadingDialog({
     super.key,
-    this.message = 'Searching for the best hotels for you...',
+    this.message = 'Please wait while we are loading best hotel deals for you.',
   });
 
   @override
@@ -120,29 +120,7 @@ class _LoadingDialogState extends State<LoadingDialog> with SingleTickerProvider
             const SizedBox(height: 20),
 
             // Tips or additional information
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.info_outline, color: TColors.primary, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'We\'re searching through thousands of hotels to find the best deals for you.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[700],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+             ],
         ),
       ),
     );

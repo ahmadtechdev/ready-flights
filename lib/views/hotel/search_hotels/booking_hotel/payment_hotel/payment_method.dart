@@ -646,8 +646,8 @@ class _HotelPaymentScreenState extends State<HotelPaymentScreen>
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
-                                Colors.orange[50]!,
-                                Colors.orange[100]!.withOpacity(0.3),
+                                Colors.white,
+                                Colors.white,
                               ],
                             ),
                             borderRadius: BorderRadius.circular(12),

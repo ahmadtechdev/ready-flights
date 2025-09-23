@@ -21,11 +21,7 @@ class AirArabiaRevalidationResponse {
 
 class AirArabiaRevalidationData {
   final PricingInfo pricing;
-  
-  
-  
-  
-    final ExtrasInfo extras;
+  final ExtrasInfo extras;
   final MetaInfo meta;
 
   AirArabiaRevalidationData({
@@ -43,15 +39,16 @@ class AirArabiaRevalidationData {
   }
 }
 
+
 class PricingInfo {
-  final PTCFareBreakdown ptcFareBreakdown;
+  final List<PTCFareBreakdown> ptcFareBreakdowns; // Changed to List
   final double totalPrice;
   final String totalPriceAed;
   final String currency;
   final double aedRoe;
 
   PricingInfo({
-    required this.ptcFareBreakdown,
+    required this.ptcFareBreakdowns,
     required this.totalPrice,
     required this.totalPriceAed,
     required this.currency,
@@ -60,7 +57,7 @@ class PricingInfo {
 
   factory PricingInfo.fromJson(Map<String, dynamic> json) {
     return PricingInfo(
-      ptcFareBreakdown: PTCFareBreakdown.fromJson(json['PTC_FareBreakdown'] ?? {}),
+      ptcFareBreakdowns: _parsePTCFareBreakdownList(json['PTC_FareBreakdown']), // Fixed
       totalPrice: _parseDouble(json['total_price']),
       totalPriceAed: json['total_price_aed']?.toString() ?? '',
       currency: json['currency']?.toString() ?? 'PKR',
@@ -68,20 +65,31 @@ class PricingInfo {
     );
   }
 }
+List<PTCFareBreakdown> _parsePTCFareBreakdownList(dynamic value) {
+  if (value == null) return [];
+  if (value is List) {
+    return value.map((x) => PTCFareBreakdown.fromJson(x as Map<String, dynamic>)).toList();
+  }
+  if (value is Map<String, dynamic>) {
+    return [PTCFareBreakdown.fromJson(value)];
+  }
+  return [];
+}
+
 
 class PTCFareBreakdown {
   final Map<String, dynamic> attributes;
   final PassengerTypeQuantity? passengerTypeQuantity;
   final FareBasisCodes? fareBasisCodes;
   final PassengerFare? passengerFare;
-  final List<TravelerRefNumber> travelerRefNumber; // Changed to List
+  final List<TravelerRefNumber> travelerRefNumber;
 
   PTCFareBreakdown({
     required this.attributes,
     this.passengerTypeQuantity,
     this.fareBasisCodes,
     this.passengerFare,
-    required this.travelerRefNumber, // Changed to required List
+    required this.travelerRefNumber,
   });
 
   factory PTCFareBreakdown.fromJson(Map<String, dynamic> json) {
@@ -96,7 +104,7 @@ class PTCFareBreakdown {
       passengerFare: json['PassengerFare'] != null
           ? PassengerFare.fromJson(json['PassengerFare'])
           : null,
-      travelerRefNumber: _parseTravelerRefNumberList(json['TravelerRefNumber']), // Fixed
+      travelerRefNumber: _parseTravelerRefNumberList(json['TravelerRefNumber']),
     );
   }
 }

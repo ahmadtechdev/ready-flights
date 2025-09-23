@@ -217,7 +217,7 @@ class _AirArabiaPackageSelectionDialogState extends State<AirArabiaPackageSelect
               CircularProgressIndicator(),
               SizedBox(height: 16),
               Text(
-                'Loading packages...',
+                'Loading Flights....',
                 style: TextStyle(fontSize: 16, color: TColors.grey),
               ),
             ],
@@ -262,7 +262,7 @@ class _AirArabiaPackageSelectionDialogState extends State<AirArabiaPackageSelect
           const Padding(
             padding: EdgeInsets.only(left: 16, top: 8, bottom: 16),
             child: Text(
-              'Available Packages',
+              'Available',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -441,8 +441,8 @@ class _AirArabiaPackageSelectionDialogState extends State<AirArabiaPackageSelect
                       children: [
                         Text(
                           widget.isReturnFlight
-                              ? 'Select Return Package'
-                              : 'Select Package',
+                              ? 'Select Return Flight '
+              : 'Select Flight ',
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,

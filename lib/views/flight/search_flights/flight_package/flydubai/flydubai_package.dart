@@ -7,6 +7,8 @@ import 'package:ready_flights/views/flight/search_flights/flydubai/flydubai_mode
 import '../../../../../services/api_service_sabre.dart';
 import '../../../../../utility/colors.dart';
 import '../../../form/flight_booking_controller.dart';
+import '../../flydubai/flydubai_exra.dart';
+import '../../flydubai/flydubai_extras_controller.dart';
 import '../../flydubai/flydubai_return_flight.dart';
 import '../../review_flight/flydubai_review_flight.dart';
 import '../../search_flight_utils/widgets/flydubai_flight_card.dart';
@@ -571,10 +573,18 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
           duration: const Duration(seconds: 2),
         );
 
-        Get.to(() => FlyDubaiReviewTripPage(
-          flight: flight,
-          isReturn: isReturnFlight,
-        ));
+        Get.lazyPut<FlydubaiExtrasController>(() => FlydubaiExtrasController());
+        // Get.to(() => FlydubaiExtrasScreen());
+
+// With:
+        Get.to(
+              () => FlydubaiExtrasScreen(),
+          arguments: {
+            'flight': flight,
+            'fare': selectedFareOption,
+            'isReturn': isReturnFlight,
+          },
+        );
       } else {
         // For round trip, show return flights after selecting outbound package
         Get.back(); // Close the package selection dialog

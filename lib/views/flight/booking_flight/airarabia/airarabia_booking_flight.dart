@@ -17,6 +17,7 @@ class AirArabiaBookingFlight extends StatefulWidget {
   final AirArabiaPackage selectedPackage;
   final double totalPrice;
   final String currency;
+  final Map<String, dynamic>? extrasData; 
 
   const AirArabiaBookingFlight({
     super.key,
@@ -24,6 +25,7 @@ class AirArabiaBookingFlight extends StatefulWidget {
     required this.selectedPackage,
     required this.totalPrice,
     required this.currency,
+    this.extrasData,
   });
 
   @override
@@ -45,77 +47,156 @@ class _AirArabiaBookingFlightState extends State<AirArabiaBookingFlight> {
 
   // Auto-fill function for testing
   void _fillDummyData() {
-    // Fill booker information
-    bookingController.firstNameController.text = "John";
-    bookingController.lastNameController.text = "Doe";
-    bookingController.emailController.text = "ahmadtechdev@gmail.com";
-    bookingController.phoneController.text = "1234567890";
-    bookingController.remarksController.text = "Test booking";
-    bookingController.bookerPhoneCountry.value = Country.parse('PK');
+    // Check if widget is still mounted before accessing controllers
+    if (!mounted) return;
+    
+    try {
+      // Fill booker information
+      if (bookingController.firstNameController.text.isEmpty) {
+        bookingController.firstNameController.text = "shani";
+      }
+      if (bookingController.lastNameController.text.isEmpty) {
+        bookingController.lastNameController.text = "shani";
+      }
+      if (bookingController.emailController.text.isEmpty) {
+        bookingController.emailController.text = "ahmadtechdev@gmail.com";
+      }
+      if (bookingController.phoneController.text.isEmpty) {
+        bookingController.phoneController.text = "1234567890";
+      }
+      if (bookingController.remarksController.text.isEmpty) {
+        bookingController.remarksController.text = "Test booking";
+      }
+      bookingController.bookerPhoneCountry.value = Country.parse('PK');
+      // Fill adult travelers with safety checks
+      for (int i = 0; i < bookingController.adults.length; i++) {
+        if (!mounted) return; // Check if still mounted during loop
+        
+        final adult = bookingController.adults[i];
+        if (adult.titleController.text.isEmpty) {
+          adult.titleController.text = i % 2 == 0 ? "Mr" : "Mrs";
+        }
+        if (adult.firstNameController.text.isEmpty) {
+          adult.firstNameController.text = "ahmad${i + 1}";
+        }
+        if (adult.lastNameController.text.isEmpty) {
+          adult.lastNameController.text = "Traveler";
+        }
+        if (adult.passportCnicController.text.isEmpty) {
+          adult.passportCnicController.text = bookingController.isDomesticFlight
+              ? "1234567890123"
+              : "AB123456${i + 1}";
+        }
+        if (adult.nationalityController.text.isEmpty) {
+          adult.nationalityController.text = "Pakistan";
+        }
+        adult.nationalityCountry.value = Country.parse('PK');
+        if (adult.dateOfBirthController.text.isEmpty) {
+          adult.dateOfBirthController.text = "1990-0${(i % 9) + 1}-15";
+        }
+        if (adult.passportExpiryController.text.isEmpty) {
+          adult.passportExpiryController.text = "2030-12-31";
+        }
+        if (adult.genderController.text.isEmpty) {
+          adult.genderController.text = i % 2 == 0 ? "Male" : "Female";
+        }
+        if (adult.phoneController.text.isEmpty) {
+          adult.phoneController.text = "300123456${i + 1}";
+        }
+        adult.phoneCountry.value = Country.parse('PK');
+        if (adult.emailController.text.isEmpty) {
+          adult.emailController.text = "adult${i + 1}@example.com";
+        }
+      }
 
-    // Fill adult travelers
-    for (int i = 0; i < bookingController.adults.length; i++) {
-      final adult = bookingController.adults[i];
-      adult.titleController.text = i % 2 == 0 ? "Mr" : "Mrs";
-      adult.firstNameController.text = "ahmad${i + 1}";
-      adult.lastNameController.text = "Traveler";
-      adult.passportCnicController.text = bookingController.isDomesticFlight
-          ? "1234567890123"
-          : "AB123456${i + 1}";
-      adult.nationalityController.text = "Pakistan";
-      adult.nationalityCountry.value = Country.parse('PK');
-      adult.dateOfBirthController.text = "1990-0${(i % 9) + 1}-15";
-      adult.passportExpiryController.text = "2030-12-31";
-      adult.genderController.text = i % 2 == 0 ? "Male" : "Female";
-      adult.phoneController.text = "300123456${i + 1}";
-      adult.phoneCountry.value = Country.parse('PK');
-      adult.emailController.text = "adult${i + 1}@example.com";
+      // Fill child travelers with safety checks
+      for (int i = 0; i < bookingController.children.length; i++) {
+        if (!mounted) return;
+        
+        final child = bookingController.children[i];
+        if (child.titleController.text.isEmpty) {
+          child.titleController.text = i % 2 == 0 ? "Mstr" : "Miss";
+        }
+        if (child.firstNameController.text.isEmpty) {
+          child.firstNameController.text = "Child${i + 1}";
+        }
+        if (child.lastNameController.text.isEmpty) {
+          child.lastNameController.text = "Traveler";
+        }
+        if (child.passportCnicController.text.isEmpty) {
+          child.passportCnicController.text = bookingController.isDomesticFlight
+              ? "1234567890${100 + i}"
+              : "CD123456${i + 1}";
+        }
+        if (child.nationalityController.text.isEmpty) {
+          child.nationalityController.text = "Pakistan";
+        }
+        child.nationalityCountry.value = Country.parse('PK');
+        if (child.dateOfBirthController.text.isEmpty) {
+          child.dateOfBirthController.text = "2015-0${(i % 9) + 1}-15";
+        }
+        if (child.passportExpiryController.text.isEmpty) {
+          child.passportExpiryController.text = "2030-12-31";
+        }
+        if (child.genderController.text.isEmpty) {
+          child.genderController.text = i % 2 == 0 ? "Male" : "Female";
+        }
+      }
+
+      // Fill infant travelers with safety checks
+      for (int i = 0; i < bookingController.infants.length; i++) {
+        if (!mounted) return;
+        
+        final infant = bookingController.infants[i];
+        if (infant.titleController.text.isEmpty) {
+          infant.titleController.text = "Inf";
+        }
+        if (infant.firstNameController.text.isEmpty) {
+          infant.firstNameController.text = "Infant${i + 1}";
+        }
+        if (infant.lastNameController.text.isEmpty) {
+          infant.lastNameController.text = "Traveler";
+        }
+        if (infant.nationalityController.text.isEmpty) {
+          infant.nationalityController.text = "Pakistan";
+        }
+        infant.nationalityCountry.value = Country.parse('PK');
+        if (infant.dateOfBirthController.text.isEmpty) {
+          infant.dateOfBirthController.text = "2023-0${(i % 9) + 1}-15";
+        }
+        if (infant.genderController.text.isEmpty) {
+          infant.genderController.text = i % 2 == 0 ? "Male" : "Female";
+        }
+      }
+
+      // Accept terms and conditions
+      if (mounted) {
+        setState(() {
+          termsAccepted = true;
+        });
+
+        // Show success message
+        Get.snackbar(
+          'Success',
+          'Form filled with dummy data for testing',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 2),
+        );
+      }
+    } catch (e) {
+      print('Error in _fillDummyData: $e');
+      if (mounted) {
+        Get.snackbar(
+          'Error',
+          'Failed to fill dummy data: ${e.toString()}',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.TOP,
+        );
+      }
     }
-
-    // Fill child travelers
-    for (int i = 0; i < bookingController.children.length; i++) {
-      final child = bookingController.children[i];
-      child.titleController.text = i % 2 == 0 ? "Mstr" : "Miss";
-      child.firstNameController.text = "Child${i + 1}";
-      child.lastNameController.text = "Traveler";
-      child.passportCnicController.text = bookingController.isDomesticFlight
-          ? "1234567890${100 + i}"
-          : "CD123456${i + 1}";
-      child.nationalityController.text = "Pakistan";
-      child.nationalityCountry.value = Country.parse('PK');
-      child.dateOfBirthController.text = "2015-0${(i % 9) + 1}-15";
-      child.passportExpiryController.text = "2030-12-31";
-      child.genderController.text = i % 2 == 0 ? "Male" : "Female";
-      child.phoneController.text = "";
-      child.emailController.text = "";
-    }
-
-    // Fill infant travelers
-    for (int i = 0; i < bookingController.infants.length; i++) {
-      final infant = bookingController.infants[i];
-      infant.titleController.text = "Inf";
-      infant.firstNameController.text = "Infant${i + 1}";
-      infant.lastNameController.text = "Traveler";
-      infant.nationalityController.text = "Pakistan";
-      infant.nationalityCountry.value = Country.parse('PK');
-      infant.dateOfBirthController.text = "2023-0${(i % 9) + 1}-15";
-      infant.genderController.text = i % 2 == 0 ? "Male" : "Female";
-    }
-
-    // Accept terms and conditions
-    setState(() {
-      termsAccepted = true;
-    });
-
-    // Show success message
-    Get.snackbar(
-      'Success',
-      'Form filled with dummy data for testing',
-      backgroundColor: Colors.green,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.TOP,
-      duration: const Duration(seconds: 2),
-    );
   }
 
   @override
@@ -564,10 +645,12 @@ class _AirArabiaBookingFlightState extends State<AirArabiaBookingFlight> {
                 final country = travelerInfo.phoneCountry.value;
                 return InkWell(
                   onTap: () {
-                    bookingController.showPhoneCountryPicker(
-                      context,
-                      travelerInfo,
-                    );
+                    if (mounted) {
+                      bookingController.showPhoneCountryPicker(
+                        context,
+                        travelerInfo,
+                      );
+                    }
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -656,7 +739,9 @@ class _AirArabiaBookingFlightState extends State<AirArabiaBookingFlight> {
                 final country = bookingController.bookerPhoneCountry.value;
                 return InkWell(
                   onTap: () {
-                    bookingController.showBookerPhoneCountryPicker(context);
+                    if (mounted) {
+                      bookingController.showBookerPhoneCountryPicker(context);
+                    }
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -737,7 +822,9 @@ class _AirArabiaBookingFlightState extends State<AirArabiaBookingFlight> {
           final country = travelerInfo.nationalityCountry.value;
           return InkWell(
             onTap: () {
-              bookingController.showNationalityPicker(context, travelerInfo);
+              if (mounted) {
+                bookingController.showNationalityPicker(context, travelerInfo);
+              }
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -793,18 +880,22 @@ class _AirArabiaBookingFlightState extends State<AirArabiaBookingFlight> {
           Checkbox(
             value: termsAccepted,
             onChanged: (value) {
-              setState(() {
-                termsAccepted = value ?? false;
-              });
+              if (mounted) {
+                setState(() {
+                  termsAccepted = value ?? false;
+                });
+              }
             },
             activeColor: TColors.primary,
           ),
           Expanded(
             child: GestureDetector(
               onTap: () {
-                setState(() {
-                  termsAccepted = !termsAccepted;
-                });
+                if (mounted) {
+                  setState(() {
+                    termsAccepted = !termsAccepted;
+                  });
+                }
               },
               child: Padding(
                 padding: const EdgeInsets.only(top: 12),
@@ -917,13 +1008,15 @@ class _AirArabiaBookingFlightState extends State<AirArabiaBookingFlight> {
               suffixIcon: Icon(Icons.calendar_month, color: Colors.grey),
             ),
             onTap: () async {
+              if (!mounted) return;
+              
               final DateTime? pickedDate = await showDatePicker(
                 context: context,
                 initialDate: DateTime.now(),
                 firstDate: DateTime(1900),
                 lastDate: DateTime(2100),
               );
-              if (pickedDate != null) {
+              if (pickedDate != null && mounted) {
                 controller.text =
                 "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
               }
@@ -985,10 +1078,14 @@ class _AirArabiaBookingFlightState extends State<AirArabiaBookingFlight> {
               );
             }).toList(),
             onChanged: (String? newValue) {
-              if (newValue != null) {
-                controller.text = newValue;
-                // Trigger setState to update the UI immediately
-                setState(() {});
+              if (newValue != null && mounted) {
+                try {
+                  controller.text = newValue;
+                  // Trigger setState to update the UI immediately
+                  setState(() {});
+                } catch (e) {
+                  print('Error updating controller: $e');
+                }
               }
             },
             validator: isRequired
@@ -1083,10 +1180,12 @@ Widget _buildBottomBar() {
     ),
   );
 }
-// Updated _handleBookNow method for airarabia_booking_flight.dart
-// Replace the existing _handleBookNow method with this updated version
 
+// Updated _handleBookNow method with safety checks
 Future<void> _handleBookNow() async {
+  // Check if widget is still mounted before proceeding
+  if (!mounted) return;
+  
   if (_formKey.currentState!.validate() && termsAccepted) {
     try {
       // Show loading
@@ -1102,6 +1201,9 @@ Future<void> _handleBookNow() async {
       // Call Air Arabia booking API
       final response = await _createAirArabiaBooking();
       
+      // Check if still mounted before proceeding
+      if (!mounted) return;
+      
       Get.back(); // Remove loading
 
       if (response != null && response['status'] == 200) {
@@ -1112,23 +1214,25 @@ Future<void> _handleBookNow() async {
         print('Data: ${response['data']}');
         
         // Show success snackbar
-        Get.snackbar(
-          'Success',
-          'Booking created successfully!',
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP,
-          duration: const Duration(seconds: 2),
-        );
+        if (mounted) {
+          Get.snackbar(
+            'Success',
+            'Booking created successfully!',
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.TOP,
+            duration: const Duration(seconds: 2),
+          );
 
-        // Navigate to Air Arabia booking confirmation screen
-        Get.off(() => AirArabiaBookingConfirmation(
-          flight: widget.flight,
-          selectedPackage: widget.selectedPackage,
-          bookingResponse: response,
-          totalPrice: widget.totalPrice,
-          currency: widget.currency,
-        ));
+          // Navigate to Air Arabia booking confirmation screen
+          Get.off(() => AirArabiaBookingConfirmation(
+            flight: widget.flight,
+            selectedPackage: widget.selectedPackage,
+            bookingResponse: response,
+            totalPrice: widget.totalPrice,
+            currency: widget.currency,
+          ));
+        }
         
       } else {
         // Handle API error response
@@ -1136,142 +1240,67 @@ Future<void> _handleBookNow() async {
         print('Full Response: $response');
         
         final errorMessage = response?['message'] ?? 'Unknown error occurred';
+        if (mounted) {
+          Get.snackbar(
+            'Booking Failed',
+            errorMessage,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.TOP,
+            duration: const Duration(seconds: 4),
+          );
+        }
+      }
+
+    } catch (e, stackTrace) {
+      if (mounted) {
+        Get.back(); // Remove loading
+        
+        print('❌ Booking Exception:');
+        print('Error: $e');
+        print('Stack Trace: $stackTrace');
+        
         Get.snackbar(
-          'Booking Failed',
-          errorMessage,
+          'Error',
+          'Failed to create booking: ${e.toString()}',
           backgroundColor: Colors.red,
           colorText: Colors.white,
           snackPosition: SnackPosition.TOP,
           duration: const Duration(seconds: 4),
         );
       }
-
-    } catch (e, stackTrace) {
-      Get.back(); // Remove loading
-      
-      print('❌ Booking Exception:');
-      print('Error: $e');
-      print('Stack Trace: $stackTrace');
-      
+    }
+  } else if (!termsAccepted) {
+    if (mounted) {
       Get.snackbar(
         'Error',
-        'Failed to create booking: ${e.toString()}',
+        'Please accept terms and conditions',
         backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
-        duration: const Duration(seconds: 4),
+        duration: const Duration(seconds: 3),
       );
     }
-  } else if (!termsAccepted) {
-    Get.snackbar(
-      'Error',
-      'Please accept terms and conditions',
-      backgroundColor: Colors.red,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.TOP,
-      duration: const Duration(seconds: 3),
-    );
   } else {
-    Get.snackbar(
-      'Error',
-      'Please fill all required fields',
-      backgroundColor: Colors.red,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.TOP,
-      duration: const Duration(seconds: 3),
-    );
-  }
-}
-
-// Don't forget to add the import at the top of your airarabia_booking_flight.dart file:
-// import 'air_arabia_booking_confirmation.dart';
-double _getBasicFareFromRevalidation() {
-  try {
-    final revalidationController = Get.put(AirArabiaRevalidationController());
-    final pricingInfo = revalidationController.revalidationResponse.value?.data?.pricing;
-    
-    if (pricingInfo?.ptcFareBreakdown.passengerFare?.baseFare?.attributes != null) {
-      final baseFareAttributes = pricingInfo!.ptcFareBreakdown.passengerFare!.baseFare!.attributes;
-      final amount = baseFareAttributes['Amount'];
-      if (amount != null) {
-        return double.tryParse(amount.toString()) ?? 0.0;
-      }
+    if (mounted) {
+      Get.snackbar(
+        'Error',
+        'Please fill all required fields',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 3),
+      );
     }
-    
-    // Fallback: calculate basic fare from total price (rough estimation)
-    final totalPrice = pricingInfo?.totalPrice ?? widget.totalPrice;
-    return totalPrice * 0.7; // Assuming basic fare is roughly 70% of total (adjust as needed)
-    
-  } catch (e) {
-    print('Error extracting basic fare: $e');
-    return widget.totalPrice * 0.7; // Fallback calculation
-  }
-}
-double _getTaxFromRevalidation() {
-  try {
-    final revalidationController = Get.find<AirArabiaRevalidationController>();
-    final pricingInfo = revalidationController.revalidationResponse.value?.data?.pricing;
-    
-    if (pricingInfo?.ptcFareBreakdown.passengerFare?.taxes?.taxes != null) {
-      final taxes = pricingInfo!.ptcFareBreakdown.passengerFare!.taxes!.taxes;
-      double totalTax = 0.0;
-      
-      for (final tax in taxes) {
-        final amount = tax.attributes['Amount'];
-        if (amount != null) {
-          totalTax += double.tryParse(amount.toString()) ?? 0.0;
-        }
-      }
-      return totalTax;
-    }
-    
-    // Fallback: estimate tax as percentage of total price
-    final totalPrice = pricingInfo?.totalPrice ?? widget.totalPrice;
-    return totalPrice * 0.2; // Assuming tax is roughly 20% of total
-    
-  } catch (e) {
-    print('Error extracting tax: $e');
-    return (widget.totalPrice * 0.2); // Fallback calculation
-  }
-}
-
-String _getFeesFromRevalidation() {
-  try {
-    final revalidationController = Get.find<AirArabiaRevalidationController>();
-    final pricingInfo = revalidationController.revalidationResponse.value?.data?.pricing;
-    
-    if (pricingInfo?.ptcFareBreakdown.passengerFare?.fees != null && 
-        pricingInfo!.ptcFareBreakdown.passengerFare!.fees.isNotEmpty) {
-      
-      double totalFees = 0.0;
-      for (final fee in pricingInfo.ptcFareBreakdown.passengerFare!.fees) {
-        if (fee is Map && fee['Amount'] != null) {
-          totalFees += double.tryParse(fee['Amount'].toString()) ?? 0.0;
-        }
-      }
-      
-      return totalFees > 0 ? totalFees.toStringAsFixed(2) : "";
-    }
-    
-    return ""; // Return empty string if no fees available
-    
-  } catch (e) {
-    print('Error extracting fees: $e');
-    return ""; // Return empty string on error
   }
 }
 
 // Add this method to create the booking API call
-// Add this method to create the booking API call - FIXED VERSION
-// Updated _createAirArabiaBooking method with proper bkIdArray handling
-// Updated _createAirArabiaBooking method with new format
-// Updated _createAirArabiaBooking method with CORRECTED format for baggage, meals, and seats
-// Updated _createAirArabiaBooking method with CORRECTED array nesting
-// Updated _createAirArabiaBooking method with FIXED multi-segment handling
+// Add this method to create the booking API call
 Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
   try {
     // Get API service
-    final apiService = Get.put(ApiServiceAirArabia());
+    final apiService = Get.find<ApiServiceAirArabia>();  
 
     // Get revalidation controller and meta info
     final revalidationController = Get.find<AirArabiaRevalidationController>();
@@ -1280,7 +1309,8 @@ Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
     if (metaInfo == null) {
       throw Exception('No revalidation data found. Please revalidate flight first.');
     }
-    final controller = Get.put(AirArabiaFlightController());
+    
+    final controller = Get.find<AirArabiaFlightController>();
 
     // Get the selected package index from the controller
     final selectedPackageIndex = controller.selectedPackageIndex;
@@ -1290,49 +1320,64 @@ Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
     final numberOfSegments = widget.flight.flightSegments.length;
     print("Number of flight segments: $numberOfSegments");
 
-    // Add !ret! to final key if it's a return flight
+    // Prepare final key with !ret! suffix (only add if not already present)
     String finalKey = metaInfo.finalKey;
-      // Check if !ret! is not already present to avoid duplication
-      if (!finalKey.endsWith('!ret!')) {
-        finalKey = finalKey + '!ret!';
-      }
-    
-    print("Original final key: ${metaInfo.finalKey}");
-    print("Modified final key: $finalKey");
+    if (!finalKey.endsWith('!ret!')) {
+      finalKey = "${finalKey}!ret!";
+    }
+    print("Final key with suffix: $finalKey");
 
-    // Prepare bkIdArray and bkIdArray3 based on the selected package index and segments
+    // Prepare bkIdArray and bkIdArray3
     String bkIdArray = '';
     String bkIdArray3 = '';
     
-    if (bkIdArray.isEmpty && bkIdArray3.isEmpty) {
-      if (numberOfSegments == 1) {
-        // Direct flight
-        bkIdArray = "${selectedPackageIndex}_0-";
-        bkIdArray3 = "${selectedPackageIndex}!0_";
-      } else {
-        // Multi-segment flight (with stops)
-        List<String> bkIdArrayParts = [];
-        List<String> bkIdArray3Parts = [];
-        
-        for (int i = 0; i < numberOfSegments; i++) {
-          bkIdArrayParts.add("${selectedPackageIndex}_$i-");
-          bkIdArray3Parts.add("${selectedPackageIndex}!${i}_");
-        }
-        
-        bkIdArray = bkIdArrayParts.join("");
-        bkIdArray3 = bkIdArray3Parts.join("");
+    if (numberOfSegments == 1) {
+      // Direct flight
+      bkIdArray = "${selectedPackageIndex}_0-";
+      bkIdArray3 = "${selectedPackageIndex}!0_";
+    } else {
+      // Multi-segment flight
+      List<String> bkIdArrayParts = [];
+      List<String> bkIdArray3Parts = [];
+      
+      for (int i = 0; i < numberOfSegments; i++) {
+        bkIdArrayParts.add("${selectedPackageIndex}_$i-");
+        bkIdArray3Parts.add("${selectedPackageIndex}!${i}_");
       }
+      
+      bkIdArray = bkIdArrayParts.join("");
+      bkIdArray3 = bkIdArray3Parts.join("");
     }
 
     print("Final bkIdArray: $bkIdArray");
     print("Final bkIdArray3: $bkIdArray3");
 
-    // Prepare passenger data in NEW FORMAT
-    final List<Map<String, dynamic>> adultPassengers = [];
-    final basicFarePerAdult = _getBasicFareFromRevalidation();
-    final taxPerAdult = _getTaxFromRevalidation();
-    final feesPerAdult = _getFeesFromRevalidation();
+    // Calculate fares from revalidation data
+    final revalidationData = revalidationController.revalidationResponse.value?.data;
+    double basicFarePerAdult = 0.0;
+    double taxPerAdult = 0.0;
+    
+    if (revalidationData != null) {
+      for (final breakdown in revalidationData.pricing.ptcFareBreakdowns) {
+        if (breakdown.passengerTypeQuantity?.attributes['Code'] == 'ADT') {
+          final passengerFare = breakdown.passengerFare;
+          if (passengerFare != null) {
+            basicFarePerAdult = double.tryParse(passengerFare.baseFare?.attributes['Amount'] ?? '0') ?? 0.0;
+            
+            // Calculate total tax
+            if (passengerFare.taxes != null) {
+              for (final tax in passengerFare.taxes!.taxes) {
+                taxPerAdult += double.tryParse(tax.attributes['Amount'] ?? '0') ?? 0.0;
+              }
+            }
+            break;
+          }
+        }
+      }
+    }
 
+    // Prepare passenger data
+    final List<Map<String, dynamic>> adultPassengers = [];
     for (int i = 0; i < bookingController.adults.length; i++) {
       final adult = bookingController.adults[i];
       adultPassengers.add({
@@ -1345,16 +1390,15 @@ Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
         'passport_exp': adult.passportExpiryController.text,
         'basic_fare': basicFarePerAdult.toStringAsFixed(2),
         'tax': taxPerAdult.toStringAsFixed(2),
-        'fees': feesPerAdult, // Will be empty string if no fees available
+        'fees': '', // Empty for now
       });
     }
 
-    // Child passengers
+    // Child passengers (75% of adult fare)
     final List<Map<String, dynamic>> childPassengers = [];
-    final basicFarePerChild = basicFarePerAdult * 0.75; // Children typically 75% of adult fare
+    final basicFarePerChild = basicFarePerAdult * 0.75;
     final taxPerChild = taxPerAdult * 0.75;
-    final feesPerChild = feesPerAdult.isEmpty ? "" : (double.tryParse(feesPerAdult)! * 0.75).toStringAsFixed(2);
-
+    
     for (int i = 0; i < bookingController.children.length; i++) {
       final child = bookingController.children[i];
       childPassengers.add({
@@ -1367,16 +1411,15 @@ Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
         'passport_exp': child.passportExpiryController.text,
         'basic_fare': basicFarePerChild.toStringAsFixed(2),
         'tax': taxPerChild.toStringAsFixed(2),
-        'fees': feesPerChild, // Will be empty string if no fees available
+        'fees': '',
       });
     }
 
-    // Infant passengers
+    // Infant passengers (10% of adult fare)
     final List<Map<String, dynamic>> infantPassengers = [];
-    final basicFarePerInfant = basicFarePerAdult * 0.1; // Infants typically 10% of adult fare
+    final basicFarePerInfant = basicFarePerAdult * 0.1;
     final taxPerInfant = taxPerAdult * 0.1;
-    final feesPerInfant = feesPerAdult.isEmpty ? "" : (double.tryParse(feesPerAdult)! * 0.1).toStringAsFixed(2);
-
+    
     for (int i = 0; i < bookingController.infants.length; i++) {
       final infant = bookingController.infants[i];
       infantPassengers.add({
@@ -1386,9 +1429,10 @@ Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
         'dob': infant.dateOfBirthController.text,
         'nationality': '${infant.nationalityController.text}-${infant.nationalityCountry.value?.countryCode ?? 'PK'}',
         'basic_fare': basicFarePerInfant.toStringAsFixed(2),
+        'passport_no': infant.passportCnicController.text,
+        'passport_exp': infant.passportExpiryController.text,
         'tax': taxPerInfant.toStringAsFixed(2),
-        'fees': feesPerInfant, // Will be empty string if no fees available
-        // No passport fields for infants
+        'fees': '',
       });
     }
 
@@ -1441,109 +1485,83 @@ Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
       });
     }
 
-    // FIXED: Handle baggage, meals, and seats with proper multi-segment support
-    // Remove package index condition - if user selected something, pass it; if not, send empty arrays
+    // Prepare extras data
     final selectedBaggage = revalidationController.selectedBaggage.values.toList();
     final selectedMealsMap = revalidationController.selectedMeals;
     final selectedSeatsMap = revalidationController.selectedSeats;
 
-    print("Selected meals map: $selectedMealsMap");
-    print("Selected seats map: $selectedSeatsMap");
-    print("Number of segments: $numberOfSegments");
-
-    // Format baggage data to match API format
+    // Format baggage data
     List<List<String>> adultBaggage = [];
-    if (selectedBaggage.isNotEmpty) {
-      for (int i = 0; i < bookingController.adults.length; i++) {
-        if (i < selectedBaggage.length && selectedBaggage[i].baggageDescription.isNotEmpty) {
-          adultBaggage.add([selectedBaggage[i].baggageDescription]);
-        }
+    for (int i = 0; i < bookingController.adults.length; i++) {
+      if (i < selectedBaggage.length && selectedBaggage[i].baggageDescription.isNotEmpty) {
+        adultBaggage.add([selectedBaggage[i].baggageDescription]);
+      } else {
+        adultBaggage.add(['No Bag']);
       }
     }
 
-    // Format meal data for multi-segment flights
+    // Format meal data
     List<List<List<String>>> adultMeal = [];
-    
-    print("DEBUG: selectedMealsMap contents:");
-    selectedMealsMap.forEach((key, value) {
-      print("Key: '$key', Values: ${value.map((m) => m.mealName).toList()}");
-    });
-    
-    if (selectedMealsMap.isNotEmpty) {
-      for (int adultIndex = 0; adultIndex < bookingController.adults.length; adultIndex++) {
-        List<List<String>> adultMealForAllSegments = [];
-        
-        // Try to get meals from all available segment keys
-        // The controller might store them with different key patterns
-        for (final entry in selectedMealsMap.entries) {
-          if (entry.value.isNotEmpty) {
-            List<String> segmentMeals = [];
-            for (var meal in entry.value) {
-              segmentMeals.add("${meal.mealCode}--${meal.mealDescription}");
-            }
-            if (segmentMeals.isNotEmpty) {
-              adultMealForAllSegments.add(segmentMeals);
-            }
+    for (int adultIndex = 0; adultIndex < bookingController.adults.length; adultIndex++) {
+      List<List<String>> adultMealForAllSegments = [];
+      
+      final passengerId = 'passenger_$adultIndex';
+      final passengerMeals = selectedMealsMap[passengerId];
+      
+      if (passengerMeals != null) {
+        for (final segmentEntry in passengerMeals.entries) {
+          List<String> segmentMeals = [];
+          for (var meal in segmentEntry.value) {
+            segmentMeals.add("${meal.mealCode}--${meal.mealDescription}");
+          }
+          if (segmentMeals.isNotEmpty) {
+            adultMealForAllSegments.add(segmentMeals);
           }
         }
-        
-        // Add meals for this adult if any were selected
-        if (adultMealForAllSegments.isNotEmpty) {
-          adultMeal.add(adultMealForAllSegments);
-          print("DEBUG: Added meals for adult $adultIndex: $adultMealForAllSegments");
-        }
       }
+      
+      adultMeal.add(adultMealForAllSegments);
     }
 
-    // Format seat data for multi-segment flights  
+    // Format seat data
     List<List<List<String>>> adultSeat = [];
-    
-    print("DEBUG: selectedSeatsMap contents:");
-    selectedSeatsMap.forEach((key, value) {
-      print("Key: '$key', Seat: ${value.seatNumber}");
-    });
-    
-    if (selectedSeatsMap.isNotEmpty) {
-      for (int adultIndex = 0; adultIndex < bookingController.adults.length; adultIndex++) {
-        List<List<String>> adultSeatForAllSegments = [];
-        
-        // Try to get seats from all available segment keys
-        // The controller might store them with different key patterns
-        for (final entry in selectedSeatsMap.entries) {
-          if (entry.value.seatNumber.isNotEmpty) {
-            final seat = entry.value;
+    for (int adultIndex = 0; adultIndex < bookingController.adults.length; adultIndex++) {
+      List<List<String>> adultSeatForAllSegments = [];
+      
+      final passengerId = 'passenger_$adultIndex';
+      final passengerSeats = selectedSeatsMap[passengerId];
+      
+      if (passengerSeats != null) {
+        for (final segmentEntry in passengerSeats.entries) {
+          final seat = segmentEntry.value;
+          if (seat.seatNumber.isNotEmpty) {
             adultSeatForAllSegments.add(["${seat.seatNumber}--${seat.seatNumber}"]);
           }
         }
-        
-        // Add seats for this adult if any were selected
-        if (adultSeatForAllSegments.isNotEmpty) {
-          adultSeat.add(adultSeatForAllSegments);
-          print("DEBUG: Added seats for adult $adultIndex: $adultSeatForAllSegments");
-        }
       }
+      
+      adultSeat.add(adultSeatForAllSegments);
     }
 
     // Determine flight type and stops
     String flightType = 'OneWay';
-    List<int> stopsSector = [numberOfSegments - 1]; // Number of segments minus 1 = number of stops
+    List<int> stopsSector = [numberOfSegments - 1];
 
-    print('=== MULTI-SEGMENT BOOKING PARAMETERS DEBUG ===');
+    print('=== BOOKING PARAMETERS DEBUG ===');
     print('Number of Segments: $numberOfSegments');
-    print('Final Key: ${metaInfo.finalKey}');
+    print('Final Key: $finalKey');
     print('Selected Package Index: $selectedPackageIndex');
     print('bkIdArray: $bkIdArray');
     print('bkIdArray3: $bkIdArray3');
     print('Stops Sector: $stopsSector');
-    print('Adult Baggage Structure: $adultBaggage');
-    print('Adult Meals Structure: $adultMeal');
-    print('Adult Seats Structure: $adultSeat');
-    print('Flight Details Count: ${flightDetails.length}');
-    print('============================================');
+    print('Adult Passengers: ${adultPassengers.length}');
+    print('Child Passengers: ${childPassengers.length}');
+    print('Infant Passengers: ${infantPassengers.length}');
+    print('================================');
 
     final response = await apiService.createAirArabiaBooking(
       email: bookingController.emailController.text,
-      finalKey: finalKey, // Use the modified final key with !ret! if needed
+      finalKey: finalKey,
       echoToken: metaInfo.echoToken,
       transactionIdentifier: metaInfo.transactionId,
       jsession: metaInfo.jsession,
@@ -1587,8 +1605,21 @@ Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
     print('Stack Trace: $stackTrace');
     rethrow;
   }
-}
-void dispose() {
+}@override
+  void dispose() {
+    // Dispose controllers if they exist and haven't been disposed already
+    try {
+      bookingController.dispose();
+    } catch (e) {
+      print('Error disposing booking controller: $e');
+    }
+    
+    try {
+      travelersController.dispose();
+    } catch (e) {
+      print('Error disposing travelers controller: $e');
+    }
+    
     super.dispose();
   }
 }
