@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ready_flights/views/flight/booking_flight/booking_flight_controller.dart';
+import 'package:ready_flights/views/flight/form/flight_booking_controller.dart';
 import 'package:ready_flights/views/flight/search_flights/airarabia/validation_data/validation.dart';
 
 import '../../../../../services/api_service_airarabia.dart';
@@ -99,35 +100,71 @@ class _AirArabiaPackageSelectionDialogState extends State<AirArabiaPackageSelect
     return AirArabiaFlightCard(flight: widget.flight, showReturnFlight: false);
   }
 
-  Future<void> _loadPackages() async {
-    try {
-      isLoadingPackages.value = true;
-      errorMessage.value = '';
+Future<void> _loadPackages() async {
+  try {
+    isLoadingPackages.value = true;
+    errorMessage.value = '';
 
-      // Convert flight segments to the format expected by the API
-      final sector = _convertFlightToSector(widget.flight);
+    // Convert flight segments to the format expected by the API
+    final sector = _convertFlightToSector(widget.flight);
 
-      final response = await apiService.getFlightPackages(
-        type: 0, // One way
-        adult: 1, // Default values - these should come from search parameters
-        child: 0,
-        infant: 0,
-        sector: sector,
-      );
-
-      if (response['status'] == 200) {
-        packageResponse.value = AirArabiaPackageResponse.fromJson(response);
-      } else {
-        errorMessage.value = response['message'] ?? 'Failed to load packages';
-      }
-    } catch (e) {
-      errorMessage.value = 'Error loading packages: $e';
-    } finally {
-      isLoadingPackages.value = false;
+    // Get the FlightBookingController to determine the trip type
+    final flightBookingController = Get.find<FlightBookingController>();
+    
+    // Determine the correct type based on the trip type from controller
+    int tripType = 0; // Default to one way
+    
+    // Check the actual trip type from the controller
+    switch (flightBookingController.tripType.value) {
+      case TripType.oneWay:
+        tripType = 0;
+        break;
+      case TripType.roundTrip:
+        tripType = 1;
+        break;
+      case TripType.multiCity:
+        tripType = 2;
+        break;
     }
-  }
 
-  List<Map<String, dynamic>> _convertFlightToSector(AirArabiaFlight flight) {
+    // Override for return flight dialog - if this is marked as a return flight
+    // and we're in round trip mode, still use 1 (return)
+    if (widget.isReturnFlight && flightBookingController.tripType.value == TripType.roundTrip) {
+      tripType = 1;
+    }
+
+    // Get traveler counts from the controller
+    final adult = flightBookingController.adultCount.value;
+    final child = flightBookingController.childrenCount.value;
+    final infant = flightBookingController.infantCount.value;
+
+    print('Package API call with - Type: $tripType, Adult: $adult, Child: $child, Infant: $infant');
+    print('Trip type from controller: ${flightBookingController.tripType.value}');
+    print('Is return flight: ${widget.isReturnFlight}');
+
+    final response = await apiService.getFlightPackages(
+      type: tripType,
+      adult: adult,
+      child: child,
+      infant: infant,
+      sector: sector,
+    );
+
+    if (response['status'] == 200) {
+      packageResponse.value = AirArabiaPackageResponse.fromJson(response);
+      print('Packages loaded successfully: ${packageResponse.value?.packages.length} packages');
+    } else {
+      errorMessage.value = response['message'] ?? 'Failed to load packages';
+      print('Package API error: ${errorMessage.value}');
+    }
+  } catch (e) {
+    errorMessage.value = 'Error loading packages: $e';
+    print('Package loading exception: $e');
+  } finally {
+    isLoadingPackages.value = false;
+  }
+}
+ List<Map<String, dynamic>> _convertFlightToSector(AirArabiaFlight flight) {
     // Convert AirArabiaFlight to the sector format expected by the packages API
     final List<Map<String, dynamic>> flightSegments = [];
 
@@ -516,70 +553,91 @@ class _AirArabiaPackageSelectionDialogState extends State<AirArabiaPackageSelect
     }
   }
 
-  void onSelectPackage(int selectedPackageIndex) async {
-    try {
-      isLoading.value = true;
+void onSelectPackage(int selectedPackageIndex) async {
+  try {
+    isLoading.value = true;
 
-      // Get all packages (static + dynamic)
-      final dynamicPackages = packageResponse.value?.packages ?? [];
-      final allPackages = [staticBasicPackage, ...dynamicPackages];
-      
-      if (selectedPackageIndex >= allPackages.length) {
-        throw Exception('Invalid package selection');
-      }
-
-      final selectedPackage = allPackages[selectedPackageIndex];
-
-      // Store the selected package and flight in the controller
-      airArabiaController.selectedPackage = selectedPackage;
-      airArabiaController.selectedFlight = widget.flight;
-      airArabiaController.selectedPackageIndex = selectedPackageIndex;
-
-      // Get booking controller to access travelers data
-      final bookingController = Get.find<BookingFlightController>();
-
-      // Prepare sector data from the selected flight
-      final sector = _convertFlightToSector(widget.flight);
-
-      // Prepare fare data
-      final fare = {
-        "bundle": {
-          "cabinClass": widget.flight.cabinClass,
-          "fareFamily": widget.flight.cabinClass,
-          "price": widget.flight.price,
-          "fareOndWiseBookingClassCodes": {
-            "${widget.flight.flightSegments.first['departure']['airport']}/${widget.flight.flightSegments.last['arrival']['airport']}": "E35"
-          }
-        }
-      };
-
-      Get.back(); // Close the package selection dialog
-
-      // Navigate to revalidation screen with required parameters
-      Get.to(() => AirArabiaRevalidationScreen(), arguments: {
-        'type': 0, // One way
-        'adult': bookingController.adults.length,
-        'child': bookingController.children.length,
-        'infant': bookingController.infants.length,
-        'sector': sector,
-        'fare': fare,
-        'csId': 15,
-        'selectedPackage': selectedPackage,
-        'selectedFlight': widget.flight,
-      });
-
-    } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Package selection failed: ${e.toString()}',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-        duration: const Duration(seconds: 3),
-      );
-      print('Package selection error: $e');
-    } finally {
-      isLoading.value = false;
+    // Get all packages (static + dynamic)
+    final dynamicPackages = packageResponse.value?.packages ?? [];
+    final allPackages = [staticBasicPackage, ...dynamicPackages];
+    
+    if (selectedPackageIndex >= allPackages.length) {
+      throw Exception('Invalid package selection');
     }
+
+    final selectedPackage = allPackages[selectedPackageIndex];
+
+    // Store the selected package and flight in the controller
+    airArabiaController.selectedPackage = selectedPackage;
+    airArabiaController.selectedFlight = widget.flight;
+    airArabiaController.selectedPackageIndex = selectedPackageIndex;
+
+    // Get booking controller to access travelers data
+    final bookingController = Get.find<BookingFlightController>();
+    final flightBookingController = Get.find<FlightBookingController>();
+
+    // Prepare sector data from the selected flight
+    final sector = _convertFlightToSector(widget.flight);
+
+    // Prepare fare data
+    final fare = {
+      "bundle": {
+        "cabinClass": widget.flight.cabinClass,
+        "fareFamily": widget.flight.cabinClass,
+        "price": widget.flight.price,
+        "fareOndWiseBookingClassCodes": {
+          "${widget.flight.flightSegments.first['departure']['airport']}/${widget.flight.flightSegments.last['arrival']['airport']}": "E35"
+        }
+      }
+    };
+
+    Get.back(); // Close the package selection dialog
+
+    // Determine trip type correctly
+    int tripType = 0; // Default to one way
+    switch (flightBookingController.tripType.value) {
+      case TripType.oneWay:
+        tripType = 0;
+        break;
+      case TripType.roundTrip:
+        tripType = 1;
+        break;
+      case TripType.multiCity:
+        tripType = 2;
+        break;
+    }
+
+    // Override for return flight dialog
+    if (widget.isReturnFlight && flightBookingController.tripType.value == TripType.roundTrip) {
+      tripType = 1;
+    }
+
+    print('Navigation with trip type: $tripType');
+
+    // Navigate to revalidation screen with required parameters
+    Get.to(() => AirArabiaRevalidationScreen(), arguments: {
+      'type': tripType,
+      'adult': bookingController.adults.length,
+      'child': bookingController.children.length,
+      'infant': bookingController.infants.length,
+      'sector': sector,
+      'fare': fare,
+      'csId': 15,
+      'selectedPackage': selectedPackage,
+      'selectedFlight': widget.flight,
+    });
+
+  } catch (e) {
+    Get.snackbar(
+      'Error',
+      'Package selection failed: ${e.toString()}',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 3),
+    );
+    print('Package selection error: $e');
+  } finally {
+    isLoading.value = false;
   }
-}
+}}

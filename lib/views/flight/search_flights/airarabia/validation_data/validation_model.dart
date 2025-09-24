@@ -380,6 +380,7 @@ class MealOption {
     required this.mealImageLink,
     required this.mealCategoryCode,
     required this.currencyCode,
+
   });
 
   factory MealOption.fromJson(Map<String, dynamic> json) {

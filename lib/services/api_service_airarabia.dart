@@ -7,6 +7,22 @@ import 'package:xml2json/xml2json.dart';
 class ApiServiceAirArabia {
   final Dio _dio = Dio();
 
+  // Helper method to print full request details
+  void printFullRequest(String methodName, String url, Map<String, dynamic> headers, Map<String, dynamic> data) {
+    print("===============================================");
+    print("$methodName - FULL REQUEST DETAILS");
+    print("===============================================");
+    print("URL: $url");
+    print("Method: POST");
+    print("Headers:");
+    headers.forEach((key, value) {
+      print("  $key: $value");
+    });
+    print("Request Body:");
+    debugPrint(const JsonEncoder.withIndent('  ').convert(data), wrapWidth: 1024);
+    print("===============================================");
+  }
+
   Future<Map<String, dynamic>> searchFlights({
     required int type,
     required String origin,
@@ -85,8 +101,23 @@ class ApiServiceAirArabia {
         "sector": sector,
       };
 
+      // Print full request details
+      printFullRequest(
+        "GET FLIGHT PACKAGES", 
+        'https://onerooftravel.net/api/get-air-arabia-package',
+        headers,
+        data
+      );
+
       print("AirArabia Packages Request *********************");
-      print(data);
+      print("Request URL: https://onerooftravel.net/api/get-air-arabia-package");
+      print("Request Headers:");
+      headers.forEach((key, value) {
+        print("  $key: $value");
+      });
+      print("Request Payload:");
+      debugPrint(jsonEncode(data), wrapWidth: 1024);
+      print("***************************************************");
 
       final response = await _dio.request(
         'https://onerooftravel.net/api/get-air-arabia-package',
@@ -98,8 +129,14 @@ class ApiServiceAirArabia {
       );
 
       print("*************** AirArabia Packages Response *********");
-      // print(response);
-    debugPrint(jsonEncode(response.data), wrapWidth: 1024);
+      print("Response Status Code: ${response.statusCode}");
+      print("Response Headers:");
+      response.headers.forEach((key, value) {
+        print("  $key: $value");
+      });
+      print("Response Body:");
+      debugPrint(jsonEncode(response.data), wrapWidth: 1024);
+      print("****************************************************");
 
       if (response.statusCode == 200) {
         // Ensure the response is parsed as Map
@@ -141,8 +178,23 @@ class ApiServiceAirArabia {
         // "cs_id": csId,
       };
 
+      // Print full request details
+      printFullRequest(
+        "REVALIDATE PACKAGE", 
+        'https://onerooftravel.net/api/air-arabia-package-revalidate',
+        headers,
+        data
+      );
+
       print("AirArabia Package Revalidation Request *********************");
-      print(jsonEncode(data));
+      print("Request URL: https://onerooftravel.net/api/air-arabia-package-revalidate");
+      print("Request Headers:");
+      headers.forEach((key, value) {
+        print("  $key: $value");
+      });
+      print("Request Payload:");
+      debugPrint(jsonEncode(data), wrapWidth: 1024);
+      print("*************************************************************");
 
       final response = await _dio.request(
         'https://onerooftravel.net/api/air-arabia-package-revalidate',
@@ -153,8 +205,16 @@ class ApiServiceAirArabia {
         data: data,
       );
 
-      print("*************** AirArabia Package Revalidation Response 1 *********");
-      print(jsonEncode(response.data));
+      print("*************** AirArabia Package Revalidation Response *********");
+      print("Response Status Code: ${response.statusCode}");
+      print("Response Headers:");
+      response.headers.forEach((key, value) {
+        print("  $key: $value");
+      });
+      print("Response Body:");
+      debugPrint(jsonEncode(response.data), wrapWidth: 1024);
+      print("***************************************************************");
+
       if (response.statusCode == 200) {
         print("*************** AirArabia Package Revalidation Response *********");
         print(jsonEncode(response.data));
@@ -337,17 +397,3 @@ Map<String, dynamic> _convertXmlToJson(String xmlString) {
     }
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
