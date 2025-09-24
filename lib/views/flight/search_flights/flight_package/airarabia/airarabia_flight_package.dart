@@ -105,42 +105,35 @@ Future<void> _loadPackages() async {
     isLoadingPackages.value = true;
     errorMessage.value = '';
 
-    // Convert flight segments to the format expected by the API
-    final sector = _convertFlightToSector(widget.flight);
-
-    // Get the FlightBookingController to determine the trip type
     final flightBookingController = Get.find<FlightBookingController>();
     
-    // Determine the correct type based on the trip type from controller
-    int tripType = 0; // Default to one way
-    
-    // Check the actual trip type from the controller
-    switch (flightBookingController.tripType.value) {
-      case TripType.oneWay:
-        tripType = 0;
-        break;
-      case TripType.roundTrip:
-        tripType = 1;
-        break;
-      case TripType.multiCity:
-        tripType = 2;
-        break;
-    }
-
-    // Override for return flight dialog - if this is marked as a return flight
-    // and we're in round trip mode, still use 1 (return)
-    if (widget.isReturnFlight && flightBookingController.tripType.value == TripType.roundTrip) {
-      tripType = 1;
-    }
-
     // Get traveler counts from the controller
     final adult = flightBookingController.adultCount.value;
     final child = flightBookingController.childrenCount.value;
     final infant = flightBookingController.infantCount.value;
 
+    // Create sector data based on trip type and flight type
+    List<Map<String, dynamic>> sector;
+    int tripType;
+
+    if (flightBookingController.tripType.value == TripType.oneWay) {
+      // One way flight
+      tripType = 0;
+      sector = _convertFlightToSector(widget.flight);
+    } else if (flightBookingController.tripType.value == TripType.roundTrip) {
+      tripType = 1;
+      // For round trip, create proper sector structure with both outbound and inbound
+      sector = _createRoundTripSector();
+    } else {
+      // Multi-city
+      tripType = 2;
+      sector = _convertFlightToSector(widget.flight);
+    }
+
     print('Package API call with - Type: $tripType, Adult: $adult, Child: $child, Infant: $infant');
     print('Trip type from controller: ${flightBookingController.tripType.value}');
     print('Is return flight: ${widget.isReturnFlight}');
+    print('Sector data: ${sector}');
 
     final response = await apiService.getFlightPackages(
       type: tripType,
@@ -164,57 +157,229 @@ Future<void> _loadPackages() async {
     isLoadingPackages.value = false;
   }
 }
- List<Map<String, dynamic>> _convertFlightToSector(AirArabiaFlight flight) {
-    // Convert AirArabiaFlight to the sector format expected by the packages API
-    final List<Map<String, dynamic>> flightSegments = [];
 
-    for (var segment in flight.flightSegments) {
-      flightSegments.add({
-        'flightNumber': segment['flightNumber'],
-        'origin': {
-          'airportCode': segment['departure']['airport'],
-          'terminal': segment['departure']['terminal'] ?? '',
-          'countryCode': 'PK', // Default country code
+List<Map<String, dynamic>> _createRoundTripSector() {
+  final flightBookingController = Get.find<FlightBookingController>();
+  
+  // For round trip, we need to extract outbound and return flight data
+  final combinedFlight = widget.flight;
+  
+  // Check if this is a round trip flight with separate outbound/inbound data
+  if (combinedFlight.isRoundTrip && 
+      combinedFlight.outboundFlight != null && 
+      combinedFlight.inboundFlight != null) {
+    
+    // Extract outbound and return flight data from the combined flight
+    final outboundData = combinedFlight.outboundFlight!;
+    final inboundData = combinedFlight.inboundFlight!;
+    
+    // Create outbound flight segments (index 1 for outbound)
+    final outboundSegments = _createSegmentsFromFlightData(outboundData);
+    
+    // Create return flight segments (index 0 for inbound) 
+    final returnSegments = _createSegmentsFromFlightData(inboundData);
+    
+    // Get prices from the original flight data
+    final outboundPrice = _extractPriceFromFlightData(outboundData);
+    final inboundPrice = _extractPriceFromFlightData(inboundData);
+    
+    // Create outbound sector (index 1)
+    final outboundSector = {
+      "index": 1,
+      "flightSegments": outboundSegments,
+      "cabinPrices": [{
+        "cabinClass": "Y",
+        "fareFamily": "Y", 
+        "price": outboundPrice,
+        "fareOndWiseBookingClassCodes": {
+          _getSegmentCode(outboundSegments): "E30"
         },
-        'destination': {
-          'airportCode': segment['arrival']['airport'],
-          'terminal': segment['arrival']['terminal'] ?? '',
-          'countryCode': 'AE', // Default country code
-        },
-        'departureDateTimeLocal': segment['departure']['dateTime'],
-        'departureDateTimeZulu': segment['departure']['dateTime'],
-        'arrivalDateTimeLocal': segment['arrival']['dateTime'],
-        'arrivalDateTimeZulu': segment['arrival']['dateTime'],
-        'segmentCode': '${segment['departure']['airport']}/${segment['arrival']['airport']}',
-        'availablePaxCounts': [
-          {'paxType': 'ADT', 'count': 9},
-          {'paxType': 'INF', 'count': 9},
-        ],
-        'transportMode': 'AIRCRAFT',
-        'modelName': '',
-        'aircraftModel': segment['aircraftModel'] ?? 'A320',
-        'flightSegmentRef': '${DateTime.now().millisecondsSinceEpoch}',
-      });
-    }
-
-    return [{
-      'flightSegments': flightSegments,
-      'cabinPrices': [{
-        'cabinClass': flight.cabinClass,
-        'fareFamily': flight.cabinClass,
-        'price': flight.price,
-        'fareOndWiseBookingClassCodes': {
-          '${flight.flightSegments.first['departure']['airport']}/${flight.flightSegments.last['arrival']['airport']}': 'E35'
-        },
-        'availabilityStatus': 'UNKNOWN_AVAILABILITY_STATUS',
-        'paxTypeWiseBasePrices': [
-          {'paxType': 'ADT', 'price': flight.price},
-          {'paxType': 'CHD', 'price': 0},
-          {'paxType': 'INF', 'price': 0},
+        "availabilityStatus": "AVAILABLE",
+        "paxTypeWiseBasePrices": [
+          {"paxType": "ADT", "price": outboundPrice},
+          {"paxType": "CHD", "price": 0},
+          {"paxType": "INF", "price": 0},
         ]
       }]
-    }];
+    };
+
+    // Create inbound sector (index 0)
+    final inboundSector = {
+      "index": 0,
+      "flightSegments": returnSegments,
+      "cabinPrices": [{
+        "cabinClass": "Y",
+        "fareFamily": "Y",
+        "price": inboundPrice,
+        "fareOndWiseBookingClassCodes": {
+          _getSegmentCode(returnSegments): "E33"
+        },
+        "availabilityStatus": "AVAILABLE", 
+        "paxTypeWiseBasePrices": [
+          {"paxType": "ADT", "price": inboundPrice},
+          {"paxType": "CHD", "price": 0},
+          {"paxType": "INF", "price": 0},
+        ]
+      }]
+    };
+    
+    // Return sectors with proper indexing - outbound first (index 1), then inbound (index 0)
+    return [outboundSector, inboundSector];
   }
+  
+  // Fallback: if not a proper round trip, use the current flight only
+  print('Warning: Not a proper round trip flight, using current flight only');
+  return _convertFlightToSector(combinedFlight);
+}
+
+double _extractPriceFromFlightData(Map<String, dynamic> flightData) {
+  try {
+    if (flightData['cabinPrices'] != null && flightData['cabinPrices'] is List) {
+      final cabinPrices = flightData['cabinPrices'] as List;
+      if (cabinPrices.isNotEmpty) {
+        return (cabinPrices[0]['price'] as num).toDouble();
+      }
+    }
+    // Fallback to a default price or extract from other fields
+    return 0.0;
+  } catch (e) {
+    print('Error extracting price from flight data: $e');
+    return 0.0;
+  }
+}
+
+List<Map<String, dynamic>> _createSegmentsFromFlightData(Map<String, dynamic> flightData) {
+  try {
+    if (flightData['flightSegments'] != null && flightData['flightSegments'] is List) {
+      final flightSegments = flightData['flightSegments'] as List;
+      
+      return flightSegments.map<Map<String, dynamic>>((segment) {
+        final segmentMap = Map<String, dynamic>.from(segment);
+        final originMap = Map<String, dynamic>.from(segmentMap['origin'] ?? {});
+        final destinationMap = Map<String, dynamic>.from(segmentMap['destination'] ?? {});
+        
+        return {
+          'flightNumber': segmentMap['flightNumber'] ?? '',
+          'origin': {
+            'airportCode': originMap['airportCode'] ?? '',
+            'terminal': originMap['terminal'] ?? '',
+            'countryCode': originMap['countryCode'] ?? _getCountryCode(originMap['airportCode'] ?? ''),
+          },
+          'destination': {
+            'airportCode': destinationMap['airportCode'] ?? '',
+            'terminal': destinationMap['terminal'] ?? '',
+            'countryCode': destinationMap['countryCode'] ?? _getCountryCode(destinationMap['airportCode'] ?? ''),
+          },
+          'departureDateTimeLocal': segmentMap['departureDateTimeLocal'] ?? '',
+          'departureDateTimeZulu': segmentMap['departureDateTimeZulu'] ?? '',
+          'arrivalDateTimeLocal': segmentMap['arrivalDateTimeLocal'] ?? '',
+          'arrivalDateTimeZulu': segmentMap['arrivalDateTimeZulu'] ?? '',
+          'segmentCode': segmentMap['segmentCode'] ?? '',
+          'availablePaxCounts': [
+            {'paxType': 'ADT', 'count': 9},
+            {'paxType': 'INF', 'count': 9},
+          ],
+          'transportMode': 'AIRCRAFT',
+          'modelName': '',
+          'aircraftModel': segmentMap['aircraftModel'] ?? 'A320',
+          'flightSegmentRef': '${segmentMap['flightSegmentRef'] ?? DateTime.now().millisecondsSinceEpoch}',
+        };
+      }).toList();
+    }
+    return [];
+  } catch (e) {
+    print('Error creating segments from flight data: $e');
+    return [];
+  }
+}
+
+String _getSegmentCode(List<Map<String, dynamic>> segments) {
+  if (segments.isEmpty) return '';
+  
+  try {
+    final firstSegment = segments.first;
+    final lastSegment = segments.last;
+    
+    final origin = firstSegment['origin']['airportCode'];
+    final destination = lastSegment['destination']['airportCode'];
+    
+    // For connecting flights, include intermediate stops
+    if (segments.length > 1) {
+      final stops = segments.map((seg) => seg['destination']['airportCode']).join('/');
+      return '$origin/$stops';
+    }
+    
+    return '$origin/$destination';
+  } catch (e) {
+    print('Error generating segment code: $e');
+    return '';
+  }
+}
+
+String _getCountryCode(String airportCode) {
+  // Map common airport codes to country codes
+  const airportToCountry = {
+    'LHE': 'PK', 'KHI': 'PK', 'ISB': 'PK', 'UET': 'PK',
+    'JED': 'SA', 'RUH': 'SA', 'DXB': 'AE', 'SHJ': 'AE',
+    'DAC': 'BD', 'CGP': 'BD', 'DEL': 'IN', 'BOM': 'IN',
+  };
+  return airportToCountry[airportCode] ?? 'PK';
+}
+
+List<Map<String, dynamic>> _convertFlightToSector(AirArabiaFlight flight) {
+  // For single flight (one way)
+  final flightSegments = _createFlightSegments(flight, widget.isReturnFlight ? 0 : 1);
+
+  return [{
+    "index": widget.isReturnFlight ? 0 : 1,
+    'flightSegments': flightSegments,
+    'cabinPrices': [{
+      'cabinClass': flight.cabinClass,
+      'fareFamily': flight.cabinClass,
+      'price': flight.price,
+      'fareOndWiseBookingClassCodes': {
+        '${flight.flightSegments.first['departure']['airport']}/${flight.flightSegments.last['arrival']['airport']}': widget.isReturnFlight ? 'E33' : 'E30'
+      },
+      'availabilityStatus': 'AVAILABLE',
+      'paxTypeWiseBasePrices': [
+        {'paxType': 'ADT', 'price': flight.price},
+        {'paxType': 'CHD', 'price': 0},
+        {'paxType': 'INF', 'price': 0},
+      ]
+    }]
+  }];
+}
+
+List<Map<String, dynamic>> _createFlightSegments(AirArabiaFlight flight, int sectorIndex) {
+  return flight.flightSegments.map((segment) {
+    return {
+      'flightNumber': segment['flightNumber'],
+      'origin': {
+        'airportCode': segment['departure']['airport'],
+        'terminal': segment['departure']['terminal'] ?? '',
+        'countryCode': _getCountryCode(segment['departure']['airport']),
+      },
+      'destination': {
+        'airportCode': segment['arrival']['airport'], 
+        'terminal': segment['arrival']['terminal'] ?? '',
+        'countryCode': _getCountryCode(segment['arrival']['airport']),
+      },
+      'departureDateTimeLocal': segment['departure']['dateTime'],
+      'departureDateTimeZulu': segment['departure']['dateTime'],
+      'arrivalDateTimeLocal': segment['arrival']['dateTime'],
+      'arrivalDateTimeZulu': segment['arrival']['dateTime'],
+      'segmentCode': '${segment['departure']['airport']}/${segment['arrival']['airport']}',
+      'availablePaxCounts': [
+        {'paxType': 'ADT', 'count': 9},
+        {'paxType': 'INF', 'count': 9},
+      ],
+      'transportMode': 'AIRCRAFT',
+      'modelName': '',
+      'aircraftModel': segment['aircraftModel'] ?? 'A320',
+      'flightSegmentRef': '${DateTime.now().millisecondsSinceEpoch}${sectorIndex}',
+    };
+  }).toList();
+}
 
   Future<void> _prefetchMarginData() async {
     try {
@@ -413,7 +578,7 @@ Future<void> _loadPackages() async {
                 _buildPackageDetail(
                   Icons.work_outline_rounded,
                   'Hand Baggage',
-                  '7 Kg', // Static value for basic package
+                  '7 Kg',
                 ),
                 const SizedBox(height: 12),
                 _buildPackageDetail(
@@ -576,8 +741,13 @@ void onSelectPackage(int selectedPackageIndex) async {
     final bookingController = Get.find<BookingFlightController>();
     final flightBookingController = Get.find<FlightBookingController>();
 
-    // Prepare sector data from the selected flight
-    final sector = _convertFlightToSector(widget.flight);
+    // Prepare sector data based on trip type
+    List<Map<String, dynamic>> sector;
+    if (flightBookingController.tripType.value == TripType.roundTrip) {
+      sector = _createRoundTripSector();
+    } else {
+      sector = _convertFlightToSector(widget.flight);
+    }
 
     // Prepare fare data
     final fare = {
@@ -586,7 +756,7 @@ void onSelectPackage(int selectedPackageIndex) async {
         "fareFamily": widget.flight.cabinClass,
         "price": widget.flight.price,
         "fareOndWiseBookingClassCodes": {
-          "${widget.flight.flightSegments.first['departure']['airport']}/${widget.flight.flightSegments.last['arrival']['airport']}": "E35"
+          "${widget.flight.flightSegments.first['departure']['airport']}/${widget.flight.flightSegments.last['arrival']['airport']}": widget.isReturnFlight ? "E33" : "E30"
         }
       }
     };
@@ -595,6 +765,8 @@ void onSelectPackage(int selectedPackageIndex) async {
 
     // Determine trip type correctly
     int tripType = 0; // Default to one way
+    
+    // Set trip type based on actual trip type from controller
     switch (flightBookingController.tripType.value) {
       case TripType.oneWay:
         tripType = 0;
@@ -606,13 +778,6 @@ void onSelectPackage(int selectedPackageIndex) async {
         tripType = 2;
         break;
     }
-
-    // Override for return flight dialog
-    if (widget.isReturnFlight && flightBookingController.tripType.value == TripType.roundTrip) {
-      tripType = 1;
-    }
-
-    print('Navigation with trip type: $tripType');
 
     // Navigate to revalidation screen with required parameters
     Get.to(() => AirArabiaRevalidationScreen(), arguments: {
@@ -640,4 +805,5 @@ void onSelectPackage(int selectedPackageIndex) async {
   } finally {
     isLoading.value = false;
   }
-}}
+}
+}

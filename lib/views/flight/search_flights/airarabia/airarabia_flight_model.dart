@@ -108,6 +108,16 @@ class AirArabiaFlight {
       }
 
       // Get flight segments for outbound/inbound logic
+
+
+
+
+
+
+
+
+
+      
       final flightSegmentsRaw = json['flightSegments'] as List;
       final flightSegmentsList = flightSegmentsRaw.map((seg) =>
       Map<String, dynamic>.from(seg as Map)
