@@ -67,6 +67,8 @@ class ApiServiceFlyDubai {
       final authSuccess = await authenticate();
       return authSuccess ? _accessToken : null;
     }
+    print("Acces Token fly dubai");
+    print(_accessToken);
     return _accessToken;
   }
 
@@ -98,6 +100,8 @@ class ApiServiceFlyDubai {
           };
         }
       }
+
+
 
       // Rest of the searchFlights method remains the same...
       Map<String, dynamic>? searchParams;
@@ -188,7 +192,7 @@ class ApiServiceFlyDubai {
       }
 
       print("Using access token in search flight: $_accessToken");
-
+      printJsonPretty(json.encode(searchParams));
       // Make API request
       final response = await http.post(
         Uri.parse('$baseUrl/pricing/flightswithfares'),
@@ -1753,6 +1757,9 @@ class ApiServiceFlyDubai {
         };
       }
 
+      print("Acces Token fly dubai");
+      print(_accessToken);
+
       print('=== FLYDUBAI GET MEAL OPTIONS STARTED ===');
       print('Booking IDs: $bookingIds');
 
@@ -1899,6 +1906,8 @@ class ApiServiceFlyDubai {
     debugPrint("   segmentDetails: ${segmentDetails.runtimeType}");
 
     final List<Map<String, dynamic>> originDestinations = [];
+    // Accumulate pax counts by PTCID across bookingIds to build paxDetails correctly
+    final Map<int, int> paxTypeCounts = {1: 0, 6: 0, 5: 0}; // 1=ADT,6=CHD,5=INF
 
     for (int i = 0; i < bookingIds.length; i++) {
       final bk = bookingIds[i];
@@ -2019,6 +2028,11 @@ class ApiServiceFlyDubai {
 
           final fareData = paxList is List ? paxList[0] : paxList;
 
+          // Accumulate pax counts by PTCID to build global paxDetails array
+          final int ptcId = (fareData['PTCID'] as num?)?.toInt() ?? 1;
+          final int paxCount = (fareData['PaxCount'] as num?)?.toInt() ?? 1;
+          paxTypeCounts.update(ptcId, (v) => v + paxCount, ifAbsent: () => paxCount);
+
           paxFareDetails.add({
             'fareClass': '',
             'FBC': fareData['FBCode']?.toString() ?? '',
@@ -2044,6 +2058,36 @@ class ApiServiceFlyDubai {
       debugPrint("✅ Added originDestination for bookingId[$i]");
     }
 
+    // Build paxDetails array based on accumulated counts
+    List<Map<String, dynamic>> paxDetailsArray = [];
+    int paxIdCounter = 0;
+    String _ptcString(int ptcId) {
+      switch (ptcId) {
+        case 1:
+          return 'ADT';
+        case 6:
+          return 'CHD';
+        case 5:
+          return 'INF';
+        default:
+          return 'ADT';
+      }
+    }
+    for (final entry in paxTypeCounts.entries) {
+      final ptcId = entry.key;
+      final count = entry.value;
+      for (int i = 0; i < count; i++) {
+        paxIdCounter++;
+        paxDetailsArray.add({
+          'paxID': paxIdCounter.toString(),
+          'PTC': _ptcString(ptcId),
+          'dob': '',
+          'customerID': 12345,
+          'tier': 12345,
+        });
+      }
+    }
+
     final result = {
       'AncillaryPricingRequest': {
         'GUID': '',
@@ -2053,15 +2097,17 @@ class ApiServiceFlyDubai {
           'channel': 'TPAPI',
           'IATA': '2730402T',
         },
-        'paxDetails': [
-          {
-            'paxID': '1',
-            'PTC': 'ADT',
-            'dob': '',
-            'customerID': 12345,
-            'tier': 12345,
-          }
-        ],
+        'paxDetails': paxDetailsArray.isNotEmpty
+            ? paxDetailsArray
+            : [
+                {
+                  'paxID': '1',
+                  'PTC': 'ADT',
+                  'dob': '',
+                  'customerID': 12345,
+                  'tier': 12345,
+                }
+              ],
         'journey': {
           'originDestination': originDestinations,
         },

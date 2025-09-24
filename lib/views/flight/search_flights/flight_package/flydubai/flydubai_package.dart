@@ -7,7 +7,7 @@ import 'package:ready_flights/views/flight/search_flights/flydubai/flydubai_mode
 import '../../../../../services/api_service_sabre.dart';
 import '../../../../../utility/colors.dart';
 import '../../../form/flight_booking_controller.dart';
-import '../../flydubai/flydubai_exra.dart';
+import '../../flydubai/flydubai_extras.dart';
 import '../../flydubai/flydubai_extras_controller.dart';
 import '../../flydubai/flydubai_return_flight.dart';
 import '../../review_flight/flydubai_review_flight.dart';
@@ -29,6 +29,7 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
   });
 
   final flyDubaiController = Get.find<FlydubaiFlightController>();
+  final bookingController = Get.find<FlightBookingController>();
   late final FlightBookingController flightBookingController;
 
   @override
@@ -583,6 +584,9 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
             'flight': flight,
             'fare': selectedFareOption,
             'isReturn': isReturnFlight,
+            'adult': bookingController.adultCount.value,  // Make sure these values are passed
+            'child': bookingController.childrenCount.value,
+            'infant': bookingController.infantCount.value,
           },
         );
       } else {

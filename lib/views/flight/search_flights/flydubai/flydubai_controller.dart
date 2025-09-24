@@ -734,7 +734,7 @@ class FlydubaiFlightController extends GetxController {
       fareOptions: flight.fareOptions,
       rawData: flight.rawData,
       changeFeeDetails: flight.changeFeeDetails,
-      refundFeeDetails: flight.refundFeeDetails,
+      refundFeeDetails: flight.refundFeeDetails, stops: flight.stops, isNonStop: flight.isNonStop, stopCities: flight.stopCities,
     );
   }
 
