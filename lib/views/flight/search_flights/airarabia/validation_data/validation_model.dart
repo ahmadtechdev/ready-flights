@@ -188,9 +188,10 @@ class AABaggageDetailsRS {
     );
   }
 }
+// Key sections that need to be updated in your validation_model.dart
 
 class BaggageDetailsResponses {
-  final OnDBaggageDetailsResponse onDBaggageDetailsResponse;
+  final List<OnDBaggageDetailsResponse> onDBaggageDetailsResponse;
 
   BaggageDetailsResponses({
     required this.onDBaggageDetailsResponse,
@@ -198,14 +199,14 @@ class BaggageDetailsResponses {
 
   factory BaggageDetailsResponses.fromJson(Map<String, dynamic> json) {
     return BaggageDetailsResponses(
-      onDBaggageDetailsResponse: OnDBaggageDetailsResponse.fromJson(
-          json['OnDBaggageDetailsResponse'] ?? {}),
+      onDBaggageDetailsResponse: _parseOnDBaggageDetailsResponseList(
+          json['OnDBaggageDetailsResponse']),
     );
   }
 }
 
 class OnDBaggageDetailsResponse {
-  final List<FlightSegmentInfo> flightSegmentInfo;
+  final dynamic flightSegmentInfo; // Keep as dynamic
   final List<BaggageOption> baggage;
 
   OnDBaggageDetailsResponse({
@@ -215,10 +216,36 @@ class OnDBaggageDetailsResponse {
 
   factory OnDBaggageDetailsResponse.fromJson(Map<String, dynamic> json) {
     return OnDBaggageDetailsResponse(
-      flightSegmentInfo: _parseFlightSegmentInfoList(json['OnDFlightSegmentInfo']),
+      flightSegmentInfo: json['OnDFlightSegmentInfo'], // Keep raw
       baggage: _parseBaggageList(json['Baggage']),
     );
   }
+
+  // Helper method to get segments as a list
+  List<FlightSegmentInfo> getSegments() {
+    if (flightSegmentInfo == null) return [];
+    if (flightSegmentInfo is List) {
+      return (flightSegmentInfo as List)
+          .map((x) => FlightSegmentInfo.fromJson(x as Map<String, dynamic>))
+          .toList();
+    }
+    if (flightSegmentInfo is Map<String, dynamic>) {
+      return [FlightSegmentInfo.fromJson(flightSegmentInfo as Map<String, dynamic>)];
+    }
+    return [];
+  }
+}
+
+// Add this helper function at the bottom of the file
+List<OnDBaggageDetailsResponse> _parseOnDBaggageDetailsResponseList(dynamic value) {
+  if (value == null) return [];
+  if (value is List) {
+    return value.map((x) => OnDBaggageDetailsResponse.fromJson(x as Map<String, dynamic>)).toList();
+  }
+  if (value is Map<String, dynamic>) {
+    return [OnDBaggageDetailsResponse.fromJson(value)];
+  }
+  return [];
 }
 
 class FlightSegmentInfo {

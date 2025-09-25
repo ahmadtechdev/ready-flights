@@ -39,10 +39,6 @@ class ApiServiceAirArabia {
       };
 
       final data = {
-
-
-
-        
         "type": type.toString(),
         "origin": origin,
         "destination": destination,

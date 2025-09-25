@@ -5,16 +5,14 @@ import 'package:ready_flights/views/flight/search_flights/airarabia/validation_d
 
 class AirArabiaRevalidationController extends GetxController {
   final ApiServiceAirArabia _apiService = Get.find<ApiServiceAirArabia>();
-final RxInt adultPassengers = 1.obs; // Add this line
-final RxInt childPassengers = 0.obs; // Add this line
-final RxInt infantPassengers = 0.obs;
-  
-  
+  final RxInt adultPassengers = 1.obs;
+  final RxInt childPassengers = 0.obs;
+  final RxInt infantPassengers = 0.obs;
   
   final RxBool isLoading = false.obs;
   final RxString errorMessage = ''.obs;
-  final Rx<AirArabiaRevalidationResponse?> revalidationResponse =
-  Rx<AirArabiaRevalidationResponse?>(null);
+  final Rx<AirArabiaRevalidationResponse?> revalidationResponse = 
+      Rx<AirArabiaRevalidationResponse?>(null);
 
   // Passenger information
   final RxInt totalPassengers = 1.obs;
@@ -50,46 +48,46 @@ final RxInt infantPassengers = 0.obs;
   }
 
   Future<void> _autoRevalidate(Map<String, dynamic> args) async {
-  // Set passenger count from arguments
-  final adults = args['adult'] ?? 1;
-  final children = args['child'] ?? 0;
-  final infants = args['infant'] ?? 0;
-  
-  adultPassengers.value = adults; // Add this line
-  childPassengers.value = children; // Add this line
-  infantPassengers.value = infants; // Add this line
-  totalPassengers.value = adults + children + infants;
-  
-  // Initialize passenger IDs
-  _initializePassengerIds();
+    // Set passenger count from arguments
+    final adults = args['adult'] ?? 1;
+    final children = args['child'] ?? 0;
+    final infants = args['infant'] ?? 0;
+    
+    adultPassengers.value = adults;
+    childPassengers.value = children;
+    infantPassengers.value = infants;
+    totalPassengers.value = adults + children + infants;
+    
+    // Initialize passenger IDs
+    _initializePassengerIds();
 
-  await revalidatePackage(
-    type: args['type'] ?? 0,
-    adult: adults,
-    child: children,
-    infant: infants,
-    sector: args['sector'] ?? [],
-    fare: args['fare'] ?? {},
-    csId: args['csId'] ?? 15,
-  );
-}
-
-void _initializePassengerIds() {
-  passengerIds.clear();
-  // Only create IDs for adult passengers for baggage/meal/seat selection
-  for (int i = 0; i < adultPassengers.value; i++) {
-    passengerIds.add('passenger_$i');
-    // Initialize meal and seat maps for each adult passenger
-    selectedMeals['passenger_$i'] = <String, List<MealOption>>{}.obs;
-    selectedSeats['passenger_$i'] = <String, SeatOption>{}.obs;
+    await revalidatePackage(
+      type: args['type'] ?? 0,
+      adult: adults,
+      child: children,
+      infant: infants,
+      sector: args['sector'] ?? [],
+      fare: args['fare'] ?? {},
+      csId: args['csId'] ?? 15,
+    );
   }
-}
 
-// Get passenger display name - updated to show only adults
-String getPassengerDisplayName(int index) {
-  if (adultPassengers.value == 1) return 'Adult';
-  return 'Adult ${index + 1}';
-}
+  void _initializePassengerIds() {
+    passengerIds.clear();
+    // Only create IDs for adult passengers for baggage/meal/seat selection
+    for (int i = 0; i < adultPassengers.value; i++) {
+      passengerIds.add('passenger_$i');
+      // Initialize meal and seat maps for each adult passenger
+      selectedMeals['passenger_$i'] = <String, List<MealOption>>{}.obs;
+      selectedSeats['passenger_$i'] = <String, SeatOption>{}.obs;
+    }
+  }
+
+  // Get passenger display name - updated to show only adults
+  String getPassengerDisplayName(int index) {
+    if (adultPassengers.value == 1) return 'Adult';
+    return 'Adult ${index + 1}';
+  }
 
   Future<bool> revalidatePackage({
     required int type,
@@ -170,32 +168,111 @@ String getPassengerDisplayName(int index) {
       print('Error processing response data: $e');
       errorMessage.value = 'Error processing flight data: ${e.toString()}';
     }
-  } void _processBaggageOptions(BaggageInfo baggageInfo) {
-    try {
-      final baggageDetails = baggageInfo.body.aaBaggageDetailsRS;
-      final baggageResponses = baggageDetails.baggageDetailsResponses;
-      final onDBaggageResponse = baggageResponses.onDBaggageDetailsResponse;
+  }
 
-      final baggageOptions = onDBaggageResponse.baggage;
-      availableBaggage.value = baggageOptions;
+  // Updated to handle multiple OnDBaggageDetailsResponse objects
+void _processBaggageOptions(BaggageInfo baggageInfo) {
+  try {
+    final baggageDetails = baggageInfo.body.aaBaggageDetailsRS;
+    final baggageResponses = baggageDetails.baggageDetailsResponses;
+    
+    // Now it's a List<OnDBaggageDetailsResponse>
+    final onDBaggageResponses = baggageResponses.onDBaggageDetailsResponse;
+    
+    availableBaggage.value = [];
+    
+    for (final response in onDBaggageResponses) {
+      final baggageOptions = response.baggage;
+      
+      // Use the helper method to get segments
+      final segments = response.getSegments();
+      
+      for (final segment in segments) {
+        final segmentCode = segment.attributes['SegmentCode']?.toString() ?? 
+                          segment.attributes['RPH']?.toString() ?? 
+                          'segment_${segments.indexOf(segment)}';
+        
+        // Add baggage options for this segment
+        availableBaggage.addAll(baggageOptions);
 
-      if (baggageOptions.isNotEmpty) {
-        final noBagOption = baggageOptions.firstWhere(
-              (bag) => bag.baggageCode.toLowerCase().contains('no bag') ||
-              bag.baggageCode.toLowerCase().contains('nobag') ||
-              bag.baggageDescription.toLowerCase().contains('no bag'),
-          orElse: () => baggageOptions.first,
-        );
+        if (baggageOptions.isNotEmpty) {
+          final noBagOption = baggageOptions.firstWhere(
+            (bag) => bag.baggageCode.toLowerCase().contains('no bag') ||
+                    bag.baggageCode.toLowerCase().contains('nobag') ||
+                    bag.baggageDescription.toLowerCase().contains('no bag'),
+            orElse: () => baggageOptions.first,
+          );
 
-        // Set default baggage for all passengers
-        for (String passengerId in passengerIds) {
-          selectedBaggage[passengerId] = noBagOption;
+          // Set default baggage for all passengers for this segment
+          for (String passengerId in passengerIds) {
+            final baggageKey = '$passengerId-$segmentCode';
+            selectedBaggage[baggageKey] = noBagOption;
+          }
         }
       }
-    } catch (e) {
-      print('Error processing baggage options: $e');
-      availableBaggage.value = [];
     }
+  } catch (e) {
+    print('Error processing baggage options: $e');
+    availableBaggage.value = [];
+  }
+}
+
+// Update the getFlightSegments method
+List<FlightSegmentInfo> getFlightSegments() {
+  try {
+    final baggageDetails = revalidationResponse.value?.data?.extras.baggage.body.aaBaggageDetailsRS;
+    final baggageResponses = baggageDetails?.baggageDetailsResponses;
+    
+    if (baggageResponses == null) return [];
+    
+    final onDBaggageResponses = baggageResponses.onDBaggageDetailsResponse;
+    
+    final List<FlightSegmentInfo> allSegments = [];
+    
+    for (final response in onDBaggageResponses) {
+      // Use the helper method
+      final segments = response.getSegments();
+      allSegments.addAll(segments);
+    }
+    
+    // Remove duplicates by segment code
+    final uniqueSegments = <String, FlightSegmentInfo>{};
+    for (final segment in allSegments) {
+      final segmentCode = segment.attributes['SegmentCode']?.toString() ?? 
+                         segment.attributes['RPH']?.toString() ?? 
+                         'segment_${allSegments.indexOf(segment)}';
+      uniqueSegments[segmentCode] = segment;
+    }
+    
+    return uniqueSegments.values.toList();
+  } catch (e) {
+    print('Error getting flight segments: $e');
+    return [];
+  }
+}
+  List<OnDBaggageDetailsResponse> _parseOnDBaggageResponses(dynamic responseData) {
+    if (responseData == null) return [];
+    
+    if (responseData is List) {
+      return responseData.cast<OnDBaggageDetailsResponse>();
+    } else if (responseData is OnDBaggageDetailsResponse) {
+      return [responseData];
+    }
+    
+    return [];
+  }
+
+  // Helper method to extract segment code from baggage response
+  String _getSegmentCodeFromBaggageResponse(OnDBaggageDetailsResponse response) {
+    try {
+      if (response.flightSegmentInfo.isNotEmpty) {
+        final firstSegment = response.flightSegmentInfo.first;
+        return firstSegment.attributes['SegmentCode']?.toString() ?? '';
+      }
+    } catch (e) {
+      print('Error getting segment code: $e');
+    }
+    return '';
   }
 
   void _processMealOptions(MealInfo mealInfo) {
@@ -276,7 +353,7 @@ String getPassengerDisplayName(int index) {
     return seats;
   }
 
-  // Updated methods to handle per-passenger selection
+  // Updated methods to handle per-passenger selection with segment codes
 
   void selectSeat(String segmentCode, String passengerId, SeatOption seat) {
     if (!selectedSeats.containsKey(passengerId)) {
@@ -308,9 +385,17 @@ String getPassengerDisplayName(int index) {
     return false;
   }
 
-  void selectBaggage(String passengerId, BaggageOption baggage) {
-    selectedBaggage[passengerId] = baggage;
+  // Updated to handle segment-specific baggage
+  void selectBaggage(String passengerId, BaggageOption baggage, {String segmentCode = ''}) {
+    final baggageKey = segmentCode.isNotEmpty ? '$passengerId-$segmentCode' : passengerId;
+    selectedBaggage[baggageKey] = baggage;
     _updateExtrasPrice();
+  }
+
+  // Helper to get baggage for a specific passenger and segment
+  BaggageOption? getBaggageForPassenger(String passengerId, {String segmentCode = ''}) {
+    final baggageKey = segmentCode.isNotEmpty ? '$passengerId-$segmentCode' : passengerId;
+    return selectedBaggage[baggageKey];
   }
 
   void toggleMeal(String segmentCode, String passengerId, MealOption meal) {
@@ -337,12 +422,12 @@ String getPassengerDisplayName(int index) {
   void _updateExtrasPrice() {
     double extrasTotal = 0.0;
 
-    // Add baggage charges for all passengers
-    for (final baggage in selectedBaggage.values) {
-      extrasTotal += double.tryParse(baggage.baggageCharge) ?? 0.0;
+    // Add baggage charges for all passengers and segments
+    for (final baggageEntry in selectedBaggage.entries) {
+      extrasTotal += double.tryParse(baggageEntry.value.baggageCharge) ?? 0.0;
     }
 
-    // Add meal charges for all passengers
+    // Add meal charges for all passengers and segments
     for (final passengerMeals in selectedMeals.values) {
       for (final mealList in passengerMeals.values) {
         for (final meal in mealList) {
@@ -351,7 +436,7 @@ String getPassengerDisplayName(int index) {
       }
     }
 
-    // Add seat charges for all passengers
+    // Add seat charges for all passengers and segments
     for (final passengerSeats in selectedSeats.values) {
       for (final seat in passengerSeats.values) {
         extrasTotal += seat.seatCharge;
@@ -373,26 +458,15 @@ String getPassengerDisplayName(int index) {
     return selectedSeats[passengerId]?[segmentCode];
   }
 
-  List<FlightSegmentInfo> getFlightSegments() {
-    try {
-      return revalidationResponse.value?.data?.extras.baggage.body.aaBaggageDetailsRS
-          .baggageDetailsResponses.onDBaggageDetailsResponse.flightSegmentInfo ?? [];
-    } catch (e) {
-      print('Error getting flight segments: $e');
-      return [];
-    }
-  }
-
-  List<MealOption> getMealsForSegment(String segmentCode) {
+  // Updated to handle multiple flight segments from baggage response
+// Updated to properly handle both single segment and array of segments
+ List<MealOption> getMealsForSegment(String segmentCode) {
     return mealsBySegment[segmentCode] ?? [];
   }
 
   List<SeatOption> getSeatsForSegment(String segmentCode) {
     return seatsBySegment[segmentCode] ?? [];
   }
-
-  // Get passenger display name
-  
 
   void reset() {
     revalidationResponse.value = null;

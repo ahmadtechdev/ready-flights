@@ -324,86 +324,143 @@ class _AirArabiaRevalidationScreenState extends State<AirArabiaRevalidationScree
     );
   }
 
+// Update the _buildBaggageTab method to handle segment-specific baggage
 Widget _buildBaggageTab(AirArabiaRevalidationController controller) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Choose Your Baggage',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: TColors.primary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Select additional baggage for each passenger',
-            style: TextStyle(
-              fontSize: 14,
-              color: TColors.grey,
-            ),
-          ),
-          const SizedBox(height: 16),
-          
-          // Passenger tabs for baggage selection
-         if (controller.adultPassengers.value > 1) // Changed from totalPassengers
-  Container(
-    height: 40,
-    margin: const EdgeInsets.only(bottom: 16),
-    child: ListView.builder(
-      scrollDirection: Axis.horizontal,
-      itemCount: controller.adultPassengers.value, // Changed from totalPassengers
-      itemBuilder: (context, index) {
-        final passengerId = controller.passengerIds[index];
-        return Container(
-          margin: const EdgeInsets.only(right: 8),
-          child: FilterChip(
-            label: Text(controller.getPassengerDisplayName(index)),
-            selected: _selectedPassengerIndex == index,
-            onSelected: (selected) {
-              setState(() {
-                _selectedPassengerIndex = selected ? index : 0;
-              });
-            },
-            selectedColor: TColors.primary.withOpacity(0.2),
-            labelStyle: TextStyle(
-              color: _selectedPassengerIndex == index ? TColors.primary : TColors.grey,
-              fontWeight: _selectedPassengerIndex == index ? FontWeight.w600 : FontWeight.normal,
-            ),
-          ),
-        );
-      },
-    ),
-  ),
-
-
-          // Baggage options for selected passenger
-          Obx(() {
-            final passengerId = controller.passengerIds.isNotEmpty 
-                ? controller.passengerIds[_selectedPassengerIndex] 
-                : 'passenger_0';
-            
-            return Column(
-              children: controller.availableBaggage.map((baggage) {
-                final isSelected = controller.selectedBaggage[passengerId]?.baggageCode == baggage.baggageCode;
-                return _buildSelectionCard(
-                  icon: Icons.luggage,
-                  title: baggage.baggageDescription,
-                  price: 'PKR ${baggage.baggageCharge}',
-                  isSelected: isSelected,
-                  onTap: () => controller.selectBaggage(passengerId, baggage),
-                );
-              }).toList(),
-            );
-          }),
-        ],
-      ),
-    );
+  final segments = controller.getFlightSegments();
+  
+  // Debug print to check segments
+  print('Total segments found: ${segments.length}');
+  for (final segment in segments) {
+    final departure = segment.departureAirport['LocationCode'] ?? '';
+    final arrival = segment.arrivalAirport['LocationCode'] ?? '';
+    final segmentCode = segment.attributes['SegmentCode'] ?? '';
+    print('Segment: $departure → $arrival ($segmentCode)');
   }
-
+  
+  return DefaultTabController(
+    length: segments.length,
+    child: Column(
+      children: [
+        if (segments.length > 1)
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: TColors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: TabBar(
+              isScrollable: true,
+              indicatorColor: TColors.primary,
+              labelColor: TColors.primary,
+              unselectedLabelColor: TColors.grey,
+              tabs: segments.map((segment) {
+                final departure = segment.departureAirport['LocationCode'] ?? '';
+                final arrival = segment.arrivalAirport['LocationCode'] ?? '';
+                final segmentCode = segment.attributes['SegmentCode'] ?? '';
+                return Tab(text: '$departure → $arrival');
+              }).toList(),
+            ),
+          ),
+        
+        // Passenger selection for baggage
+        if (controller.adultPassengers.value > 1)
+          Container(
+            height: 40,
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: controller.adultPassengers.value,
+              itemBuilder: (context, index) {
+                return Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(controller.getPassengerDisplayName(index)),
+                    selected: _selectedPassengerIndex == index,
+                    onSelected: (selected) {
+                      setState(() {
+                        _selectedPassengerIndex = selected ? index : 0;
+                      });
+                    },
+                    selectedColor: TColors.primary.withOpacity(0.2),
+                    labelStyle: TextStyle(
+                      color: _selectedPassengerIndex == index ? TColors.primary : TColors.grey,
+                      fontWeight: _selectedPassengerIndex == index ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        
+        Expanded(
+          child: TabBarView(
+            children: segments.map((segment) {
+              final segmentCode = segment.attributes['SegmentCode']?.toString() ?? 
+                                segment.attributes['RPH']?.toString() ?? 
+                                'segment_${segments.indexOf(segment)}';
+              
+              return SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Choose Your Baggage',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: TColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Select additional baggage for ${segment.departureAirport['LocationCode']} → ${segment.arrivalAirport['LocationCode']}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: TColors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Baggage options for selected passenger and segment
+                    Obx(() {
+                      final passengerId = controller.passengerIds.isNotEmpty 
+                          ? controller.passengerIds[_selectedPassengerIndex] 
+                          : 'passenger_0';
+                      
+                      // Get baggage options for this segment (filter by segment if needed)
+                      // For now, using all available baggage options
+                      return Column(
+                        children: controller.availableBaggage.map((baggage) {
+                          final isSelected = controller.getBaggageForPassenger(
+                            passengerId, 
+                            segmentCode: segmentCode
+                          )?.baggageCode == baggage.baggageCode;
+                          
+                          return _buildSelectionCard(
+                            icon: Icons.luggage,
+                            title: baggage.baggageDescription,
+                            price: 'PKR ${baggage.baggageCharge}',
+                            isSelected: isSelected,
+                            onTap: () => controller.selectBaggage(
+                              passengerId, 
+                              baggage, 
+                              segmentCode: segmentCode
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    }),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    ),
+  );
+}
   Widget _buildMealsTab(AirArabiaRevalidationController controller) {
     final segments = controller.getFlightSegments();
     
