@@ -332,7 +332,7 @@ class ApiServiceFlyDubai {
     }
   }
 
-  // Create PNR - uses existing token, doesn't authenticate
+// Create PNR - uses existing token, doesn't authenticate
   Future<Map<String, dynamic>> createPNR({
     required List<TravelerInfo> adults,
     required List<TravelerInfo> children,
@@ -347,7 +347,6 @@ class ApiServiceFlyDubai {
     required Map<String, dynamic> cartData,
   }) async {
     try {
-      // Use existing token, don't authenticate here
       if (_accessToken == null) {
         return {
           'success': false,
@@ -359,9 +358,15 @@ class ApiServiceFlyDubai {
       print('=== CREATING PNR FOR FLYDUBAI ===');
       print('Using access token: $_accessToken');
 
-      // Rest of the createPNR method remains the same...
-      // Build the PNR request body
-      final requestBody = _buildPNRRequest(
+      if (cartData.isEmpty) {
+        return {
+          'success': false,
+          'error': 'Invalid cart data. Please add flights to cart first.',
+          'details': 'Cart data is required for PNR creation'
+        };
+      }
+
+      final requestBody = await _buildPNRRequest(
         adults: adults,
         children: children,
         infants: infants,
@@ -383,30 +388,86 @@ class ApiServiceFlyDubai {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $_accessToken',
-          'Cookie': 'visid_incap_3059742=mt0fc3JTQDStXbDmAKotlet1zGUAAAAAQUIPAAAAAAA/4nh9vwd+842orxzMj3FS',
           'Accept-Encoding': 'gzip, deflate',
         },
         body: json.encode(requestBody),
       );
 
       print('PNR Creation Response Status: ${response.statusCode}');
+      print('PNR Creation Response Body: ');
+      printJsonPretty(response.body);
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
-        print('✅ PNR created successfully');
 
-        final success = responseData['Success'] == true ||
-            responseData['ConfirmationNumber'] != null;
+        // Extract series number for commit step
+        final reservationInfo = responseData['ReservationInfo'] ?? {};
+        final seriesNumber = responseData['SeriesNumber']?.toString();
+        print("ahmad");
+        print(seriesNumber);
 
-        return {
-          'success': success,
-          'data': responseData,
-          'confirmationNumber': responseData['ConfirmationNumber']?.toString(),
-          'message': success ? 'PNR created successfully' : 'PNR creation failed',
-          'rawResponse': responseData,
+        if (seriesNumber == null || seriesNumber.isEmpty) {
+          return {
+            'success': false,
+            'error': 'Missing SeriesNumber in PNR creation response',
+            'rawResponse': responseData,
+          };
+        }
+
+        print('✅ PNR created (Summary). SeriesNumber: $seriesNumber');
+        print('--- COMMITTING PNR NOW ---');
+
+        // Build commit request body
+        final commitRequest = {
+          "ActionType": "CommitSummary",
+          "ReservationInfo": {
+            "SeriesNumber": seriesNumber,
+            "ConfirmationNumber": null
+          },
+          "SecurityGUID": responseData['SecurityGuid'] ?? '',
+          "CarrierCodes": [
+            {"AccessibleCarrierCode": "FZ"}
+          ],
+          "ClientIPAddress": "",
+          "HistoricUserName": "apitravelocityp"
         };
+
+        final commitResponse = await http.post(
+          Uri.parse('$baseUrl/cp/commitPNR?accrual=true'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $_accessToken',
+            'Accept-Encoding': 'gzip, deflate',
+          },
+          body: json.encode(commitRequest),
+        );
+
+        print('CommitPNR Response Status: ${commitResponse.statusCode}');
+        print('CommitPNR Response Body:');
+        printJsonPretty(commitResponse.body);
+
+        if (commitResponse.statusCode == 200) {
+          final commitData = json.decode(commitResponse.body);
+          final confirmationNumber = commitData['ReservationInfo']?['ConfirmationNumber'];
+
+          print('✅ Final PNR Confirmation Number: $confirmationNumber');
+
+          return {
+            'success': true,
+            'data': responseData,
+            'commitData': commitData,
+            'confirmationNumber': confirmationNumber,
+            'message': 'PNR created and committed successfully',
+          };
+        } else {
+          return {
+            'success': false,
+            'error': 'Commit PNR failed',
+            'response': commitResponse.body,
+            'statusCode': commitResponse.statusCode,
+          };
+        }
       } else if (response.statusCode == 401) {
-        // Token expired - but we won't re-authenticate here
         _accessToken = null;
         _tokenExpiry = null;
         return {
@@ -414,19 +475,27 @@ class ApiServiceFlyDubai {
           'error': 'Token expired. Please search flights again to get a new token.',
           'response': response.body,
         };
-      }
+      } else {
+        final errorResponse = json.decode(response.body);
+        final errorMessage = errorResponse['Message'] ??
+            errorResponse['error'] ??
+            errorResponse['Exception'] ??
+            'PNR creation failed with status: ${response.statusCode}';
 
-      return {
-        'success': false,
-        'error': 'PNR creation failed with status: ${response.statusCode}',
-        'response': response.body,
-      };
+        return {
+          'success': false,
+          'error': errorMessage,
+          'response': response.body,
+          'statusCode': response.statusCode,
+        };
+      }
     } catch (e, stackTrace) {
       print('❌ PNR creation error: $e');
       print('Stack trace: $stackTrace');
       return {
         'success': false,
         'error': 'PNR creation failed: $e',
+        'stackTrace': stackTrace.toString(),
       };
     }
   }
@@ -1153,6 +1222,8 @@ class ApiServiceFlyDubai {
   }) {
     try {
       print('Building PNR request...');
+      print('Adults: ${adults.length}, Children: ${children.length}, Infants: ${infants.length}');
+      print('Segment array: ${segmentArray.length} items');
 
       // Build passengers array
       final List<Map<String, dynamic>> passengers = [];
@@ -1168,7 +1239,9 @@ class ApiServiceFlyDubai {
         final age = _calculateAge(adult.dateOfBirthController.text);
 
         // Get gender code (M/F)
-        final gender = adult.genderController.text.substring(0, 1).toUpperCase();
+        final gender = adult.genderController.text.isNotEmpty
+            ? adult.genderController.text
+            : "Male";
 
         // Get nationality code
         final nationality = adult.nationalityCountry.value?.countryCode ?? "PK";
@@ -1199,18 +1272,18 @@ class ApiServiceFlyDubai {
               "IssuingCountry": nationality,
               "ExpiryDate": adult.passportExpiryController.text.isNotEmpty
                   ? "${adult.passportExpiryController.text}T00:00:00"
-                  : "2030-12-31T00:00:00" // Default expiry if empty
+                  : "2030-12-31T00:00:00"
             }
           ]
         };
 
         if (isPrimary) {
           passenger["Address"] = {
-            "Address1": city,
-            "Address2": city,
-            "City": city,
+            "Address1": city.isNotEmpty ? city : "Home, Sweet Home",
+            "Address2": city.isNotEmpty ? city : "Home, Sweet Home",
+            "City": city.isNotEmpty ? city : "Islamabad",
             "State": "",
-            "Postal": "12123233",
+            "Postal": "10967",
             "Country": "PK",
             "CountryCode": countryCode,
             "AreaCode": "",
@@ -1252,7 +1325,7 @@ class ApiServiceFlyDubai {
             "Address2": "",
             "City": "",
             "State": "",
-            "Postal": "12123233",
+            "Postal": "10967",
             "Country": "PK",
             "CountryCode": countryCode,
             "AreaCode": "",
@@ -1274,7 +1347,9 @@ class ApiServiceFlyDubai {
         final age = _calculateAge(child.dateOfBirthController.text);
 
         // Get gender code
-        final gender = child.genderController.text.substring(0, 1).toUpperCase();
+        final gender = child.genderController.text.isNotEmpty
+            ? child.genderController.text.substring(0, 1).toUpperCase()
+            : "M";
 
         // Get nationality code
         final nationality = child.nationalityCountry.value?.countryCode ?? "PK";
@@ -1300,7 +1375,7 @@ class ApiServiceFlyDubai {
             "Address2": "",
             "City": "",
             "State": "",
-            "Postal": "12123233",
+            "Postal": "10967",
             "Country": "PK",
             "CountryCode": countryCode,
             "AreaCode": "",
@@ -1333,10 +1408,15 @@ class ApiServiceFlyDubai {
         final age = _calculateAge(infant.dateOfBirthController.text);
 
         // Get gender code
-        final gender = infant.genderController.text.substring(0, 1).toUpperCase();
+        final gender = infant.genderController.text.isNotEmpty
+            ? infant.genderController.text.substring(0, 1).toUpperCase()
+            : "M";
 
         // Get nationality code
         final nationality = infant.nationalityCountry.value?.countryCode ?? "PK";
+
+        // Infant travels with the first adult (index 0)
+        final travelsWithId = -(1); // First adult has PersonOrgID -1
 
         passengers.add({
           "PersonOrgID": -personId,
@@ -1351,7 +1431,7 @@ class ApiServiceFlyDubai {
           "RelationType": "Self",
           "WBCID": 1,
           "PTCID": 5, // Infant passenger type
-          "TravelsWithPersonOrgID": -(i + 1), // Travels with corresponding adult
+          "TravelsWithPersonOrgID": travelsWithId,
           "MarketingOptIn": true,
           "UseInventory": false,
           "Address": {
@@ -1359,7 +1439,7 @@ class ApiServiceFlyDubai {
             "Address2": "",
             "City": "",
             "State": "",
-            "Postal": "12123233",
+            "Postal": "10967",
             "Country": "PK",
             "CountryCode": countryCode,
             "AreaCode": "",
@@ -1383,16 +1463,12 @@ class ApiServiceFlyDubai {
         });
       }
 
-      // Build segments from cart data and segment array
-      final List<Map<String, dynamic>> segments = _buildSegmentsFromCartData(
-          cartData,
-          adults.length,
-          segmentArray
-      );
+      // Build segments from segment array
+      final List<Map<String, dynamic>> segments = _buildSegmentsFromArray(segmentArray);
 
       // Format phone numbers for the request
-      final formattedPhone = clientPhone.replaceAll(RegExp(r'[^0-9]'), '');
-      final formattedSimCode = simCode.replaceAll(RegExp(r'[^0-9]'), '');
+      final formattedPhone = _cleanPhoneNumber(clientPhone);
+      final formattedSimCode = _cleanPhoneNumber(simCode);
 
       return {
         "ActionType": "GetSummary",
@@ -1415,13 +1491,13 @@ class ApiServiceFlyDubai {
         "User": username,
         "ReceiptLanguageID": "1",
         "Address": {
-          "Address1": city,
-          "Address2": city,
-          "City": city,
+          "Address1": city.isNotEmpty ? city : "Home, Sweet Home",
+          "Address2": city.isNotEmpty ? city : "Home, Sweet Home",
+          "City": city.isNotEmpty ? city : "Islamabad",
           "Postal": "10967",
-          "PhoneNumber": formattedPhone,
+          "PhoneNumber": formattedPhone.isNotEmpty ? formattedPhone : "11172699999",
           "Country": "PK",
-          "CountryCode": countryCode,
+          "CountryCode": countryCode.isNotEmpty ? countryCode : "92",
           "State": "",
           "Display": ""
         },
@@ -1435,6 +1511,142 @@ class ApiServiceFlyDubai {
       print('Stack trace: $stackTrace');
       rethrow;
     }
+  }
+
+  // Helper method to build segments from segment array
+  List<Map<String, dynamic>> _buildSegmentsFromArray(List<Map<String, dynamic>> segmentArray) {
+    final List<Map<String, dynamic>> segments = [];
+
+    try {
+      for (final segment in segmentArray) {
+        final paxId = segment['pax'] ?? 1;
+        final fareId = segment['fareID'] ?? 1;
+        final extra = segment['extra'] as Map<String, dynamic>? ?? {};
+
+        final specialServices = _buildSpecialServices(extra, paxId);
+        final seats = _buildSeats(extra, paxId);
+
+        segments.add({
+          "PersonOrgID": -paxId,
+          "FareInformationID": fareId,
+          "SpecialServices": specialServices,
+          "Seats": seats
+        });
+      }
+    } catch (e) {
+      print('Error building segments from array: $e');
+    }
+
+    // Fallback: create basic segment if extraction fails
+    if (segments.isEmpty) {
+      segments.add({
+        "PersonOrgID": -1,
+        "FareInformationID": 1,
+        "SpecialServices": [],
+        "Seats": []
+      });
+    }
+
+    print('Built ${segments.length} segments from array');
+    return segments;
+  }
+
+// Helper method to clean phone number
+  String _cleanPhoneNumber(String phone) {
+    return phone.replaceAll(RegExp(r'[^0-9]'), '');
+  }
+
+// Enhanced special services builder
+  List<Map<String, dynamic>> _buildSpecialServices(Map<String, dynamic> extra, int paxId) {
+    final List<Map<String, dynamic>> services = [];
+
+    try {
+      // Handle baggage
+      if (extra['baggage'] != null && extra['baggage'].toString().isNotEmpty) {
+        final baggageItems = extra['baggage'].toString().split('!!');
+        if (baggageItems.length >= 7) {
+          services.add({
+            "ServiceID": 1,
+            "CodeType": baggageItems[0],
+            "SSRCategory": 99,
+            "LogicalFlightID": int.tryParse(baggageItems[1]) ?? 0,
+            "DepartureDate": baggageItems[2],
+            "Amount": double.tryParse(baggageItems[3]) ?? 0.0,
+            "OverrideAmount": false,
+            "CurrencyCode": baggageItems[4],
+            "Commissionable": false,
+            "Refundable": false,
+            "ChargeComment": baggageItems[5],
+            "PersonOrgID": -paxId,
+            "AlreadyAdded": false,
+            "PhysicalFlightID": int.tryParse(baggageItems[6]) ?? 0,
+            "secureHash": ""
+          });
+        }
+      }
+
+      // Handle meals
+      if (extra['meal'] is List) {
+        for (final meal in extra['meal'] as List) {
+          if (meal != null && meal.toString().isNotEmpty) {
+            final mealItems = meal.toString().split('!!');
+            if (mealItems.length >= 7) {
+              services.add({
+                "ServiceID": 1,
+                "CodeType": mealItems[0],
+                "SSRCategory": 121,
+                "LogicalFlightID": int.tryParse(mealItems[1]) ?? 0,
+                "DepartureDate": mealItems[2],
+                "Amount": double.tryParse(mealItems[3]) ?? 0.0,
+                "OverrideAmount": false,
+                "CurrencyCode": mealItems[4],
+                "Commissionable": false,
+                "Refundable": false,
+                "ChargeComment": mealItems[5],
+                "PersonOrgID": -paxId,
+                "AlreadyAdded": false,
+                "PhysicalFlightID": int.tryParse(mealItems[6]) ?? 0,
+                "secureHash": ""
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error building special services: $e');
+    }
+
+    return services;
+  }
+
+// Enhanced seats builder
+  List<Map<String, dynamic>> _buildSeats(Map<String, dynamic> extra, int paxId) {
+    final List<Map<String, dynamic>> seats = [];
+
+    try {
+      // Handle seats
+      if (extra['seat'] is List) {
+        for (final seat in extra['seat'] as List) {
+          if (seat != null && seat.toString().isNotEmpty) {
+            final seatItems = seat.toString().split('!!');
+            if (seatItems.length >= 9) {
+              seats.add({
+                "PersonOrgID": -paxId,
+                "LogicalFlightID": int.tryParse(seatItems[1]) ?? 0,
+                "PhysicalFlightID": int.tryParse(seatItems[6]) ?? 0,
+                "DepartureDate": seatItems[2],
+                "SeatSelected": seatItems[8],
+                "RowNumber": seatItems[7]
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error building seats: $e');
+    }
+
+    return seats;
   }
 // Helper method to calculate age from date of birth
   int _calculateAge(String dobString) {
@@ -1527,97 +1739,6 @@ class ApiServiceFlyDubai {
     return segments;
   }
 
-// Helper methods for special services and seats
-  List<Map<String, dynamic>> _buildSpecialServices(Map<String, dynamic> extra, int paxId) {
-    final List<Map<String, dynamic>> services = [];
-
-    try {
-      // Handle baggage
-      if (extra['baggage'] != null && extra['baggage'].toString().isNotEmpty) {
-        final baggageItems = extra['baggage'].toString().split('!!');
-        if (baggageItems.length >= 7) {
-          services.add({
-            "ServiceID": 1,
-            "CodeType": baggageItems[0],
-            "SSRCategory": 99,
-            "LogicalFlightID": int.parse(baggageItems[1]),
-            "DepartureDate": baggageItems[2],
-            "Amount": double.parse(baggageItems[3]),
-            "OverrideAmount": false,
-            "CurrencyCode": baggageItems[4],
-            "Commissionable": false,
-            "Refundable": false,
-            "ChargeComment": baggageItems[5],
-            "PersonOrgID": -paxId,
-            "AlreadyAdded": false,
-            "PhysicalFlightID": int.parse(baggageItems[6]),
-            "secureHash": ""
-          });
-        }
-      }
-
-      // Handle meals
-      if (extra['meal'] is List) {
-        for (final meal in extra['meal']) {
-          if (meal != null && meal.toString().isNotEmpty) {
-            final mealItems = meal.toString().split('!!');
-            if (mealItems.length >= 7) {
-              services.add({
-                "ServiceID": 1,
-                "CodeType": mealItems[0],
-                "SSRCategory": 121,
-                "LogicalFlightID": int.parse(mealItems[1]),
-                "DepartureDate": mealItems[2],
-                "Amount": double.parse(mealItems[3]),
-                "OverrideAmount": false,
-                "CurrencyCode": mealItems[4],
-                "Commissionable": false,
-                "Refundable": false,
-                "ChargeComment": mealItems[5],
-                "PersonOrgID": -paxId,
-                "AlreadyAdded": false,
-                "PhysicalFlightID": int.parse(mealItems[6]),
-                "secureHash": ""
-              });
-            }
-          }
-        }
-      }
-    } catch (e) {
-      print('Error building special services: $e');
-    }
-
-    return services;
-  }
-
-  List<Map<String, dynamic>> _buildSeats(Map<String, dynamic> extra, int paxId) {
-    final List<Map<String, dynamic>> seats = [];
-
-    try {
-      // Handle seats
-      if (extra['seat'] is List) {
-        for (final seat in extra['seat']) {
-          if (seat != null && seat.toString().isNotEmpty) {
-            final seatItems = seat.toString().split('!!');
-            if (seatItems.length >= 9) {
-              seats.add({
-                "PersonOrgID": -paxId,
-                "LogicalFlightID": int.parse(seatItems[1]),
-                "PhysicalFlightID": int.parse(seatItems[6]),
-                "DepartureDate": seatItems[2],
-                "SeatSelected": seatItems[8],
-                "RowNumber": seatItems[7]
-              });
-            }
-          }
-        }
-      }
-    } catch (e) {
-      print('Error building seats: $e');
-    }
-
-    return seats;
-  }
 
 
   // Add these methods to ApiServiceFlyDubai class

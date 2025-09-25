@@ -1558,9 +1558,7 @@ class _FlydubaiExtrasScreenState extends State<FlydubaiExtrasScreen> {
             !isAvailable;
         isPremium = apiSeat['isPremium'] == true;
 
-        debugPrint(
-          'Seat $seatNumber: Available=$isAvailable, Occupied=$isOccupied, Price=$price',
-        );
+
       }
 
       // Determine seat color

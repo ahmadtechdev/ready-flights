@@ -7,6 +7,7 @@ import '../../../../../services/api_service_flydubai.dart';
 import '../../../../../utility/colors.dart';
 import '../../../../../widgets/travelers_selection_bottom_sheet.dart';
 import '../../search_flights/flydubai/flydubai_controller.dart';
+import '../../search_flights/flydubai/flydubai_extras_controller.dart';
 import '../../search_flights/flydubai/flydubai_model.dart';
 import '../booking_flight_controller.dart';
 
@@ -1143,14 +1144,27 @@ class _FlyDubaiBookingFlightState extends State<FlyDubaiBookingFlight> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  '00', // You might want to calculate the actual total
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: TColors.primary,
-                  ),
-                ),
+                Obx(() {
+                  // Get the base flight price
+                  final flightPrice = widget.flight.price;
+
+                  // Get extras price from extras controller
+                  final extrasController = Get.put(FlydubaiExtrasController());
+                  final extrasPrice = extrasController.totalExtrasPrice.value;
+
+                  // Calculate total
+                  final totalPrice = flightPrice + extrasPrice;
+                  final currency = widget.flight.currency;
+
+                  return Text(
+                    '$currency ${_formatPrice(totalPrice)}',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: TColors.primary,
+                    ),
+                  );
+                }),
               ],
             ),
             ElevatedButton(
@@ -1179,7 +1193,7 @@ class _FlyDubaiBookingFlightState extends State<FlyDubaiBookingFlight> {
                       print('Travelers: ${adults.length} adults, ${children.length} children, ${infants.length} infants');
 
                       // Get cart data from controller
-                      final cartData = flydubaiController.cartData;
+                      final cartData = flydubaiController.outboundCartData;
                       if (cartData == null) {
                         throw Exception('No cart data available. Please add flights to cart first.');
                       }
@@ -1193,6 +1207,10 @@ class _FlyDubaiBookingFlightState extends State<FlyDubaiBookingFlight> {
 
                       // Get SIM code (you might need to generate or get this)
                       final simCode = '123'; // Example SIM code
+
+
+                      print('Segment array with extras: $segmentArray');
+
 
                       // Call createPNR API
                       final pnrResult = await apiService.createPNR(
@@ -1283,6 +1301,21 @@ class _FlyDubaiBookingFlightState extends State<FlyDubaiBookingFlight> {
       ),
     );
   }
+
+
+  // Add this helper method to format the price
+  String _formatPrice(double price) {
+    final parts = price.toStringAsFixed(0).split('.');
+    final integerPart = parts[0];
+
+    final formattedInteger = integerPart.replaceAllMapped(
+      RegExp(r'\B(?=(\d{3})+(?!\d))'),
+          (match) => ',',
+    );
+
+    return formattedInteger;
+  }
+
 // Add this helper method to show booking confirmation
   void _showBookingConfirmation(Map<String, dynamic> pnrResult) {
     Get.dialog(

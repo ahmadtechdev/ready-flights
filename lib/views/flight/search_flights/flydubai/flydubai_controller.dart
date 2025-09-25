@@ -685,6 +685,7 @@ class FlydubaiFlightController extends GetxController {
       );
 
       if (result['success'] == true) {
+        print("Chal ja yaar add to cart");
         developer.log('Successfully added flights to cart');
         // Store cart data for booking process
         _cartData = result['data'];

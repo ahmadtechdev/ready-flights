@@ -317,8 +317,8 @@ class BookingFlightController extends GetxController {
       phone = phone.substring(1);
     }
 
-    // Return formatted phone number with country code
-    return '+$countryCode$phone';
+    // Return formatted phone number with country code (without +)
+    return '$countryCode$phone';
   }
 
   // Country picker methods
