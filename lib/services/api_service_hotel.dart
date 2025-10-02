@@ -213,7 +213,7 @@ class ApiServiceHotel extends GetxService {
   }) async {
     final searchController = Get.find<SearchHotelController>();
 
-    // Fetch margin and ROE before processing hotels
+    // Fetch margin and ROE before processing hotels     
     await fetchMarginAndROE();
 
     final requestBody = {

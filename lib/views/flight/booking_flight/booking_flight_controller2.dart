@@ -29,17 +29,23 @@ class TravelerInfo {
         phoneController = TextEditingController(),
         emailController = TextEditingController();
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+
   void dispose() {
-    titleController.dispose();
-    firstNameController.dispose();
-    lastNameController.dispose();
-    passportController.dispose();
-    nationalityController.dispose();
-    dateOfBirthController.dispose();
-    passportExpiryController.dispose();
-    genderController.dispose();
-    phoneController.dispose();
-    emailController.dispose();
+   
   }
 
   bool isValid() {
@@ -56,6 +62,7 @@ class TravelerInfo {
           nationalityController.text.isNotEmpty;
     }
   }
+
 
   Map<String, dynamic> toJson() {
     if (isInfant) {
@@ -111,9 +118,6 @@ class BookingFlightController extends GetxController {
     ever(travelersController.childrenCount, (_) => updateChildren());
     ever(travelersController.infantCount, (_) => updateInfants());
   }
-
-
-
   void initializeTravelers() {
     updateAdults();
     updateChildren();
@@ -226,12 +230,12 @@ class BookingFlightController extends GetxController {
   @override
   void onClose() {
     // Dispose booker information controllers
-    firstNameController.dispose(); // Add this
-    lastNameController.dispose();  // Add this
-    emailController.dispose();
-    phoneController.dispose();
-    addressController.dispose();
-    cityController.dispose();
+    // firstNameController.dispose(); // Add this
+    // lastNameController.dispose();  // Add this
+    // emailController.dispose();
+    // phoneController.dispose();
+    // addressController.dispose();
+    // cityController.dispose();
 
     // Dispose all traveler controllers
     for (var adult in adults) {

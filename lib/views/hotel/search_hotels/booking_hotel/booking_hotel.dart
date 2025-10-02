@@ -261,21 +261,21 @@ class BookingHotelScreen extends StatelessWidget {
             const SizedBox(height: 16),
             
             // Address Field (Separate Row)
-            _buildTextField(
-              controller: bookingController.addressController,
-              hint: 'Address Line',
-              prefixIcon: Icons.location_on_outlined,
-              iconColor: TColors.primary,
-            ),
-            const SizedBox(height: 16),
+            // _buildTextField(
+            //   controller: bookingController.addressController,
+            //   hint: 'Address Line',
+            //   prefixIcon: Icons.location_on_outlined,
+            //   iconColor: TColors.primary,
+            // ),
+            // const SizedBox(height: 16),
             
-            // City Field (Separate Row)
-            _buildTextField(
-              controller: bookingController.cityController,
-              hint: 'City',
-              prefixIcon: Icons.location_city_outlined,
-              iconColor: TColors.primary,
-            ),
+            // // City Field (Separate Row)
+            // _buildTextField(
+            //   controller: bookingController.cityController,
+            //   hint: 'City',
+            //   prefixIcon: Icons.location_city_outlined,
+            //   iconColor: TColors.primary,
+            // ),
           ],
         ),
       ),

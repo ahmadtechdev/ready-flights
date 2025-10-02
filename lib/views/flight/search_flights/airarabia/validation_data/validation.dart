@@ -887,7 +887,7 @@ Widget _buildCompleteAircraftLayout(String segmentCode, AirArabiaRevalidationCon
         controller.selectSeat(segmentCode, passengerId, apiSeat);
       },
       child: Container(
-        width: 24,
+        width: 35,
         height: 28,
         margin: const EdgeInsets.symmetric(horizontal: 1),
         decoration: BoxDecoration(
@@ -923,7 +923,8 @@ Widget _buildCompleteAircraftLayout(String segmentCode, AirArabiaRevalidationCon
             ),
             if (price > 0 && !isOccupied && !isOccupiedByOtherPassenger)
               Text(
-                price < 1000 ? '${price.toInt()}' : '${(price/1000).toStringAsFixed(1)}k',
+                 '${price.toInt() } PKR',
+                 
                 style: TextStyle(
                   color: isSelected
                       ? TColors.white.withOpacity(0.8)
@@ -1123,7 +1124,7 @@ Widget _buildCompleteAircraftLayout(String segmentCode, AirArabiaRevalidationCon
         return AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
-          height: _isExpanded ? 200 : 90,
+          height: _isExpanded ? 230 : 150,
           decoration: BoxDecoration(
             color: TColors.white,
             borderRadius: const BorderRadius.only(
@@ -1335,6 +1336,28 @@ Widget _buildCompleteAircraftLayout(String segmentCode, AirArabiaRevalidationCon
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
+                         final arguments = Get.arguments as Map<String, dynamic>?;
+                              final selectedFlight = arguments?['selectedFlight'] as AirArabiaFlight?;
+                              final selectedPackage = arguments?['selectedPackage'] as AirArabiaPackage?;
+                              
+                              if (selectedFlight != null && selectedPackage != null) {
+                                Get.to(() => AirArabiaReviewTripPage(
+                                  flight: selectedFlight,
+                                  selectedPackage: selectedPackage,
+                                  isReturn: false, // or true for round trips
+                                ));
+                              }else {
+                                Get.snackbar(
+                                  'Error',
+                                  'Missing flight or package information',
+                                  snackPosition: SnackPosition.BOTTOM,
+                                  backgroundColor: Colors.red,
+                                  colorText: TColors.white,
+                                  borderRadius: 10,
+                                  margin: const EdgeInsets.all(16),
+                                  duration: const Duration(seconds: 2),
+                                );
+                              };
                         Get.snackbar(
                           'Success',
                           'Flight extras selected successfully!',

@@ -80,7 +80,11 @@ class HotelBookingThankYouScreen extends StatelessWidget {
             const SizedBox(height: 16),
             // _buildBookerDetailsCard(),
             const SizedBox(height: 16),
-            _buildActionButtons(),
+            _buildPrivacyPolicySection(), // New privacy policy section
+
+            const SizedBox(height: 16),
+            _buildContactSupportSection(), // New contact support section
+
             const SizedBox(height: 20),
           ],
         ),
@@ -202,10 +206,49 @@ class HotelBookingThankYouScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 _buildDetailRow('Booking Status', 'On Request'),
                 const SizedBox(height: 12),
-                _buildDetailRow('Total', selectRoomController.totalPrice.value.toStringAsFixed(0)),
+                _buildHighlightedTotalRow(), // Updated total row
                 const SizedBox(height: 12),
                 _buildDetailRow('Payment Status', bookingController.payment_status.value.toString()),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // New highlighted total row widget
+  Widget _buildHighlightedTotalRow() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: TColors.primary.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: TColors.primary.withOpacity(0.3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              'Total Amount',
+              style: TextStyle(
+                fontSize: 14,
+                color: TColors.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'PKR ${selectRoomController.totalPrice.value.toStringAsFixed(0)}',
+              style: const TextStyle(
+                fontSize: 16,
+                color: TColors.primary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -412,8 +455,9 @@ class HotelBookingThankYouScreen extends StatelessWidget {
     return roomCards;
   }
 
- Widget _buildSingleRoomDetailsCard(int roomIndex) {
-  final room = bookingController.roomGuests[roomIndex];
+  // Updated room details card with check-in/check-out dates
+  Widget _buildSingleRoomDetailsCard(int roomIndex) {
+    final room = bookingController.roomGuests[roomIndex];
     final roomNumber = roomIndex + 1;
     
     String roomType = 'STANDARD KING ROOM • 1 KING BED • NON SMOKING';
@@ -430,66 +474,153 @@ class HotelBookingThankYouScreen extends StatelessWidget {
       boardBasis = selectRoomController.getRoomMeal(roomIndex);
     }
 
-  return Container(
-    margin: const EdgeInsets.symmetric(horizontal: 16),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.grey.shade200,
-          blurRadius: 8,
-          offset: const Offset(0, 2),
-        ),
-      ],
-    ),
-    child: Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: TColors.secondary.withOpacity(0.1),
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(12),
-              topRight: Radius.circular(12),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: TColors.secondary.withOpacity(0.1),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.bed, color: TColors.secondary),
+                const SizedBox(width: 8),
+                Text(
+                  'Room $roomNumber Details',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: TColors.text,
+                  ),
+                ),
+              ],
             ),
           ),
-          child: Row(
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _buildDetailRow('Room Type', roomType),
+                const SizedBox(height: 12),
+                _buildDetailRow('Board Bases', boardBasis),
+                const SizedBox(height: 12),
+                _buildDetailRow(
+                  'Guests', 
+                  '${room.adults.length} Adults, ${room.children.length} Children'
+                ),
+                 const SizedBox(height: 16),
+                ..._buildGuestListForRoom(roomIndex),
+                const SizedBox(height: 16),
+
+                   
+                // Added check-in/check-out dates for each room
+                // Added check-in/check-out dates for each room
+Container(
+  decoration: BoxDecoration(
+    color: TColors.white,
+    borderRadius: BorderRadius.circular(8),
+  ),
+  child: Column(
+    children: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // ✅ Check-in section
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.bed, color: TColors.secondary),
-              const SizedBox(width: 8),
               Text(
-                'Room $roomNumber Details',
+                'Check in',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                DateFormat('dd MMM yyyy')
+                    .format(hotelDateController.checkInDate.value),
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: TColors.text,
                 ),
               ),
             ],
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+
+          // ✅ Check-out section
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _buildDetailRow('Room Type', roomType),
-              const SizedBox(height: 12),
-              _buildDetailRow('Board Bases', boardBasis),
-              const SizedBox(height: 12),
-              _buildDetailRow(
-                'Guests', 
-                '${room.adults.length} Adults, ${room.children.length} Children'
+              Text(
+                'Check out',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-              const SizedBox(height: 16),
-              ..._buildGuestListForRoom(roomIndex),
+              const SizedBox(height: 4),
+              Text(
+                DateFormat('dd MMM yyyy')
+                    .format(hotelDateController.checkOutDate.value),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: TColors.text,
+                ),
+              ),
             ],
           ),
-        ),
-      ],
-    ),
-  );
-} List<Widget> _buildGuestListForRoom(int roomIndex) {
+        ],
+      ),
+      // const SizedBox(height: 8),
+      // Row(
+      //   children: [
+      //     const Icon(Icons.access_time, color: TColors.text, size: 16),
+      //     const SizedBox(width: 8),
+      //     Text(
+      //       '${hotelDateController.nights.value} nights stay',
+      //       style: const TextStyle(
+      //         fontSize: 12,
+      //         color: TColors.text,
+      //       ),
+      //     ),
+      //   ],
+      // ),
+    ],
+  ),
+),
+ 
+            
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildGuestListForRoom(int roomIndex) {
     List<Widget> guestWidgets = [];
     final room = bookingController.roomGuests[roomIndex];
     int guestCounter = 1;
@@ -532,6 +663,88 @@ class HotelBookingThankYouScreen extends StatelessWidget {
     }
 
     return guestWidgets;
+  }
+
+  // New Contact Support Section
+  Widget _buildContactSupportSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: TColors.third.withOpacity(0.1),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.headset_mic, color: TColors.third),
+                const SizedBox(width: 8),
+                const Text(
+                  'Need help?',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: TColors.text,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Text(
+                  'Contact one of our Viator support agents and we will help you with your query.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => _makePhoneCall('+923219667909'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: TColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Contact Support',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildBookerDetailsCard() {
@@ -618,29 +831,231 @@ class HotelBookingThankYouScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () => _makePhoneCall('+923219667909'),
-              icon: const Icon(Icons.phone, color: Colors.white),
-              label: const Text(
-                'Contact Support',
-                style: TextStyle(color: Colors.white),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: TColors.third,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ),
+          
         ],
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  // New Privacy Policy Section
+ // New Privacy Policy Section with improved design
+Widget _buildPrivacyPolicySection() {
+  return Container(
+    margin: const EdgeInsets.symmetric(horizontal: 16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.grey.shade200,
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: Column(
+      children: [
+        // Header Section
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                TColors.primary.withOpacity(0.1),
+                TColors.third.withOpacity(0.05),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(12),
+              topRight: Radius.circular(12),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: TColors.primary.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.security_rounded,
+                  color: TColors.primary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Privacy & Legal Information',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: TColors.text,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        // Content Section
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Text(
+                'Your privacy and security are important to us. Please review our policies to understand how we handle your information.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade700,
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              
+              const SizedBox(height: 20),
+              
+              // Privacy Policy Button
+              _buildPolicyButton(
+                icon: Icons.privacy_tip_outlined,
+                title: 'Privacy Policy',
+                subtitle: 'How we collect and use your data',
+                onTap: () => _launchPrivacyPolicy(),
+                color: TColors.primary,
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // Terms of Service Button (optional - you can add this method)
+              _buildPolicyButton(
+                icon: Icons.article_outlined,
+                title: 'Terms of Service',
+                subtitle: 'Rules and guidelines for using our service',
+                onTap: () => _launchTermsOfService(),
+                color: TColors.secondary,
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // Cancellation Policy Button (optional - you can add this method)
+              _buildPolicyButton(
+                icon: Icons.cancel_outlined,
+                title: 'Cancellation Policy',
+                subtitle: 'Booking modification and cancellation terms',
+                onTap: () => _launchCancellationPolicy(),
+                color: TColors.third,
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Footer note
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: TColors.background2.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'By proceeding with this booking, you agree to our terms and conditions.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+// Helper method for policy buttons
+Widget _buildPolicyButton({
+  required IconData icon,
+  required String title,
+  required String subtitle,
+  required VoidCallback onTap,
+  required Color color,
+}) {
+  return InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(8),
+    child: Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: color.withOpacity(0.3)),
+        borderRadius: BorderRadius.circular(8),
+        color: color.withOpacity(0.05),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    height: 1.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            Icons.arrow_forward_ios,
+            size: 14,
+            color: color.withOpacity(0.7),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+Widget _buildDetailRow(String label, String value) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -737,6 +1152,25 @@ class HotelBookingThankYouScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // Privacy Policy and Terms launch methods
+  Future<void> _launchPrivacyPolicy() async {
+    const url = 'https://readyflight.pk/privacy-policy';
+    final Uri uri = Uri.parse(url);
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  Future<void> _launchTermsOfService() async {
+    const url = 'https://readyflight.pk/terms-of-service';
+    final Uri uri = Uri.parse(url);
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  Future<void> _launchCancellationPolicy() async {
+    const url = 'https://readyflight.pk/cancellation-policy';
+    final Uri uri = Uri.parse(url);
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   Future<void> _generatePDF(BuildContext context) async {
@@ -839,7 +1273,7 @@ class HotelBookingThankYouScreen extends StatelessWidget {
               [
                 ['Order Number', bookingController.booking_num.value.toString()],
                 ['Booking Status', 'On Request'],
-                ['Total', selectRoomController.totalPrice.value.toStringAsFixed(0)],
+                ['Total Amount', 'PKR ${selectRoomController.totalPrice.value.toStringAsFixed(0)}'],
                 ['Payment Status', bookingController.payment_status.value.toString()],
               ],
             ),
@@ -918,9 +1352,9 @@ class HotelBookingThankYouScreen extends StatelessWidget {
     );
 
     return pdf.save();
-    
   }
- pw.Widget _buildPDFSection(String title, List<List<String>> data) {
+
+  pw.Widget _buildPDFSection(String title, List<List<String>> data) {
     return pw.Container(
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: PdfColors.grey300),
@@ -983,43 +1417,66 @@ class HotelBookingThankYouScreen extends StatelessWidget {
     );
   }
 
- 
   // New method to build PDF sections for all rooms
- List<pw.Widget> _buildPDFRoomSections() {
-  List<pw.Widget> roomSections = [];
-  
-  for (int roomIndex = 0; roomIndex < bookingController.roomGuests.length; roomIndex++) {
-    final room = bookingController.roomGuests[roomIndex];
-    final roomNumber = roomIndex + 1;
+  List<pw.Widget> _buildPDFRoomSections() {
+    List<pw.Widget> roomSections = [];
     
-    // Get room type and board basis from SelectRoomController
-    String roomType = selectRoomController.getRoomName(roomIndex);
-    String boardBasis = selectRoomController.getRoomMeal(roomIndex);
-    
-    // Fallback to default values if not available
-    if (roomType.isEmpty) {
-      roomType = 'STANDARD KING ROOM • 1 KING BED • NON SMOKING';
+    for (int roomIndex = 0; roomIndex < bookingController.roomGuests.length; roomIndex++) {
+      final room = bookingController.roomGuests[roomIndex];
+      final roomNumber = roomIndex + 1;
+      
+      // Get room type and board basis from SelectRoomController
+      String roomType = selectRoomController.getRoomName(roomIndex);
+      String boardBasis = selectRoomController.getRoomMeal(roomIndex);
+      
+      // Fallback to default values if not available
+      if (roomType.isEmpty) {
+        roomType = 'STANDARD KING ROOM • 1 KING BED • NON SMOKING';
+      }
+      if (boardBasis.isEmpty) {
+        boardBasis = 'Bed and Breakfast';
+      }
+      
+      // Build guest list for PDF
+      List<List<String>> roomData = [
+        ['Room Type', roomType],
+        ['Board Bases', boardBasis],
+        ['Guests', '${room.adults.length} Adults, ${room.children.length} Children'],
+        ['Check-in', DateFormat('E dd MMM yyyy').format(hotelDateController.checkInDate.value)],
+        ['Check-out', DateFormat('E dd MMM yyyy').format(hotelDateController.checkOutDate.value)],
+        ['Stay Duration', '${hotelDateController.nights.value} nights'],
+      ];
+      
+      // Add guest details
+      int guestCounter = 1;
+      for (final adult in room.adults) {
+        roomData.add(['Guest $guestCounter', 'Adult ${adult.titleController.text} ${adult.firstNameController.text} ${adult.lastNameController.text}']);
+        guestCounter++;
+      }
+      
+      for (int childIndex = 0; childIndex < room.children.length; childIndex++) {
+        final child = room.children[childIndex];
+        String childAge = '';
+        if (guestsController.rooms.length > roomIndex &&
+            guestsController.rooms[roomIndex].childrenAges.length > childIndex) {
+          childAge = ' (Age: ${guestsController.rooms[roomIndex].childrenAges[childIndex]})';
+        }
+        roomData.add(['Guest $guestCounter', 'Child ${child.titleController.text} ${child.firstNameController.text} ${child.lastNameController.text}$childAge']);
+        guestCounter++;
+      }
+      
+      roomSections.add(_buildPDFSection('Room $roomNumber Details', roomData));
+      
+      if (roomIndex < bookingController.roomGuests.length - 1) {
+        roomSections.add(pw.SizedBox(height: 20));
+      }
     }
-    if (boardBasis.isEmpty) {
-      boardBasis = 'Bed and Breakfast';
-    }
     
-    // Build guest list for PDF
-    List<List<String>> roomData = [
-      ['Room Type', roomType],
-      ['Board Bases', boardBasis],
-      ['Guests', '${room.adults.length} Adults, ${room.children.length} Children'],
-    ];
-    
-    // ... rest of the method remains the same
+    return roomSections;
   }
-  
-  return roomSections;
-}Future<void> _makePhoneCall(String phoneNumber) async {
+
+  Future<void> _makePhoneCall(String phoneNumber) async {
     final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
     await launchUrl(launchUri);
-  }}
-  
-  
-  
-  
+  }
+}

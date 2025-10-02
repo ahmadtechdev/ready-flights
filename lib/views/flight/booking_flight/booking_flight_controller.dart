@@ -121,16 +121,7 @@ class TravelerInfo {
     titleController.removeListener(_onTitleChanged);
     genderController.removeListener(_onGenderChanged);
 
-    titleController.dispose();
-    firstNameController.dispose();
-    lastNameController.dispose();
-    passportCnicController.dispose();
-    nationalityController.dispose();
-    dateOfBirthController.dispose();
-    passportExpiryController.dispose();
-    genderController.dispose();
-    phoneController.dispose();
-    emailController.dispose();
+    
   }
 
   bool isValid() {
@@ -467,11 +458,11 @@ class BookingFlightController extends GetxController {
   @override
   void onClose() {
     // Dispose booker information controllers
-    firstNameController.dispose();
-    lastNameController.dispose();
-    emailController.dispose();
-    phoneController.dispose();
-    remarksController.dispose();
+    // firstNameController.dispose();
+    // lastNameController.dispose();
+    // emailController.dispose();
+    // phoneController.dispose();
+    // remarksController.dispose();
 
     // Dispose all traveler controllers
     for (var adult in adults) {

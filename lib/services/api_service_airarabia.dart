@@ -22,7 +22,6 @@ class ApiServiceAirArabia {
     debugPrint(const JsonEncoder.withIndent('  ').convert(data), wrapWidth: 1024);
     print("===============================================");
   }
-
   Future<Map<String, dynamic>> searchFlights({
     required int type,
     required String origin,

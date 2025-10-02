@@ -78,12 +78,12 @@ class BookingController extends GetxController {
   if (!isPhoneValid(phoneController.text)) {
     return "Please enter a valid phone number";
   }
-  if (addressController.text.isEmpty) {
-    return "Please enter address";
-  }
-  if (cityController.text.isEmpty) {
-    return "Please enter city";
-  }
+  // if (addressController.text.isEmpty) {
+  //   return "Please enter address";
+  // }
+  // if (cityController.text.isEmpty) {
+  //   return "Please enter city";
+  // }
 
   // Check guest information for each room
   for (int roomIndex = 0; roomIndex < roomGuests.length; roomIndex++) {
@@ -301,15 +301,17 @@ HotelDateController hotelDateController = Get.find<HotelDateController>();
 
   try {
     // Calculate total buying price from SelectRoomController instead of searchHotelController
-    double totalBuyingPrice = 0;
     
     // Method 1: Use the total price from SelectRoomController (this already includes nights calculation)
-    totalBuyingPrice = selectRoomController.totalPrice.value ;
+     double totalSellingPrice = selectRoomController.totalPrice.value;
     
-    // Method 2: Alternative - Calculate from individual room prices in SelectRoomController
-    // selectRoomController.roomPrices.forEach((roomIndex, price) {
-    //   totalBuyingPrice += price; // These prices already include nights calculation
-    // });
+    // Calculate buying price by removing margin
+    // Formula: buying_price = selling_price / (1 + margin%)
+    double marginPercentage = apiService.currentMargin / 100; // e.g., 0.10 for 10%
+    double totalBuyingPrice = totalSellingPrice / (1 + marginPercentage);
+
+    
+    
 
     print('=== BUYING PRICE CALCULATION DEBUG ===');
     print('Total from SelectRoomController: ${selectRoomController.totalPrice.value}');
@@ -446,7 +448,8 @@ HotelDateController hotelDateController = Get.find<HotelDateController>();
       "rate_key": _buildRateKey(),
       "om_hid": searchHotelController.hotelCode.value,
       "om_nights": hotelDateController.nights.value,
-      "buying_price": double.parse(totalBuyingPrice.toStringAsFixed(2)),
+      "buying_price": double.parse(totalBuyingPrice.toStringAsFixed(2)), // Without margin
+      "selling_price": double.parse(totalSellingPrice.toStringAsFixed(2)), 
       "om_regid": searchHotelController.destinationCode.value,
       "om_hname": searchHotelController.hotelName.value,
       "om_destination": searchHotelController.hotelCity.value,

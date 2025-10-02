@@ -102,9 +102,6 @@ class _HotelImagesGalleryScreenState extends State<HotelImagesGalleryScreen>
                           children: [
                             Icon(
                               Icons.image_not_supported,
-                              
-
-
                               size: 64,
                               color: TColors.grey,
                             ),
@@ -150,7 +147,7 @@ class _HotelImagesGalleryScreenState extends State<HotelImagesGalleryScreen>
               },
             ),
 
-            // Top UI (App Bar)
+            // Top UI (App Bar with Back Button)
             AnimatedBuilder(
               animation: _fadeAnimation,
               builder: (context, child) {
@@ -173,6 +170,27 @@ class _HotelImagesGalleryScreenState extends State<HotelImagesGalleryScreen>
                         padding: const EdgeInsets.all(16),
                         child: Row(
                           children: [
+                            // Back Button
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.5),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: TColors.white,
+                                  size: 24,
+                                ),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                              ),
+                            ),
+                            
+                            const Spacer(),
+                            
+                            // Grid View Toggle Button
                             Container(
                               decoration: BoxDecoration(
                                 color: Colors.black.withOpacity(0.5),
@@ -572,4 +590,3 @@ class _HotelImagesGalleryScreenState extends State<HotelImagesGalleryScreen>
     });
   }
 }
-                             

@@ -22,44 +22,54 @@ class TypeSelectorState extends State<TypeSelector> {
   @override
   Widget build(BuildContext context) {
     return Row(
-      children:
-          travelTypes.map((type) {
-            return Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    selectedType = type['label'];
-                    widget.onTypeChanged(selectedType);
-                  });
-                },
-                child: Column(
-                  children: [
-                    Icon(
-                      type['icon'],
-                      color:
-                          selectedType == type['label']
-                              ? TColors.primary
-                              : TColors.grey,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      type['label'],
-                      style: TextStyle(
-                        color:
-                            selectedType == type['label']
-                                ? TColors.primary
-                                : TColors.grey,
-                        fontWeight:
-                            selectedType == type['label']
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                      ),
-                    ),
-                  ],
-                ),
+      children: travelTypes.map((type) {
+        return Expanded(
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                selectedType = type['label'];
+                widget.onTypeChanged(selectedType);
+              });
+            },
+            // Increase tap area with padding
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+              // Optional: Add background color for visual feedback
+              decoration: BoxDecoration(
+                color: selectedType == type['label']
+                    ? TColors.white.withOpacity(0.1)
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(8),
               ),
-            );
-          }).toList(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    type['icon'],
+                    size: 28, // Slightly larger icon
+                    color: selectedType == type['label']
+                        ? TColors.primary
+                        : TColors.grey,
+                  ),
+                  const SizedBox(height: 8), // Increased spacing
+                  Text(
+                    type['label'],
+                    style: TextStyle(
+                      color: selectedType == type['label']
+                          ? TColors.primary
+                          : TColors.grey,
+                      fontWeight: selectedType == type['label']
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      fontSize: 14, // Explicit font size
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

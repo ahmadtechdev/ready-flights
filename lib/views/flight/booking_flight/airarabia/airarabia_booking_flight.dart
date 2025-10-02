@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:country_picker/country_picker.dart';
 import 'package:ready_flights/services/api_service_airarabia.dart';
 import 'package:ready_flights/views/flight/booking_flight/airarabia/airarabia_print_voucher.dart';
+import 'package:ready_flights/views/flight/form/flight_booking_controller.dart';
 import 'package:ready_flights/views/flight/search_flights/airarabia/validation_data/validation_controller.dart';
 
 import '../../../../../utility/colors.dart';
@@ -1297,6 +1298,7 @@ Future<void> _handleBookNow() async {
 
 // Add this method to create the booking API call
 // Add this method to create the booking API call
+// Updated _createAirArabiaBooking method
 Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
   try {
     // Get API service
@@ -1311,6 +1313,7 @@ Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
     }
     
     final controller = Get.find<AirArabiaFlightController>();
+    final flightBookingController = Get.find<FlightBookingController>();
 
     // Get the selected package index from the controller
     final selectedPackageIndex = controller.selectedPackageIndex;
@@ -1320,12 +1323,33 @@ Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
     final numberOfSegments = widget.flight.flightSegments.length;
     print("Number of flight segments: $numberOfSegments");
 
-    // Prepare final key with !ret! suffix (only add if not already present)
+    // Get trip type from flight booking controller
+    int tripType = 0; // Default to one way
+    switch (flightBookingController.tripType.value) {
+      case TripType.oneWay:
+        tripType = 0;
+        break;
+      case TripType.roundTrip:
+        tripType = 1;
+        break;
+      case TripType.multiCity:
+        tripType = 2;
+        break;
+    }
+    print("Trip type: $tripType");
+
+    // Prepare final key - add !ret! for one-way flights if missing, keep as-is for return flights
     String finalKey = metaInfo.finalKey;
-    if (!finalKey.endsWith('!ret!')) {
+    
+    // For one-way flights: add !ret! if it doesn't already exist
+    // For return flights: send finalKey as it is (don't add !ret!)
+    if (tripType == 0 && !finalKey.endsWith('!ret!')) {
+      // One way flight - add !ret! if missing
       finalKey = "${finalKey}!ret!";
     }
-    print("Final key with suffix: $finalKey");
+    // For return flights (tripType == 1) or multi-city, keep finalKey as it is
+    
+    print("Final key: $finalKey (Trip Type: $tripType,");
 
     // Prepare bkIdArray and bkIdArray3
     String bkIdArray = '';
@@ -1543,11 +1567,39 @@ Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
       adultSeat.add(adultSeatForAllSegments);
     }
 
-    // Determine flight type and stops
-    String flightType = 'OneWay';
-    List<int> stopsSector = [numberOfSegments - 1];
+    // Determine flight type and stops based on trip type
+    String flightType;
+    List<int> stopsSector;
+    
+    switch (tripType) {
+      case 0: // One Way
+        flightType = 'OneWay';
+        stopsSector = [numberOfSegments - 1];
+        break;
+      case 1: // Round Trip
+        flightType = 'Return';
+        // For round trip, we need to handle both outbound and return segments
+        if (widget.flight.isRoundTrip && 
+            widget.flight.outboundFlight != null && 
+            widget.flight.inboundFlight != null) {
+          final outboundSegments = widget.flight.outboundFlight!['flightSegments'].length;
+          final inboundSegments = widget.flight.inboundFlight!['flightSegments'].length;
+          stopsSector = [outboundSegments - 1, inboundSegments - 1];
+        } else {
+          stopsSector = [numberOfSegments - 1];
+        }
+        break;
+      case 2: // Multi City
+        flightType = 'MultiCity';
+        stopsSector = [numberOfSegments - 1];
+        break;
+      default:
+        flightType = 'OneWay';
+        stopsSector = [numberOfSegments - 1];
+    }
 
     print('=== BOOKING PARAMETERS DEBUG ===');
+    print('Trip Type: $tripType ($flightType)');
     print('Number of Segments: $numberOfSegments');
     print('Final Key: $finalKey');
     print('Selected Package Index: $selectedPackageIndex');
@@ -1557,6 +1609,7 @@ Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
     print('Adult Passengers: ${adultPassengers.length}');
     print('Child Passengers: ${childPassengers.length}');
     print('Infant Passengers: ${infantPassengers.length}');
+    // print('Is Return Flight: ${widget.isReturnFlight}');
     print('================================');
 
     final response = await apiService.createAirArabiaBooking(
@@ -1605,17 +1658,17 @@ Future<Map<String, dynamic>?> _createAirArabiaBooking() async {
     print('Stack Trace: $stackTrace');
     rethrow;
   }
-}@override
+}
   void dispose() {
     // Dispose controllers if they exist and haven't been disposed already
     try {
-      bookingController.dispose();
+      // bookingController.dispose();
     } catch (e) {
       print('Error disposing booking controller: $e');
     }
     
     try {
-      travelersController.dispose();
+      // travelersController.dispose();
     } catch (e) {
       print('Error disposing travelers controller: $e');
     }

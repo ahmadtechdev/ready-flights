@@ -96,9 +96,9 @@ class AirArabiaFlightController extends GetxController {
 
     // We need to identify which route is outbound and which is inbound
     // The first route in the response is typically outbound, second is inbound
-    final outboundRoute = routes[0];
+    final outboundRoute = routes[1];
     // ignore: unused_local_variable
-    final inboundRoute = routes[1];
+    final inboundRoute = routes[0];
 
     // Get all outbound and inbound flight options
     final outboundFlights = <Map<String, dynamic>>[];
@@ -119,6 +119,7 @@ class AirArabiaFlightController extends GetxController {
             } else {
               inboundFlights.add(option);
             }
+            
           }
         }
       });

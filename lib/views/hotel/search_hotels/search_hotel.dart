@@ -474,6 +474,26 @@ class HotelCard extends StatelessWidget {
   final SearchHotelController controller = Get.find<SearchHotelController>();
   final HotelDateController dateController = Get.find<HotelDateController>();
 
+  // Extract the select room functionality into a separate method
+  void _selectRoom() {
+    controller.ratingstar.value = (hotel['rating'] as double).toInt();
+    controller.hotelCode.value = hotel['hotelCode'];
+    controller.hotelCity.value = hotel['hotelCity'];
+    controller.lat.value = hotel['latitude'];
+    controller.lon.value = hotel['longitude'];
+    controller.hotelAddress.value = hotel['address'] ?? "";
+    // controller.hotelid.value=(hotel['code'] as double).toInt()??0;
+    
+    controller.roomsdata.clear();
+
+    ApiServiceHotel().fetchHotelDetails(hotel['hotelCode']);
+    controller.filterhotler();
+    Get.to(() => HotelInfoScreen(
+      hotelId: hotel['hotelCode'],
+      hotelData: hotel as Map<String, dynamic>,
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -482,9 +502,13 @@ class HotelCard extends StatelessWidget {
       elevation: 4,
       child: Column(
         children: <Widget>[
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: _buildHotelImage(),
+          // Make hotel image clickable
+          GestureDetector(
+            onTap: _selectRoom,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              child: _buildHotelImage(),
+            ),
           ),
           Padding(
             padding: const EdgeInsets.all(12.0),
@@ -497,15 +521,19 @@ class HotelCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            hotel['name'] ?? 'Unknown Hotel',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                          // Make hotel title clickable
+                          GestureDetector(
+                            onTap: _selectRoom,
+                            child: Text(
+                              hotel['name'] ?? 'Unknown Hotel',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -520,6 +548,7 @@ class HotelCard extends StatelessWidget {
                         ],
                       ),
                     ),
+                    // Map icon with text below
                     GestureDetector(
                       onTap: () {
                         Get.to(
@@ -538,10 +567,23 @@ class HotelCard extends StatelessWidget {
                           ),
                         );
                       },
-                      child: Icon(
-                        Icons.location_on_rounded,
-                        color: TColors.primary,
-                        size: 30,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.location_on_rounded,
+                            color: TColors.primary,
+                            size: 30,
+                          ),
+                          Text(
+                            'See Map',
+                            style: TextStyle(
+                              color: TColors.primary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -583,25 +625,7 @@ class HotelCard extends StatelessWidget {
               vertical: 8.0,
             ),
             child: ElevatedButton(
-              onPressed: () {
-                controller.ratingstar.value =
-                    (hotel['rating'] as double).toInt();
-                controller.hotelCode.value = hotel['hotelCode'];
-                controller.hotelCity.value = hotel['hotelCity'];
-                controller.lat.value = hotel['latitude'];
-                controller.lon.value = hotel['longitude'];
-                controller.hotelAddress.value=hotel['address']??"";
-                // controller.hotelid.value=(hotel['code'] as double).toInt()??0;
-                
-                controller.roomsdata.clear();
-
-                ApiServiceHotel().fetchHotelDetails(hotel['hotelCode']);
-                controller.filterhotler();
-                Get.to(() => HotelInfoScreen(
-                  hotelId: hotel['hotelCode'],
-                  hotelData: hotel as Map<String, dynamic>,
-                ));
-              },
+              onPressed: _selectRoom,
               style: ElevatedButton.styleFrom(
                 backgroundColor: TColors.primary,
                 foregroundColor: Colors.black,
@@ -717,7 +741,6 @@ class HotelCard extends StatelessWidget {
     }
   }
 }
-
 class MapScreen extends StatefulWidget {
   final double latitude;
   final double longitude;
@@ -825,7 +848,7 @@ class _MapScreenState extends State<MapScreen> {
       ..strokeWidth = 2;
     
     const double width = 150;
-    const double height = 60;
+    const double height = 80;
     const double borderRadius = 22;
     
     // Draw background with rounded rectangle
@@ -840,7 +863,7 @@ class _MapScreenState extends State<MapScreen> {
     // Draw text
     final textStyle = ui.TextStyle(
       color: Colors.white,
-      fontSize: 16,
+      fontSize: 30,
       fontWeight: FontWeight.bold,
     );
     final paragraphStyle = ui.ParagraphStyle(

@@ -1,7 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../../utility/colors.dart';
@@ -14,7 +13,7 @@ class AirArabiaFlightCard extends StatefulWidget {
   final bool isShowBookButton;
   final bool isMultiCity;
   final int currentSegment;
-
+                                                                                                                                                                                                                               
   const AirArabiaFlightCard({
     super.key,
     required this.flight,
@@ -90,52 +89,170 @@ class _AirArabiaFlightCardState extends State<AirArabiaFlightCard>
     }
   }
 
-  String getDepartureAirport() {
-    if (widget.flight.flightSegments.isNotEmpty) {
-      return widget.flight.flightSegments.first['departure']?['airport'] ?? 'N/A';
+  // NEW: Group segments into legs for multi-city display
+  List<Map<String, dynamic>> getLegSchedules() {
+    if (widget.flight.flightSegments.isEmpty) {
+      return [];
     }
-    return 'N/A';
+
+    // For round trip flights
+    if (widget.flight.isRoundTrip && 
+        widget.flight.outboundFlight != null && 
+        widget.flight.inboundFlight != null) {
+      return _groupRoundTripLegs();
+    }
+
+    // For multi-city or one-way flights
+    return _groupMultiCityLegs();
   }
 
-  String getArrivalAirport() {
-    if (widget.flight.flightSegments.isNotEmpty) {
-      return widget.flight.flightSegments.last['arrival']?['airport'] ?? 'N/A';
-    }
-    return 'N/A';
-  }
+  List<Map<String, dynamic>> _groupRoundTripLegs() {
+    final outboundSegments = <Map<String, dynamic>>[];
+    final inboundSegments = <Map<String, dynamic>>[];
 
-  String getDepartureTime() {
-    if (widget.flight.flightSegments.isNotEmpty) {
-      return formatTimeFromDateTime(
-        widget.flight.flightSegments.first['departure']?['dateTime'],
-      );
-    }
-    return 'N/A';
-  }
-
-  String getArrivalTime() {
-    if (widget.flight.flightSegments.isNotEmpty) {
-      return formatTimeFromDateTime(
-        widget.flight.flightSegments.last['arrival']?['dateTime'],
-      );
-    }
-    return 'N/A';
-  }
-
-  String getFlightDuration() {
-    if (widget.flight.flightSegments.isNotEmpty) {
-      try {
-        final firstSegment = widget.flight.flightSegments.first;
-        final lastSegment = widget.flight.flightSegments.last;
-        final departure = DateTime.parse(firstSegment['departure']['dateTime']);
-        final arrival = DateTime.parse(lastSegment['arrival']['dateTime']);
-        final duration = arrival.difference(departure);
-        return '${duration.inHours}h ${duration.inMinutes.remainder(60)}m';
-      } catch (e) {
-        return 'N/A';
+    // Separate segments based on isOutbound flag if available
+    for (var segment in widget.flight.flightSegments) {
+      // Try to determine if segment is outbound or inbound
+      bool isOutbound = segment['isOutbound'] ?? true;
+      
+      if (isOutbound) {
+        outboundSegments.add(segment);
+      } else {
+        inboundSegments.add(segment);
       }
     }
-    return 'N/A';
+
+    // If we couldn't separate properly, split in half
+    if (inboundSegments.isEmpty && widget.flight.flightSegments.length > 1) {
+      final midpoint = (widget.flight.flightSegments.length / 2).ceil();
+      outboundSegments.clear();
+      outboundSegments.addAll(widget.flight.flightSegments.sublist(0, midpoint));
+      inboundSegments.addAll(widget.flight.flightSegments.sublist(midpoint));
+    }
+
+    final legs = <Map<String, dynamic>>[];
+
+    // Add outbound leg
+    if (outboundSegments.isNotEmpty) {
+      legs.add(_createLegFromSegments(outboundSegments));
+    }
+
+    // Add inbound leg
+    if (inboundSegments.isNotEmpty) {
+      legs.add(_createLegFromSegments(inboundSegments));
+    }
+
+    return legs;
+  }
+
+  List<Map<String, dynamic>> _groupMultiCityLegs() {
+    final legs = <Map<String, dynamic>>[];
+    final segments = widget.flight.flightSegments;
+
+    if (segments.isEmpty) return legs;
+
+    // Group segments by checking if arrival airport of one segment 
+    // matches departure airport of next segment
+    List<Map<String, dynamic>> currentLegSegments = [segments[0]];
+
+    for (int i = 1; i < segments.length; i++) {
+      final previousArrival = segments[i - 1]['arrival']['airport'];
+      final currentDeparture = segments[i]['departure']['airport'];
+
+      // If airports match, it's a connecting flight in the same leg
+      if (previousArrival == currentDeparture) {
+        currentLegSegments.add(segments[i]);
+      } else {
+        // Different leg - save current and start new one
+        legs.add(_createLegFromSegments(currentLegSegments));
+        currentLegSegments = [segments[i]];
+      }
+    }
+
+    // Add the last leg
+    if (currentLegSegments.isNotEmpty) {
+      legs.add(_createLegFromSegments(currentLegSegments));
+    }
+
+    return legs;
+  }
+
+  Map<String, dynamic> _createLegFromSegments(List<Map<String, dynamic>> segments) {
+    if (segments.isEmpty) {
+      return {
+        'departure': {'airport': 'N/A', 'dateTime': '', 'city': 'N/A'},
+        'arrival': {'airport': 'N/A', 'dateTime': '', 'city': 'N/A'},
+        'segments': [],
+        'elapsedTime': 0,
+        'stops': [],
+      };
+    }
+
+    final stops = <String>[];
+    
+    // Collect intermediate stops
+    for (int i = 0; i < segments.length - 1; i++) {
+      final stopAirport = segments[i]['arrival']['airport'];
+      if (stopAirport != null) {
+        stops.add(stopAirport);
+      }
+    }
+
+    return {
+      'departure': segments.first['departure'],
+      'arrival': segments.last['arrival'],
+      'segments': segments,
+      'elapsedTime': getElapsedTimeForSegments(segments),
+      'stops': stops,
+    };
+  }
+
+  List<String> getStopsForSegments(List<Map<String, dynamic>> segments) {
+    final stops = <String>[];
+    
+    for (int i = 0; i < segments.length - 1; i++) {
+      final stopAirport = segments[i]['arrival']['airport'];
+      if (stopAirport != null) {
+        stops.add(stopAirport);
+      }
+    }
+    
+    return stops;
+  }
+
+  int getElapsedTimeForSegments(List<Map<String, dynamic>> segments) {
+    if (segments.isEmpty) return 0;
+    
+    try {
+      final firstDeparture = DateTime.parse(segments.first['departure']['dateTime']);
+      final lastArrival = DateTime.parse(segments.last['arrival']['dateTime']);
+      return lastArrival.difference(firstDeparture).inMinutes;
+    } catch (e) {
+      return segments.fold(0, (sum, segment) {
+        return sum + (segment['elapsedTime'] as int? ?? 0);
+      });
+    }
+  }
+
+  int getTotalDuration() {
+    return widget.flight.flightSegments.fold(0, (sum, segment) {
+      return sum + (segment['elapsedTime'] as int? ?? 0);
+    });
+  }
+
+  String formatTime(String? timeString) {
+    if (timeString == null || timeString.isEmpty) return 'N/A';
+    
+    try {
+      if (timeString.contains(':') && !timeString.contains('T')) {
+        return timeString.split(':').sublist(0, 2).join(':');
+      }
+      
+      final dateTime = DateTime.parse(timeString);
+      return DateFormat('HH:mm').format(dateTime);
+    } catch (e) {
+      return timeString.length >= 5 ? timeString.substring(0, 5) : timeString;
+    }
   }
 
   void _showFlightDetailsDialog() {
@@ -314,7 +431,7 @@ class _AirArabiaFlightCardState extends State<AirArabiaFlightCard>
         // Handle parsing errors
       }
     }
-
+    
     return Container(
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.only(bottom: 8),
@@ -603,6 +720,8 @@ class _AirArabiaFlightCardState extends State<AirArabiaFlightCard>
   @override
   Widget build(BuildContext context) {
     final AirArabiaFlightController airArabiaController = Get.put(AirArabiaFlightController());
+    final legSchedules = getLegSchedules();
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -712,122 +831,156 @@ class _AirArabiaFlightCardState extends State<AirArabiaFlightCard>
 
                 const SizedBox(height: 16),
 
-                // Flight Route Section
-                Row(
-                  children: [
-                    // Departure
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            getDepartureAirport(),
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            getDepartureTime(),
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: TColors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Flight Path
-                    // Flight Path
-                    Expanded(
-                      flex: 2,
-                      child: InkWell(
-                        onTap: _showFlightDetailsDialog,
-                        child: Column(
-                          children: [
-                            Text(
-                              getFlightDuration(),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: TColors.grey,
-                                fontWeight: FontWeight.w500,
+                // Flight Route Information - Display all legs like Sabre
+                ...legSchedules.map((legSchedule) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      children: [
+                        // Departure
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                formatTime(legSchedule['departure']['dateTime']),
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
+                              const SizedBox(height: 2),
+                              Text(
+                                legSchedule['departure']['airport'] ?? 'DEP',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                              Text(
+                                legSchedule['departure']['city'] ?? '',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Flight Duration and Line
+                        Expanded(
+                          flex: 3,
+                          child: InkWell(
+                            onTap: _showFlightDetailsDialog,
+                            child: Column(
                               children: [
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: TColors.primary,
+                                Text(
+                                  '${legSchedule['elapsedTime'] ~/ 60}h ${legSchedule['elapsedTime'] % 60}m',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
-                                Expanded(
-                                  child: Container(
-                                    height: 2,
-                                    color: TColors.primary,
-                                  ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: TColors.primary,
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Container(
+                                        height: 2,
+                                        decoration: BoxDecoration(
+                                          color: TColors.primary.withOpacity(0.3),
+                                        ),
+                                      ),
+                                    ),
+                                    const Icon(
+                                      Icons.flight,
+                                      size: 20,
+                                      color: TColors.primary,
+                                    ),
+                                    Expanded(
+                                      child: Container(
+                                        height: 2,
+                                        decoration: BoxDecoration(
+                                          color: TColors.primary.withOpacity(0.3),
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: TColors.primary,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const Icon(
-                                  Icons.flight,
-                                  size: 16,
-                                  color: TColors.primary,
-                                ),
-                                Expanded(
-                                  child: Container(
-                                    height: 2,
-                                    color: TColors.primary,
-                                  ),
-                                ),
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: TColors.primary,
+                                const SizedBox(height: 4),
+                                Text(
+                                  legSchedule['stops'].isEmpty
+                                      ? 'Direct'
+                                      : '${legSchedule['stops'].length} stop${legSchedule['stops'].length > 1 ? 's' : ''}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: legSchedule['stops'].isEmpty ? Colors.green : Colors.orange,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 4), // Add this line
-                            Text( // Add this Text widget
-                              getStopsInfo(),
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: TColors.grey,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
-                    // Arrival
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            getArrivalAirport(),
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
+
+                        // Arrival
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                formatTime(legSchedule['arrival']['dateTime']),
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                legSchedule['arrival']['airport'] ?? 'ARR',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                              Text(
+                                legSchedule['arrival']['city'] ?? '',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                            ],
                           ),
-                          Text(
-                            getArrivalTime(),
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: TColors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  );
+                }).toList(),
 
                 const SizedBox(height: 24),
 
@@ -938,15 +1091,9 @@ class _AirArabiaFlightCardState extends State<AirArabiaFlightCard>
         ],
       ),
     );
-  }
-  String getStopsInfo() {
-    if (widget.flight.flightSegments.isEmpty) return 'N/A';
 
-    final stopCount = widget.flight.flightSegments.length - 1;
-    return stopCount == 0
-        ? 'Direct'
-        : '${stopCount} stop${stopCount > 1 ? 's' : ''}';
   }
+
   String _buildFareRules() {
     return '''
 • Non-refundable ticket

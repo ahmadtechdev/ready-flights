@@ -36,7 +36,6 @@ class SabreFlightController extends GetxController {
 
 
 
-
   // Scenario tracking
   final Rx<FlightScenario> currentScenario = FlightScenario.oneWay.obs;
 

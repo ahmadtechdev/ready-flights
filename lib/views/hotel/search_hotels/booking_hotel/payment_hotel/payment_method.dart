@@ -113,89 +113,95 @@ class _HotelPaymentScreenState extends State<HotelPaymentScreen>
   }
 
   Widget _buildTabBar() {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Obx(() => Row(
-        children: [
-          _buildModernTab(0, "Cash At Office", Icons.store_outlined),
-          _buildModernTab(1, "Bank Transfer", Icons.account_balance),
-          _buildModernTab(2, "Card Payment", Icons.credit_card),
-        ],
-      )),
-    );
-  }
+  return Container(
+    margin: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.08),
+          blurRadius: 20,
+          offset: const Offset(0, 5),
+        ),
+      ],
+    ),
+    child: Obx(() => Row(
+      children: [
+        _buildModernTab(0, "Cash At Office", Icons.store_outlined),
+        _buildModernTab(1, "Bank Transfer", Icons.account_balance),
+        _buildModernTab(2, "Card Payment", 'assets/images/card.jpg'),
+      ],
+    )),
+  );
+}
 
-  Widget _buildModernTab(int index, String title, IconData icon) {
-    final isSelected = paymentController.selectedTab.value == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          paymentController.selectedTab.value = index;
-          _animationController.reset();
-          _animationController.forward();
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOutCubic,
-          margin: const EdgeInsets.all(4),
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-          decoration: BoxDecoration(
-            gradient: isSelected
-                ? LinearGradient(
-                    colors: [TColors.primary, TColors.primary.withOpacity(0.8)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : null,
-            color: isSelected ? null : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: TColors.primary.withOpacity(0.3),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+Widget _buildModernTab(int index, String title, dynamic iconOrImage) {
+  final isSelected = paymentController.selectedTab.value == index;
+  return Expanded(
+    child: GestureDetector(
+      onTap: () {
+        paymentController.selectedTab.value = index;
+        _animationController.reset();
+        _animationController.forward();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOutCubic,
+        margin: const EdgeInsets.all(4),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        decoration: BoxDecoration(
+          gradient: isSelected
+              ? LinearGradient(
+                  colors: [TColors.primary, TColors.primary.withOpacity(0.8)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          color: isSelected ? null : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: TColors.primary.withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Check if it's an image path (String) or IconData
+            if (iconOrImage is String)
+              Image.asset(
+                iconOrImage,
+                width: 50,
+                height: 20,
+              )
+            else
               Icon(
-                icon,
+                iconOrImage as IconData,
                 color: isSelected ? Colors.white : Colors.grey[600],
                 size: 20,
               ),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.grey[700],
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  fontSize: 11,
-                ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.grey[700],
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontSize: 11,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
-    );
-  }
-
-  Widget _buildTabContent() {
+    ),
+  );
+}Widget _buildTabContent() {
     switch (paymentController.selectedTab.value) {
       case 0:
         return _buildCashAtOfficeTab();
@@ -282,6 +288,14 @@ class _HotelPaymentScreenState extends State<HotelPaymentScreen>
                       height: 1.5,
                     ),
                     textAlign: TextAlign.center,
+                  ),
+                   const Text(
+                    'We will confirm your booking now if the booking is refundable and in case booking is nonrefundable, booking will be confirmed after we receive payment. In this payment option you may lose the selected price during the process of payment.',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.grey,
+                      height: 1.6,
+                    ),
                   ),
                   const SizedBox(height: 32),
                   Container(
