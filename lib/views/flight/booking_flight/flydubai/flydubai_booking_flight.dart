@@ -1192,8 +1192,10 @@ class _FlyDubaiBookingFlightState extends State<FlyDubaiBookingFlight> {
 
                       print('Travelers: ${adults.length} adults, ${children.length} children, ${infants.length} infants');
 
-                      // Get cart data from controller
-                      final cartData = flydubaiController.outboundCartData;
+                      // Get combined cart data (includes both outbound and return)
+                      final cartData = flydubaiController.cartData ??
+                          flydubaiController.outboundCartData ??
+                          flydubaiController.returnCartData;
                       if (cartData == null) {
                         throw Exception('No cart data available. Please add flights to cart first.');
                       }

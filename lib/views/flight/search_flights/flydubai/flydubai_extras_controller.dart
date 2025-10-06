@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ready_flights/services/api_service_flydubai.dart';
 import 'package:ready_flights/views/flight/search_flights/flydubai/flydubai_model.dart';
+import 'package:ready_flights/views/flight/search_flights/flydubai/flydubai_controller.dart';
 
 class FlydubaiExtrasController extends GetxController {
   final ApiServiceFlyDubai _apiService = Get.find<ApiServiceFlyDubai>();
@@ -91,9 +92,27 @@ class FlydubaiExtrasController extends GetxController {
       selectedFlight.value = flight;
       selectedFare.value = fare;
 
-      // Generate booking ID (single LFID for FlyDubai model)
-      final fareIndex = _getFareIndex(flight, fare);
-      bookingIds.value = ['${flight.flightSegment.lfid}_$fareIndex'];
+      // Generate booking IDs. For round-trip, include both outbound and return.
+      final List<String> ids = [];
+
+      // If this is return-leg extras, try to add outbound bookingId first
+      if (isReturnFlight) {
+        try {
+          final flyController = Get.find<FlydubaiFlightController>();
+          final outboundFlight = flyController.selectedOutboundFlight;
+          final outboundFare = flyController.selectedOutboundFareOption;
+          if (outboundFlight != null && outboundFare != null) {
+            final outboundFareIndex = _getFareIndex(outboundFlight, outboundFare);
+            ids.add('${outboundFlight.flightSegment.lfid}_$outboundFareIndex');
+          }
+        } catch (_) {}
+      }
+
+      // Always add current leg bookingId (outbound for one-way, return for round-trip)
+      final currentFareIndex = _getFareIndex(flight, fare);
+      ids.add('${flight.flightSegment.lfid}_$currentFareIndex');
+
+      bookingIds.value = ids;
 
       // Set base price
       basePrice.value = flight.price;

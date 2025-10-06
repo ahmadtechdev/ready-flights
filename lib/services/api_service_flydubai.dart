@@ -1206,7 +1206,7 @@ class ApiServiceFlyDubai {
 
 
 
-// Update the _buildPNRRequest method
+// Update the _buildPNRRequest method in api_service_flydubai.dart
   Map<String, dynamic> _buildPNRRequest({
     required List<TravelerInfo> adults,
     required List<TravelerInfo> children,
@@ -1225,6 +1225,12 @@ class ApiServiceFlyDubai {
       print('Adults: ${adults.length}, Children: ${children.length}, Infants: ${infants.length}');
       print('Segment array: ${segmentArray.length} items');
 
+      // Debug: Print segment array to see what's being passed
+      print('Segment Array Details:');
+      for (int i = 0; i < segmentArray.length; i++) {
+        print('Segment $i: ${segmentArray[i]}');
+      }
+
       // Build passengers array
       final List<Map<String, dynamic>> passengers = [];
       int personId = 0;
@@ -1238,10 +1244,11 @@ class ApiServiceFlyDubai {
         // Calculate age
         final age = _calculateAge(adult.dateOfBirthController.text);
 
-        // Get gender code (M/F)
-        final gender = adult.genderController.text.isNotEmpty
-            ? adult.genderController.text
-            : "Male";
+        // Normalize gender to API-expected string values
+        String genderInput = adult.genderController.text.trim();
+        final gender = (genderInput.isEmpty)
+            ? "Male"
+            : (genderInput.toLowerCase().startsWith('m') ? "Male" : (genderInput.toLowerCase().startsWith('f') ? "Female" : genderInput));
 
         // Get nationality code
         final nationality = adult.nationalityCountry.value?.countryCode ?? "PK";
@@ -1346,10 +1353,11 @@ class ApiServiceFlyDubai {
         // Calculate age
         final age = _calculateAge(child.dateOfBirthController.text);
 
-        // Get gender code
-        final gender = child.genderController.text.isNotEmpty
-            ? child.genderController.text.substring(0, 1).toUpperCase()
-            : "M";
+        // Normalize gender to API-expected string values
+        String genderInput = child.genderController.text.trim();
+        final gender = (genderInput.isEmpty)
+            ? "Male"
+            : (genderInput.toLowerCase().startsWith('m') ? "Male" : (genderInput.toLowerCase().startsWith('f') ? "Female" : genderInput));
 
         // Get nationality code
         final nationality = child.nationalityCountry.value?.countryCode ?? "PK";
@@ -1407,10 +1415,11 @@ class ApiServiceFlyDubai {
         // Calculate age
         final age = _calculateAge(infant.dateOfBirthController.text);
 
-        // Get gender code
-        final gender = infant.genderController.text.isNotEmpty
-            ? infant.genderController.text.substring(0, 1).toUpperCase()
-            : "M";
+        // Normalize gender to API-expected string values
+        String genderInput = infant.genderController.text.trim();
+        final gender = (genderInput.isEmpty)
+            ? "Male"
+            : (genderInput.toLowerCase().startsWith('m') ? "Male" : (genderInput.toLowerCase().startsWith('f') ? "Female" : genderInput));
 
         // Get nationality code
         final nationality = infant.nationalityCountry.value?.countryCode ?? "PK";
@@ -1463,13 +1472,26 @@ class ApiServiceFlyDubai {
         });
       }
 
-      // Build segments from segment array
+      // Build segments from segment array with proper extras
       final List<Map<String, dynamic>> segments = _buildSegmentsFromArray(segmentArray);
 
       // Format phone numbers for the request
       final formattedPhone = _cleanPhoneNumber(clientPhone);
       final formattedSimCode = _cleanPhoneNumber(simCode);
 
+      // Try to obtain SecurityGUID from cartData if present (required for round trip summary)
+      String securityGuid = cartData['SecurityGuid']
+          ?? cartData['securityGUID']
+          ?? cartData['securityGuid']
+          ?? cartData['SecurityGUID']
+          ?? '';
+      if (securityGuid is! String || securityGuid.isEmpty) {
+        securityGuid = _findSecurityGuid(cartData) ?? '';
+      }
+
+      
+      print('Security GUID: $securityGuid');
+      
       return {
         "ActionType": "GetSummary",
         "ReservationInfo": {
@@ -1483,7 +1505,7 @@ class ApiServiceFlyDubai {
         ],
         "ClientIPAddress": "",
         "SecurityToken": "",
-        "SecurityGUID": "",
+        "SecurityGUID": securityGuid,
         "HistoricUserName": username,
         "CarrierCurrency": "PKR",
         "DisplayCurrency": "PKR",
@@ -1512,26 +1534,37 @@ class ApiServiceFlyDubai {
       rethrow;
     }
   }
-
-  // Helper method to build segments from segment array
+// Enhanced segment builder with proper extras handling
   List<Map<String, dynamic>> _buildSegmentsFromArray(List<Map<String, dynamic>> segmentArray) {
     final List<Map<String, dynamic>> segments = [];
 
     try {
+      print('Building segments from array...');
+      print('Segment array length: ${segmentArray.length}');
+
       for (final segment in segmentArray) {
         final paxId = segment['pax'] ?? 1;
         final fareId = segment['fareID'] ?? 1;
         final extra = segment['extra'] as Map<String, dynamic>? ?? {};
 
+        print('Processing segment for pax: $paxId, fareID: $fareId');
+        print('Extra data: $extra');
+
+        // Build special services (baggage and meals)
         final specialServices = _buildSpecialServices(extra, paxId);
+
+        // Build seats
         final seats = _buildSeats(extra, paxId);
 
         segments.add({
           "PersonOrgID": -paxId,
           "FareInformationID": fareId,
-          "SpecialServices": specialServices,
+          // "SpecialServices": specialServices,
+          "SpecialServices": [],
           "Seats": seats
         });
+
+        print('Added segment with ${specialServices.length} special services and ${seats.length} seats');
       }
     } catch (e) {
       print('Error building segments from array: $e');
@@ -1539,18 +1572,20 @@ class ApiServiceFlyDubai {
 
     // Fallback: create basic segment if extraction fails
     if (segments.isEmpty) {
-      segments.add({
-        "PersonOrgID": -1,
-        "FareInformationID": 1,
-        "SpecialServices": [],
-        "Seats": []
-      });
+      print('Creating fallback segments...');
+      for (int i = 0; i < segmentArray.length; i++) {
+        segments.add({
+          "PersonOrgID": -(i + 1),
+          "FareInformationID": 1,
+          "SpecialServices": [],
+          "Seats": []
+        });
+      }
     }
 
     print('Built ${segments.length} segments from array');
     return segments;
   }
-
 // Helper method to clean phone number
   String _cleanPhoneNumber(String phone) {
     return phone.replaceAll(RegExp(r'[^0-9]'), '');
@@ -1743,7 +1778,6 @@ class ApiServiceFlyDubai {
 
   // Add these methods to ApiServiceFlyDubai class
 
-// Get seat options
   Future<Map<String, dynamic>> getSeatOptions({
     required List<String> bookingIds,
     required Map<String, dynamic> flightData,
@@ -1758,6 +1792,9 @@ class ApiServiceFlyDubai {
 
       print('=== FLYDUBAI GET SEAT OPTIONS STARTED ===');
       print('Booking IDs: $bookingIds');
+
+      // Debug the flight data structure first
+      _debugFlightDataStructure(flightData);
 
       final requestBody = _buildSeatRequest(bookingIds, flightData);
 
@@ -1775,6 +1812,7 @@ class ApiServiceFlyDubai {
       );
 
       print('Seat Options Response Status: ${response.statusCode}');
+      print('Seat Options Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
@@ -1789,12 +1827,12 @@ class ApiServiceFlyDubai {
           'success': false,
           'error': 'Token expired. Please search flights again.',
         };
+      } else {
+        return {
+          'success': false,
+          'error': 'Failed to get seat options: ${response.statusCode} - ${response.body}',
+        };
       }
-
-      return {
-        'success': false,
-        'error': 'Failed to get seat options: ${response.statusCode}',
-      };
     } catch (e) {
       print('Get seat options error: $e');
       return {
@@ -1803,7 +1841,6 @@ class ApiServiceFlyDubai {
       };
     }
   }
-
 // Get baggage options
   Future<Map<String, dynamic>> getBaggageOptions({
     required List<String> bookingIds,
@@ -1929,82 +1966,60 @@ class ApiServiceFlyDubai {
     }
   }
 
-// Helper method to build seat request
   Map<String, dynamic> _buildSeatRequest(List<String> bookingIds, Map<String, dynamic> flightData) {
-    debugPrint("🔍 Starting _buildSeatRequest...");
-    debugPrint("➡️ bookingIds: $bookingIds");
+    try {
+      print('🔄 Trying alternative seat request structure');
 
-    final retrieveResult = flightData['RetrieveFareQuoteDateRangeResponse']?['RetrieveFareQuoteDateRangeResult'];
-    if (retrieveResult == null) {
-      debugPrint("❌ retrieveResult is null! Invalid flightData structure");
-      throw Exception('Invalid flight data structure');
+      final retrieveResult = flightData['RetrieveFareQuoteDateRangeResponse']?['RetrieveFareQuoteDateRangeResult'];
+      if (retrieveResult == null) {
+        throw Exception('Invalid flight data structure');
+      }
+
+      final segmentDetails = _extractArray(retrieveResult['SegmentDetails']?['SegmentDetail']);
+
+      final List<Map<String, dynamic>> flights = [];
+
+      // Simply use all available segment details in order
+      if (segmentDetails is List) {
+        for (final segment in segmentDetails) {
+          if (segment is Map) {
+            final flight = {
+              'lfID': segment['LFID']?.toString() ?? '',
+              'flightNum': segment['FlightNum']?.toString() ?? '',
+              'depDate': segment['DepartureDate']?.toString() ?? '', // Original format
+              'origin': segment['Origin']?.toString() ?? '',
+              'dest': segment['Destination']?.toString() ?? '',
+              'category': null,
+              'services': null,
+              'currency': 'PKR',
+              'UTCOffset': 0,
+              'operatingCarrierCode': segment['OperatingCarrier']?.toString() ?? 'FZ',
+              'marketingCarrierCode': segment['SellingCarrier']?.toString() ?? 'FZ',
+              'channel': 'TPAPI'
+            };
+            flights.add(flight);
+            print('✅ Added flight: ${flight['origin']} -> ${flight['dest']}');
+          }
+
+          // Only add up to the number of booking IDs
+          if (flights.length >= bookingIds.length) {
+            break;
+          }
+        }
+      }
+
+      final request = {
+        'flights': flights
+      };
+
+      print('🎯 Alternative request with ${flights.length} flights');
+      return request;
+
+    } catch (e) {
+      print('❌ Error in alternative seat request: $e');
+      rethrow;
     }
-    debugPrint("✅ retrieveResult extracted successfully");
-
-    final segmentDetails = _extractArray(retrieveResult['SegmentDetails']?['SegmentDetail']);
-    debugPrint("✅ segmentDetails extracted: ${segmentDetails.runtimeType}");
-
-    final List<Map<String, dynamic>> flights = [];
-
-    for (int i = 0; i < bookingIds.length; i++) {
-      final bk = bookingIds[i];
-      debugPrint("➡️ Processing bookingId[$i]: $bk");
-
-      final bkIdArray = bk.split('_');
-      if (bkIdArray.length < 2) {
-        debugPrint("⚠️ bookingId[$i] skipped (invalid format)");
-        continue;
-      }
-
-      final main = int.tryParse(bkIdArray[0]) ?? 0;
-      debugPrint("   main index: $main");
-
-      final segment = _findSegmentByIndex(segmentDetails, main);
-      if (segment == null) {
-        debugPrint("❌ No segment found for main index $main (bookingId[$i])");
-        continue;
-      }
-
-      final lfid = segment['LFID']?.toString() ?? '';
-      final origin = segment['Origin']?.toString() ?? '';
-      final destination = segment['Destination']?.toString() ?? '';
-      final flightNum = segment['FlightNum']?.toString() ?? '';
-      final sellingCarrier = segment['SellingCarrier']?.toString() ?? 'FZ';
-      final operatingCarrier = segment['OperatingCarrier']?.toString() ?? 'FZ';
-      final departureDate = segment['DepartureDate']?.toString() ?? '';
-
-      // Extract date part only
-      String checkDep = departureDate;
-      if (departureDate.contains('T')) {
-        checkDep = '${departureDate.split('T')[0]}T00:00:00';
-      }
-
-      debugPrint("   Segment found: LFID=$lfid, FlightNum=$flightNum, Origin=$origin, Dest=$destination, Dep=$checkDep");
-
-      flights.add({
-        'lfID': lfid,
-        'flightNum': flightNum,
-        'depDate': checkDep,
-        'origin': origin,
-        'dest': destination,
-        'category': null,
-        'services': null,
-        'currency': 'PKR',
-        'UTCOffset': 0,
-        'operatingCarrierCode': operatingCarrier,
-        'marketingCarrierCode': sellingCarrier,
-        'channel': 'TPAPI',
-      });
-      debugPrint("✅ Flight added for bookingId[$i]");
-    }
-
-    final result = {'flights': flights};
-    debugPrint("🎯 Final SeatRequest built with ${flights.length} flights");
-    debugPrint(result.toString());
-
-    return result;
   }
-
   Map<String, dynamic> _buildBaggageMealRequest(
       List<String> bookingIds, Map<String, dynamic> flightData) {
     debugPrint("🔍 Starting _buildBaggageMealRequest...");
@@ -2241,6 +2256,46 @@ class ApiServiceFlyDubai {
     return result;
   }
 
+
+  void _debugFlightDataStructure(Map<String, dynamic> flightData) {
+    try {
+      print('=== DEBUG FLIGHT DATA STRUCTURE ===');
+      final retrieveResult = flightData['RetrieveFareQuoteDateRangeResponse']?['RetrieveFareQuoteDateRangeResult'];
+
+      if (retrieveResult == null) {
+        print('❌ No RetrieveFareQuoteDateRangeResult found');
+        return;
+      }
+
+      final basicArray = _extractArray(retrieveResult['FlightSegments']?['FlightSegment']);
+      final segmentDetails = _extractArray(retrieveResult['SegmentDetails']?['SegmentDetail']);
+
+      print('FlightSegments count: ${basicArray is List ? basicArray.length : 'N/A'}');
+      print('SegmentDetails count: ${segmentDetails is List ? segmentDetails.length : 'N/A'}');
+
+      if (segmentDetails is List) {
+        for (int i = 0; i < segmentDetails.length; i++) {
+          final segment = segmentDetails[i];
+          if (segment is Map) {
+            print('Segment $i: LFID=${segment['LFID']}, ${segment['Origin']}->${segment['Destination']}, Date=${segment['DepartureDate']}');
+          }
+        }
+      }
+
+      if (basicArray is List) {
+        for (int i = 0; i < basicArray.length; i++) {
+          final flightSegment = basicArray[i];
+          if (flightSegment is Map) {
+            print('FlightSegment $i: LFID=${flightSegment['LFID']}');
+          }
+        }
+      }
+      print('=== END DEBUG ===');
+    } catch (e) {
+      print('Debug error: $e');
+    }
+  }
+
 // Alias for meal request (same structure as baggage)
   Map<String, dynamic> _buildMealRequest(List<String> bookingIds, Map<String, dynamic> flightData) {
     return _buildBaggageMealRequest(bookingIds, flightData);
@@ -2307,5 +2362,29 @@ class ApiServiceFlyDubai {
       );
       print(chunk);
     }
+  }
+
+  // Recursively search for a Security GUID key in a nested response
+  String? _findSecurityGuid(dynamic data) {
+    try {
+      if (data == null) return null;
+      if (data is Map) {
+        for (final entry in data.entries) {
+          final key = entry.key.toString().toLowerCase();
+          if (key.contains('securityguid') || key == 'guid') {
+            final value = entry.value?.toString();
+            if (value != null && value.isNotEmpty) return value;
+          }
+          final found = _findSecurityGuid(entry.value);
+          if (found != null && found.isNotEmpty) return found;
+        }
+      } else if (data is List) {
+        for (final item in data) {
+          final found = _findSecurityGuid(item);
+          if (found != null && found.isNotEmpty) return found;
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 }

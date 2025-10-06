@@ -180,7 +180,7 @@ class TravelerInfo {
     return data;
   }
 
-// Update the helper method to format phone number correctly
+  // Update the helper method to format phone number correctly
   String getFormattedPhoneNumber() {
     String phone = phoneController.text.trim();
     String countryCode = phoneCountry.value?.phoneCode ?? '92';
@@ -265,8 +265,6 @@ class BookingFlightController extends GetxController {
       // Add new child travelers with proper identification
       for (var i = currentCount; i < newCount; i++) {
         final childTraveler = TravelerInfo(isInfant: false);
-        // Override the child check method to return true for children
-        // childTraveler.isChildTraveler = () => true;
         children.add(childTraveler);
       }
     } else if (newCount < currentCount) {
@@ -304,7 +302,7 @@ class BookingFlightController extends GetxController {
     }
   }
 
-// Helper method to format booker phone number with country code
+  // Helper method to format booker phone number with country code
   String getFormattedBookerPhoneNumber() {
     String phone = phoneController.text.trim();
     String countryCode = bookerPhoneCountry.value?.phoneCode ?? '92';
@@ -325,7 +323,6 @@ class BookingFlightController extends GetxController {
   void showPhoneCountryPicker(BuildContext context, TravelerInfo travelerInfo) {
     showCountryPicker(
       context: context,
-      // favorite: ['PK', 'US', 'AE', 'SA', 'IN'],
       showPhoneCode: true,
       onSelect: (Country country) {
         travelerInfo.phoneCountry.value = country;
@@ -356,7 +353,6 @@ class BookingFlightController extends GetxController {
   void showBookerPhoneCountryPicker(BuildContext context) {
     showCountryPicker(
       context: context,
-      // favorite: ['PK', 'US', 'AE', 'SA', 'IN'],
       showPhoneCode: true,
       onSelect: (Country country) {
         bookerPhoneCountry.value = country;
@@ -387,7 +383,6 @@ class BookingFlightController extends GetxController {
   void showNationalityPicker(BuildContext context, TravelerInfo travelerInfo) {
     showCountryPicker(
       context: context,
-      // favorite: ['PK', 'US', 'AE', 'SA', 'IN'],
       showPhoneCode: false,
       onSelect: (Country country) {
         travelerInfo.nationalityCountry.value = country;
@@ -456,6 +451,16 @@ class BookingFlightController extends GetxController {
     bookerPhoneCountry.value = Country.parse('PK');
 
     // Reset all travelers
+    for (var adult in adults) {
+      adult.dispose();
+    }
+    for (var child in children) {
+      child.dispose();
+    }
+    for (var infant in infants) {
+      infant.dispose();
+    }
+
     adults.clear();
     children.clear();
     infants.clear();
@@ -473,16 +478,11 @@ class BookingFlightController extends GetxController {
     phoneController.dispose();
     remarksController.dispose();
 
-    // Dispose all traveler controllers
-    for (var adult in adults) {
-      adult.dispose();
-    }
-    for (var child in children) {
-      child.dispose();
-    }
-    for (var infant in infants) {
-      infant.dispose();
-    }
+    // Clear the lists but don't dispose individual travelers here
+    // They are disposed when removed from the lists in update methods
+    adults.clear();
+    children.clear();
+    infants.clear();
 
     super.onClose();
   }

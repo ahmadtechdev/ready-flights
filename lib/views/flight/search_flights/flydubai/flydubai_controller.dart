@@ -10,6 +10,7 @@ import '../../form/flight_booking_controller.dart';
 import '../filters/filter_flight_model.dart';
 import '../flight_package/flydubai/flydubai_package.dart';
 import '../sabre/sabre_flight_models.dart';
+import 'flydubai_extras_controller.dart';
 
 class FlydubaiFlightController extends GetxController {
   // Use the separate API service
@@ -751,21 +752,28 @@ class FlydubaiFlightController extends GetxController {
   }
 
 
-// Add this method to FlydubaiFlightController
+// Update the buildSegmentArray method in FlydubaiFlightController
   List<Map<String, dynamic>> buildSegmentArray() {
     final List<Map<String, dynamic>> segments = [];
+    final FlydubaiExtrasController extrasController = Get.find<FlydubaiExtrasController>();
 
     try {
       // Build segments for outbound flight
       if (selectedOutboundFlight != null && selectedOutboundFareOption != null) {
         final fareId = selectedOutboundFareOption!.fareId;
+
+        // Get extras data from extras controller
+        final baggageExtras = _buildBaggageExtras(extrasController.selectedBaggage);
+        final mealExtras = _buildMealExtras(extrasController.selectedMeals);
+        final seatExtras = _buildSeatExtras(extrasController.selectedSeats);
+
         segments.add({
           'pax': 1, // First passenger
           'fareID': fareId,
           'extra': {
-            'baggage': '',
-            'meal': [],
-            'seat': []
+            'baggage': baggageExtras,
+            'meal': mealExtras,
+            'seat': seatExtras
           }
         });
       }
@@ -773,13 +781,19 @@ class FlydubaiFlightController extends GetxController {
       // Build segments for return flight
       if (selectedReturnFlight != null && selectedReturnFareOption != null) {
         final fareId = selectedReturnFareOption!.fareId;
+
+        // Get extras data from extras controller (you might want separate handling for return flight)
+        final baggageExtras = _buildBaggageExtras(extrasController.selectedBaggage);
+        final mealExtras = _buildMealExtras(extrasController.selectedMeals);
+        final seatExtras = _buildSeatExtras(extrasController.selectedSeats);
+
         segments.add({
           'pax': 1, // First passenger
           'fareID': fareId,
           'extra': {
-            'baggage': '',
-            'meal': [],
-            'seat': []
+            'baggage': baggageExtras,
+            'meal': mealExtras,
+            'seat': seatExtras
           }
         });
       }
@@ -790,6 +804,52 @@ class FlydubaiFlightController extends GetxController {
     return segments;
   }
 
+// Helper methods to build extras in the correct format
+  String _buildBaggageExtras(RxMap<String, dynamic> selectedBaggage) {
+    if (selectedBaggage.isEmpty) return '';
+
+    try {
+      // Format: OfferCode!!LFID!!DepartureDate!!Amount!!Currency!!RuleId!!PFID
+      final baggage = selectedBaggage.values.first;
+      return '${baggage['id']}!!0!!${DateTime.now().toIso8601String()}!!${baggage['charge']}!!PKR!!BAGGAGE_RULE!!0';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  List<String> _buildMealExtras(RxMap<String, dynamic> selectedMeals) {
+    final List<String> meals = [];
+
+    if (selectedMeals.isEmpty) return meals;
+
+    try {
+      // Format: OfferCode!!LFID!!DepartureDate!!Amount!!Currency!!RuleId!!PFID
+      for (final meal in selectedMeals.values) {
+        meals.add('${meal['id']}!!0!!${DateTime.now().toIso8601String()}!!${meal['charge']}!!PKR!!MEAL_RULE!!0');
+      }
+    } catch (e) {
+      print('Error building meal extras: $e');
+    }
+
+    return meals;
+  }
+
+  List<String> _buildSeatExtras(RxMap<String, dynamic> selectedSeats) {
+    final List<String> seats = [];
+
+    if (selectedSeats.isEmpty) return seats;
+
+    try {
+      // Format: OfferCode!!LFID!!DepartureDate!!Amount!!Currency!!RuleId!!PFID!!RowNumber!!SeatNumber
+      for (final seat in selectedSeats.values) {
+        seats.add('SEAT!!0!!${DateTime.now().toIso8601String()}!!${seat['charge']}!!PKR!!SEAT_RULE!!0!!${seat['rowNumber']}!!${seat['seatNumber']}');
+      }
+    } catch (e) {
+      print('Error building seat extras: $e');
+    }
+
+    return seats;
+  }
 }
 
 // AirlineInfo is now imported from sabre_flight_models.dart AirlineInfo(this.name, this.logoPath);
