@@ -641,67 +641,75 @@ class FlydubaiFlightController extends GetxController {
   }
 
 // Add flight to cart (for final booking)
-  Future<Map<String, dynamic>> addFlightsToCart() async {
-    try {
-      developer.log('=== ADDING FLIGHTS TO CART ===');
+  // In FlydubaiFlightController, update the addFlightsToCart method
+Future<Map<String, dynamic>> addFlightsToCart() async {
+  try {
+    developer.log('=== ADDING FLIGHTS TO CART ===');
 
-      final List<String> bookingIds = [];
+    final List<String> bookingIds = [];
 
-      // Add outbound flight if selected
-      if (selectedOutboundFlight != null && selectedOutboundFareOption != null) {
-        final outboundId = '${selectedOutboundFlight!.flightSegment.lfid}_'
-            '${_getFareIndex(selectedOutboundFlight!, selectedOutboundFareOption!)}';
-        bookingIds.add(outboundId);
-        developer.log('Outbound Booking ID: $outboundId');
-      }
+    // Add outbound flight if selected
+    if (selectedOutboundFlight != null && selectedOutboundFareOption != null) {
+      final outboundId = '${selectedOutboundFlight!.flightSegment.lfid}_'
+          '${_getFareIndex(selectedOutboundFlight!, selectedOutboundFareOption!)}';
+      bookingIds.add(outboundId);
+      developer.log('Outbound Booking ID: $outboundId');
+    }
 
-      // Add return flight if selected
-      if (selectedReturnFlight != null && selectedReturnFareOption != null) {
-        final returnId = '${selectedReturnFlight!.flightSegment.lfid}_'
-            '${_getFareIndex(selectedReturnFlight!, selectedReturnFareOption!)}';
-        bookingIds.add(returnId);
-        developer.log('Return Booking ID: $returnId');
-      }
+    // Add return flight if selected
+    if (selectedReturnFlight != null && selectedReturnFareOption != null) {
+      final returnId = '${selectedReturnFlight!.flightSegment.lfid}_'
+          '${_getFareIndex(selectedReturnFlight!, selectedReturnFareOption!)}';
+      bookingIds.add(returnId);
+      developer.log('Return Booking ID: $returnId');
+    }
 
-      if (bookingIds.isEmpty) {
-        return {
-          'success': false,
-          'error': 'No flights selected for cart',
-        };
-      }
-
-      // Use outbound flight data for cart (assuming both flights have similar structure)
-      final flightData = selectedOutboundFlight?.rawData ?? selectedReturnFlight?.rawData;
-
-      if (flightData == null) {
-        return {
-          'success': false,
-          'error': 'No flight data available',
-        };
-      }
-
-      final result = await apiService.addToCart(
-        bookingIds: bookingIds,
-        flightData: flightData,
-      );
-
-      if (result['success'] == true) {
-        print("Chal ja yaar add to cart");
-        developer.log('Successfully added flights to cart');
-        // Store cart data for booking process
-        _cartData = result['data'];
-      }
-
-      return result;
-    } catch (e) {
-      developer.log('Add to cart error: $e');
+    if (bookingIds.isEmpty) {
       return {
         'success': false,
-        'error': 'Failed to add flights to cart: $e',
+        'error': 'No flights selected for cart',
       };
     }
-  }
 
+    // Use outbound flight data for cart (assuming both flights have similar structure)
+    final flightData = selectedOutboundFlight?.rawData ?? selectedReturnFlight?.rawData;
+
+    if (flightData == null) {
+      return {
+        'success': false,
+        'error': 'No flight data available',
+      };
+    }
+
+    final result = await apiService.addToCart(
+      bookingIds: bookingIds,
+      flightData: flightData,
+    );
+
+    if (result['success'] == true) {
+      print("✅ Add to cart successful");
+      developer.log('Successfully added flights to cart');
+      
+      // Store cart data AND security GUID for booking process
+      _cartData = result['data'];
+      final securityGuid = result['securityGuid'];
+      
+      if (securityGuid != null) {
+        _cartData?['SecurityGuid'] = securityGuid;
+      }
+      
+      developer.log('Security GUID for PNR: $securityGuid');
+    }
+
+    return result;
+  } catch (e) {
+    developer.log('Add to cart error: $e');
+    return {
+      'success': false,
+      'error': 'Failed to add flights to cart: $e',
+    };
+  }
+}
 // Helper method to get fare index
   int _getFareIndex(FlydubaiFlight flight, FlydubaiFlightFare fare) {
     final options = fareOptionsByLFID[flight.rph] ?? [];

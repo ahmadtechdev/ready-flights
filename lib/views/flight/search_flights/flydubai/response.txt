@@ -1,0 +1,1816 @@
+{
+  "seatQuotes": {
+    "flights": [
+      {
+        "pfID": "181097",
+        "depDate": "2025-10-16T11:30:00",
+        "origin": "KHI",
+        "dest": "DXB",
+        "originName": "Karachi",
+        "destName": "Dubai International Airport",
+        "tailNum": "73R       ",
+        "flightNum": "334",
+        "circular": false,
+        "legOrder": -2147483648,
+        "seatCodes": [
+          {
+            "seatCode": "INST",
+            "desc": "Included seat"
+          },
+          {
+            "seatCode": "NSST",
+            "desc": "ADVANCED SEAT SELECTION"
+          },
+          {
+            "seatCode": "SEAT",
+            "desc": "Preserved seat"
+          },
+          {
+            "seatCode": "FRST",
+            "desc": "FRONT ROW SEAT SELECTION"
+          },
+          {
+            "seatCode": "SPST",
+            "desc": "SPECIAL SEAT SELECTION"
+          },
+          {
+            "seatCode": "XLGR",
+            "desc": "XLGR - Extra legroom seat fee"
+          }
+        ],
+        "cabins": [
+          {
+            "cabin": "ECONOMY",
+            "seatMaps": [
+              {
+                "rowNumber": "6",
+                "seatMap": "ABC DEF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "A",
+                    "serviceCode": "XLGR",
+                    "amount": 11145,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 5062,
+                    "ruleID": "FLXID:XLGR_73B_ZONE1:",
+                    "ruleDesc": "FLXID:XLGR_73B_ZONE1:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "B",
+                    "serviceCode": "XLGR",
+                    "amount": 9531,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 4329,
+                    "ruleID": "FLXID:XLGR_73B_MID_ZONE1:",
+                    "ruleDesc": "FLXID:XLGR_73B_MID_ZONE1:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "XLGR",
+                    "amount": 11145,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 5062,
+                    "ruleID": "FLXID:XLGR_73B_ZONE1:",
+                    "ruleDesc": "FLXID:XLGR_73B_ZONE1:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "D",
+                    "serviceCode": "XLGR",
+                    "amount": 11145,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 5062,
+                    "ruleID": "FLXID:XLGR_73B_ZONE1:",
+                    "ruleDesc": "FLXID:XLGR_73B_ZONE1:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "E",
+                    "serviceCode": "XLGR",
+                    "amount": 9531,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 4329,
+                    "ruleID": "FLXID:XLGR_73B_MID_ZONE1:",
+                    "ruleDesc": "FLXID:XLGR_73B_MID_ZONE1:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "XLGR",
+                    "amount": 11145,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 5062,
+                    "ruleID": "FLXID:XLGR_73B_ZONE1:",
+                    "ruleDesc": "FLXID:XLGR_73B_ZONE1:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              },
+              {
+                "rowNumber": "7",
+                "seatMap": "ABC DEF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "A",
+                    "serviceCode": "FRST",
+                    "amount": 4228,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 1920,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "B",
+                    "serviceCode": "FRST",
+                    "amount": 3843,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 1746,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_MID:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "FRST",
+                    "amount": 4228,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 1920,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "D",
+                    "serviceCode": "FRST",
+                    "amount": 4228,
+                    "currency": "PKR",
+                    "assigned": true,
+                    "redeemMiles": 1920,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "E",
+                    "serviceCode": "FRST",
+                    "amount": 3843,
+                    "currency": "PKR",
+                    "assigned": true,
+                    "redeemMiles": 1746,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_MID:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "FRST",
+                    "amount": 4228,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 1920,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              },
+              {
+                "rowNumber": "8",
+                "seatMap": "ABC DEF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "A",
+                    "serviceCode": "FRST",
+                    "amount": 4228,
+                    "currency": "PKR",
+                    "assigned": true,
+                    "redeemMiles": 1920,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "B",
+                    "serviceCode": "FRST",
+                    "amount": 3843,
+                    "currency": "PKR",
+                    "assigned": true,
+                    "redeemMiles": 1746,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_MID:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "FRST",
+                    "amount": 4228,
+                    "currency": "PKR",
+                    "assigned": true,
+                    "redeemMiles": 1920,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "D",
+                    "serviceCode": "FRST",
+                    "amount": 4228,
+                    "currency": "PKR",
+                    "assigned": true,
+                    "redeemMiles": 1920,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "E",
+                    "serviceCode": "FRST",
+                    "amount": 3843,
+                    "currency": "PKR",
+                    "assigned": true,
+                    "redeemMiles": 1746,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_MID:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "FRST",
+                    "amount": 4228,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 1920,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              },
+              {
+                "rowNumber": "9",
+                "seatMap": "ABC DEF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "A",
+                    "serviceCode": "FRST",
+                    "amount": 4228,
+                    "currency": "PKR",
+                    "assigned": true,
+                    "redeemMiles": 1920,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "B",
+                    "serviceCode": "FRST",
+                    "amount": 3843,
+                    "currency": "PKR",
+                    "assigned": true,
+                    "redeemMiles": 1746,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_MID:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "FRST",
+                    "amount": 4228,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 1920,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "D",
+                    "serviceCode": "FRST",
+                    "amount": 4228,
+                    "currency": "PKR",
+                    "assigned": true,
+                    "redeemMiles": 1920,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "E",
+                    "serviceCode": "FRST",
+                    "amount": 3843,
+                    "currency": "PKR",
+                    "assigned": true,
+                    "redeemMiles": 1746,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_MID:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "FRST",
+                    "amount": 4228,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 1920,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              },
+              {
+                "rowNumber": "10",
+                "seatMap": "ABC DEF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "A",
+                    "serviceCode": "FRST",
+                    "amount": 4228,
+                    "currency": "PKR",
+                    "assigned": true,
+                    "redeemMiles": 1920,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "B",
+                    "serviceCode": "FRST",
+                    "amount": 3843,
+                    "currency": "PKR",
+                    "assigned": true,
+                    "redeemMiles": 1746,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_MID:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "FRST",
+                    "amount": 4228,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 1920,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "D",
+                    "serviceCode": "FRST",
+                    "amount": 4228,
+                    "currency": "PKR",
+                    "assigned": true,
+                    "redeemMiles": 1920,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "E",
+                    "serviceCode": "FRST",
+                    "amount": 3843,
+                    "currency": "PKR",
+                    "assigned": true,
+                    "redeemMiles": 1746,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_MID:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "FRST",
+                    "amount": 4228,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 1920,
+                    "ruleID": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "ruleDesc": "FLXID:FRST_Zone1_73B_73M_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              },
+              {
+                "rowNumber": "11",
+                "seatMap": "ABC DEF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "A",
+                    "serviceCode": "SPST",
+                    "amount": 3075,
+                    "currency": "PKR",
+                    "assigned": true,
+                    "redeemMiles": 1397,
+                    "ruleID": "FLXID:73X_SPST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_SPST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "B",
+                    "serviceCode": "SPST",
+                    "amount": 2460,
+                    "currency": "PKR",
+                    "assigned": true,
+                    "redeemMiles": 1117,
+                    "ruleID": "FLXID:73X_SPST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:73X_SPST_ZONE1_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "SPST",
+                    "amount": 3075,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 1397,
+                    "ruleID": "FLXID:73X_SPST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_SPST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "D",
+                    "serviceCode": "SPST",
+                    "amount": 3075,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 1397,
+                    "ruleID": "FLXID:73X_SPST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_SPST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "E",
+                    "serviceCode": "SPST",
+                    "amount": 2460,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 1117,
+                    "ruleID": "FLXID:73X_SPST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:73X_SPST_ZONE1_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "SPST",
+                    "amount": 3075,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 1397,
+                    "ruleID": "FLXID:73X_SPST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_SPST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              },
+              {
+                "rowNumber": "12",
+                "seatMap": "ABC DEF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "A",
+                    "serviceCode": "SPST",
+                    "amount": 3075,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 1397,
+                    "ruleID": "FLXID:73X_SPST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_SPST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "B",
+                    "serviceCode": "SPST",
+                    "amount": 2460,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 1117,
+                    "ruleID": "FLXID:73X_SPST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:73X_SPST_ZONE1_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "SPST",
+                    "amount": 3075,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 1397,
+                    "ruleID": "FLXID:73X_SPST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_SPST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "D",
+                    "serviceCode": "SPST",
+                    "amount": 3075,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 1397,
+                    "ruleID": "FLXID:73X_SPST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_SPST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "E",
+                    "serviceCode": "SPST",
+                    "amount": 2460,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 1117,
+                    "ruleID": "FLXID:73X_SPST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:73X_SPST_ZONE1_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "SPST",
+                    "amount": 3075,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 1397,
+                    "ruleID": "FLXID:73X_SPST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_SPST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              },
+              {
+                "rowNumber": "14",
+                "seatMap": "ABC DEF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "A",
+                    "serviceCode": "SPST",
+                    "amount": 3094,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "B",
+                    "serviceCode": "SPST",
+                    "amount": 2460,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 1117,
+                    "ruleID": "FLXID:73X_SPST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:73X_SPST_ZONE1_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "SPST",
+                    "amount": 3094,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "D",
+                    "serviceCode": "SPST",
+                    "amount": 3094,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "E",
+                    "serviceCode": "SPST",
+                    "amount": 2460,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 1117,
+                    "ruleID": "FLXID:73X_SPST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:73X_SPST_ZONE1_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "SPST",
+                    "amount": 3094,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              },
+             
+              {
+                "rowNumber": "29",
+                "seatMap": "ABC DEF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "A",
+                    "serviceCode": "NSST",
+                    "amount": 1922,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 873,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "B",
+                    "serviceCode": "NSST",
+                    "amount": 1537,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 698,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "NSST",
+                    "amount": 1922,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 873,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "D",
+                    "serviceCode": "NSST",
+                    "amount": 1922,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 873,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "E",
+                    "serviceCode": "NSST",
+                    "amount": 1537,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 698,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "NSST",
+                    "amount": 1922,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 873,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              },
+              {
+                "rowNumber": "30",
+                "seatMap": "ABC DEF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "A",
+                    "serviceCode": "NSST",
+                    "amount": 1922,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 873,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "B",
+                    "serviceCode": "NSST",
+                    "amount": 1537,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 698,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "NSST",
+                    "amount": 1922,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 873,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "D",
+                    "serviceCode": "NSST",
+                    "amount": 1922,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 873,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "E",
+                    "serviceCode": "NSST",
+                    "amount": 1537,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 698,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "NSST",
+                    "amount": 1922,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 873,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              },
+              {
+                "rowNumber": "31",
+                "seatMap": "ABC DEF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "A",
+                    "serviceCode": "NSST",
+                    "amount": 1922,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 873,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "B",
+                    "serviceCode": "NSST",
+                    "amount": 1537,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 698,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "NSST",
+                    "amount": 1922,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 873,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "D",
+                    "serviceCode": "NSST",
+                    "amount": 1922,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 873,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "E",
+                    "serviceCode": "NSST",
+                    "amount": 1537,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 698,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "NSST",
+                    "amount": 1922,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 873,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              },
+              {
+                "rowNumber": "32",
+                "seatMap": "ABC DEF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "A",
+                    "serviceCode": "NSST",
+                    "amount": 1922,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 873,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": true,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "B",
+                    "serviceCode": "NSST",
+                    "amount": 1537,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 698,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_MID:",
+                    "isBlocked": true,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "NSST",
+                    "amount": 1922,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 873,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": true,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "D",
+                    "serviceCode": "NSST",
+                    "amount": 1922,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 873,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": true,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "E",
+                    "serviceCode": "NSST",
+                    "amount": 1537,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 698,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_MID:",
+                    "isBlocked": true,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "NSST",
+                    "amount": 1922,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 873,
+                    "ruleID": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:73X_NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": true,
+                    "isPreBlocked": false
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "cabin": "BUSINESS",
+            "seatMaps": [
+              {
+                "rowNumber": "1",
+                "seatMap": "AC DF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "A",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "D",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              },
+              {
+                "rowNumber": "2",
+                "seatMap": " B  E ",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "B",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "E",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              },
+              {
+                "rowNumber": "3",
+                "seatMap": "AC DF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "A",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "D",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "pfID": "184292",
+        "depDate": "2025-10-30T12:25:00",
+        "origin": "DXB",
+        "dest": "KHI",
+        "originName": "Dubai International Airport",
+        "destName": "Karachi",
+        "tailNum": "73D       ",
+        "flightNum": "335",
+        "circular": false,
+        "legOrder": -2147483648,
+        "seatCodes": [
+          {
+            "seatCode": "INST",
+            "desc": "Included seat"
+          },
+          {
+            "seatCode": "NSST",
+            "desc": "ADVANCED SEAT SELECTION"
+          },
+          {
+            "seatCode": "SEAT",
+            "desc": "Preserved seat"
+          },
+          {
+            "seatCode": "FRST",
+            "desc": "FRONT ROW SEAT SELECTION"
+          },
+          {
+            "seatCode": "SPST",
+            "desc": "SPECIAL SEAT SELECTION"
+          },
+          {
+            "seatCode": "XLGR",
+            "desc": "XLGR - Extra legroom seat fee"
+          }
+        ],
+        "cabins": [
+          {
+            "cabin": "ECONOMY",
+            "seatMaps": [
+              {
+                "rowNumber": "6",
+                "seatMap": "ABC DEF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "A",
+                    "serviceCode": "XLGR",
+                    "amount": 11145,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 5062,
+                    "ruleID": "FLXID:XLGR_73B_ZONE1:",
+                    "ruleDesc": "FLXID:XLGR_73B_ZONE1:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "B",
+                    "serviceCode": "XLGR",
+                    "amount": 9531,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 4329,
+                    "ruleID": "FLXID:XLGR_73B_MID_ZONE1:",
+                    "ruleDesc": "FLXID:XLGR_73B_MID_ZONE1:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "XLGR",
+                    "amount": 11145,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 5062,
+                    "ruleID": "FLXID:XLGR_73B_ZONE1:",
+                    "ruleDesc": "FLXID:XLGR_73B_ZONE1:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "D",
+                    "serviceCode": "XLGR",
+                    "amount": 11145,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 5062,
+                    "ruleID": "FLXID:XLGR_73B_ZONE1:",
+                    "ruleDesc": "FLXID:XLGR_73B_ZONE1:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "E",
+                    "serviceCode": "XLGR",
+                    "amount": 9531,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 4329,
+                    "ruleID": "FLXID:XLGR_73B_MID_ZONE1:",
+                    "ruleDesc": "FLXID:XLGR_73B_MID_ZONE1:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "XLGR",
+                    "amount": 11145,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 5062,
+                    "ruleID": "FLXID:XLGR_73B_ZONE1:",
+                    "ruleDesc": "FLXID:XLGR_73B_ZONE1:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              },
+            
+              {
+                "rowNumber": "28",
+                "seatMap": "ABC DEF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "A",
+                    "serviceCode": "NSST",
+                    "amount": 1691,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 768,
+                    "ruleID": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "B",
+                    "serviceCode": "NSST",
+                    "amount": 1230,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 559,
+                    "ruleID": "FLXID:NSST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "NSST",
+                    "amount": 1691,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 768,
+                    "ruleID": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "D",
+                    "serviceCode": "NSST",
+                    "amount": 1691,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 768,
+                    "ruleID": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "E",
+                    "serviceCode": "NSST",
+                    "amount": 1230,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 559,
+                    "ruleID": "FLXID:NSST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "NSST",
+                    "amount": 1691,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 768,
+                    "ruleID": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              },
+              {
+                "rowNumber": "29",
+                "seatMap": "ABC DEF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "A",
+                    "serviceCode": "NSST",
+                    "amount": 1691,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 768,
+                    "ruleID": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "B",
+                    "serviceCode": "NSST",
+                    "amount": 1230,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 559,
+                    "ruleID": "FLXID:NSST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "NSST",
+                    "amount": 1691,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 768,
+                    "ruleID": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "D",
+                    "serviceCode": "NSST",
+                    "amount": 1691,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 768,
+                    "ruleID": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "E",
+                    "serviceCode": "NSST",
+                    "amount": 1230,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 559,
+                    "ruleID": "FLXID:NSST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "NSST",
+                    "amount": 1691,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 768,
+                    "ruleID": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              },
+              {
+                "rowNumber": "30",
+                "seatMap": "ABC DEF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "A",
+                    "serviceCode": "NSST",
+                    "amount": 1691,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 768,
+                    "ruleID": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "B",
+                    "serviceCode": "NSST",
+                    "amount": 1230,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 559,
+                    "ruleID": "FLXID:NSST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "NSST",
+                    "amount": 1691,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 768,
+                    "ruleID": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "D",
+                    "serviceCode": "NSST",
+                    "amount": 1691,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 768,
+                    "ruleID": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "E",
+                    "serviceCode": "NSST",
+                    "amount": 1230,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 559,
+                    "ruleID": "FLXID:NSST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "NSST",
+                    "amount": 1691,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 768,
+                    "ruleID": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              },
+              {
+                "rowNumber": "31",
+                "seatMap": "ABC DEF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "A",
+                    "serviceCode": "NSST",
+                    "amount": 1691,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 768,
+                    "ruleID": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "B",
+                    "serviceCode": "NSST",
+                    "amount": 1230,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 559,
+                    "ruleID": "FLXID:NSST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "NSST",
+                    "amount": 1691,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 768,
+                    "ruleID": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "D",
+                    "serviceCode": "NSST",
+                    "amount": 1691,
+                    "currency": "PKR",
+                    "assigned": true,
+                    "redeemMiles": 768,
+                    "ruleID": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "E",
+                    "serviceCode": "NSST",
+                    "amount": 1230,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 559,
+                    "ruleID": "FLXID:NSST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_MID:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "NSST",
+                    "amount": 1691,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 768,
+                    "ruleID": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              },
+              {
+                "rowNumber": "32",
+                "seatMap": "ABC DEF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "A",
+                    "serviceCode": "NSST",
+                    "amount": 1691,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 768,
+                    "ruleID": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": true,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "B",
+                    "serviceCode": "NSST",
+                    "amount": 1230,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 559,
+                    "ruleID": "FLXID:NSST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_MID:",
+                    "isBlocked": true,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "NSST",
+                    "amount": 1691,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 768,
+                    "ruleID": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": true,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "D",
+                    "serviceCode": "NSST",
+                    "amount": 1691,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 768,
+                    "ruleID": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": true,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "E",
+                    "serviceCode": "NSST",
+                    "amount": 1230,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 559,
+                    "ruleID": "FLXID:NSST_ZONE1_MID:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_MID:",
+                    "isBlocked": true,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "NSST",
+                    "amount": 1691,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 768,
+                    "ruleID": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "ruleDesc": "FLXID:NSST_ZONE1_WIN_AIS:",
+                    "isBlocked": true,
+                    "isPreBlocked": false
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "cabin": "BUSINESS",
+            "seatMaps": [
+              {
+                "rowNumber": "1",
+                "seatMap": "AC DF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "D",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "A",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              },
+              {
+                "rowNumber": "2",
+                "seatMap": "AC DF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "D",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "F",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "A",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              },
+              {
+                "rowNumber": "3",
+                "seatMap": "AC DF",
+                "isWing": false,
+                "isExit": false,
+                "seats": [
+                  {
+                    "seat": "F",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "D",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "C",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  },
+                  {
+                    "seat": "A",
+                    "serviceCode": "SEAT",
+                    "amount": 0,
+                    "currency": "PKR",
+                    "assigned": false,
+                    "redeemMiles": 0,
+                    "isBlocked": false,
+                    "isPreBlocked": false
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "exceptions": [
+    {
+      "code": "0",
+      "desc": "Successful Transaction",
+      "source": "Pricing Seat",
+      "level": "0"
+    }
+  ]
+}

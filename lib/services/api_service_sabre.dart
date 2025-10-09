@@ -86,6 +86,12 @@ class ApiServiceSabre extends GetxService {
   }
 
   // Add to ApiServiceFlight class
+
+
+
+
+
+  
   Future<String> generateToken() async {
     try {
       final response = await dio.post(
@@ -94,7 +100,7 @@ class ApiServiceSabre extends GetxService {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             'Authorization':
-                'Basic VmpFNk5EY3pNVGcxT2paTlJEZzZRVUU9OlUxTlhVa1ZUT1RBPQ==',
+                'Basic VGtSamVrMVVaekZEYkU1VVZqRktSbFY2WjNjPQ==',
             'grant_type': 'client_credentials'
           },
         ),

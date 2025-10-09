@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:country_picker/country_picker.dart';
+import 'package:ready_flights/views/flight/form/flight_booking_controller.dart';
 import '../../../../../services/api_service_flydubai.dart';
 import '../../../../../utility/colors.dart';
 import '../../../../../widgets/travelers_selection_bottom_sheet.dart';
@@ -1215,19 +1216,21 @@ class _FlyDubaiBookingFlightState extends State<FlyDubaiBookingFlight> {
 
 
                       // Call createPNR API
-                      final pnrResult = await apiService.createPNR(
-                        adults: adults,
-                        children: children,
-                        infants: infants,
-                        clientEmail: bookingController.emailController.text,
-                        clientPhone: bookingController.getFormattedBookerPhoneNumber(),
-                        countryCode: bookingController.bookerPhoneCountry.value?.phoneCode ?? '92',
-                        simCode: simCode,
-                        city: city,
-                        flightType: widget.returnFlight != null ? 'roundtrip' : 'oneway',
-                        segmentArray: segmentArray,
-                        cartData: cartData,
-                      );
+                     // In the _buildBottomBar method, update the booking process:
+                     final FlightBookingController flightBookingController = Get.find<FlightBookingController>();
+final pnrResult = await apiService.createPNR(
+  adults: adults,
+  children: children,
+  infants: infants,
+  clientEmail: bookingController.emailController.text,
+  clientPhone: bookingController.getFormattedBookerPhoneNumber(),
+  countryCode: bookingController.bookerPhoneCountry.value?.phoneCode ?? '92',
+  simCode: simCode,
+  city: city,
+  flightType: flightBookingController.tripType.value == TripType.roundTrip ? 'roundtrip' : 'oneway',
+  segmentArray: segmentArray,
+  cartData: cartData!,
+);
 
                       // Close loading dialog
                       Get.back();

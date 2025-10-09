@@ -661,6 +661,19 @@ class FlydubaiExtrasController extends GetxController {
       if (parts.length == 2) {
         final passengerId = parts[1];
         if (passengerSelections.containsKey(passengerId)) {
+
+
+
+
+
+
+
+
+
+
+
+
+          
           passengerSelections[passengerId]!['meals'] = {
             'name': value['name'] ?? '',
             'charge': value['charge'] ?? '0',
