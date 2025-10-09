@@ -116,10 +116,19 @@ class TravelerInfo {
     return false; // Default to adult
   }
 
+  bool _isDisposed = false;
+  
   void dispose() {
+    if (_isDisposed) return;  // Prevent double disposal
+    _isDisposed = true;
+    
     // Remove listeners before disposing
-    titleController.removeListener(_onTitleChanged);
-    genderController.removeListener(_onGenderChanged);
+    try {
+      titleController.removeListener(_onTitleChanged);
+      genderController.removeListener(_onGenderChanged);
+    } catch (e) {
+      // Listeners might already be removed
+    }
 
     titleController.dispose();
     firstNameController.dispose();
@@ -249,11 +258,18 @@ class BookingFlightController extends GetxController {
         adults.add(TravelerInfo(isInfant: false));
       }
     } else if (newCount < currentCount) {
-      // Remove excess adult travelers
+      // Remove excess adult travelers (dispose after UI update to avoid errors)
+      final toRemove = <TravelerInfo>[];
       for (var i = currentCount - 1; i >= newCount; i--) {
-        adults[i].dispose();
+        toRemove.add(adults[i]);
         adults.removeAt(i);
       }
+      // Dispose after removal to prevent UI access to disposed controllers
+      Future.delayed(const Duration(milliseconds: 100), () {
+        for (var traveler in toRemove) {
+          traveler.dispose();
+        }
+      });
     }
   }
 
@@ -268,11 +284,18 @@ class BookingFlightController extends GetxController {
         children.add(childTraveler);
       }
     } else if (newCount < currentCount) {
-      // Remove excess child travelers
+      // Remove excess child travelers (dispose after UI update to avoid errors)
+      final toRemove = <TravelerInfo>[];
       for (var i = currentCount - 1; i >= newCount; i--) {
-        children[i].dispose();
+        toRemove.add(children[i]);
         children.removeAt(i);
       }
+      // Dispose after removal to prevent UI access to disposed controllers
+      Future.delayed(const Duration(milliseconds: 100), () {
+        for (var traveler in toRemove) {
+          traveler.dispose();
+        }
+      });
     }
   }
 
@@ -286,11 +309,18 @@ class BookingFlightController extends GetxController {
         infants.add(TravelerInfo(isInfant: true));
       }
     } else if (newCount < currentCount) {
-      // Remove excess infant travelers
+      // Remove excess infant travelers (dispose after UI update to avoid errors)
+      final toRemove = <TravelerInfo>[];
       for (var i = currentCount - 1; i >= newCount; i--) {
-        infants[i].dispose();
+        toRemove.add(infants[i]);
         infants.removeAt(i);
       }
+      // Dispose after removal to prevent UI access to disposed controllers
+      Future.delayed(const Duration(milliseconds: 100), () {
+        for (var traveler in toRemove) {
+          traveler.dispose();
+        }
+      });
     }
   }
 

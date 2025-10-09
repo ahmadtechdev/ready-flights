@@ -873,23 +873,37 @@ print("the token is $_accessToken");
         continue;
       }
 
-      final main = int.tryParse(bkIdArray[0]) ?? 0;
+      final requestedLfid = int.tryParse(bkIdArray[0]) ?? 0;  // This is LFID, not array index
       final fare = int.tryParse(bkIdArray[1]) ?? 0;
 
-      // Safely access the basic array
+      print('🔍 Looking for LFID: $requestedLfid in flight segments');
+
+      // Find the flight segment with matching LFID (not using LFID as array index!)
       dynamic arrayStart;
       if (basicArray is List && basicArray.isNotEmpty) {
-        arrayStart = main < basicArray.length ? basicArray[main] : (basicArray.isNotEmpty ? basicArray[0] : null);
+        // Search for the segment with matching LFID
+        for (var segment in basicArray) {
+          if (segment is Map && segment['LFID'] == requestedLfid) {
+            arrayStart = segment;
+            print('✅ Found segment with LFID: $requestedLfid');
+            break;
+          }
+        }
+        if (arrayStart == null) {
+          print('⚠️ No segment found with LFID: $requestedLfid, using first segment as fallback');
+          arrayStart = basicArray[0];
+        }
       } else if (basicArray is Map) {
         arrayStart = basicArray;
       }
 
       if (arrayStart == null) {
-        print('No flight segment found for booking ID: $bk');
+        print('❌ No flight segment found for booking ID: $bk');
         continue;
       }
 
       final lfid1 = arrayStart['LFID'];
+      print('📌 Using segment with LFID: $lfid1 for booking ID: $bk');
       final flightLegDetail = _extractArray(arrayStart['FlightLegDetails']?['FlightLegDetail']);
 
       // Find segment details
@@ -912,15 +926,18 @@ print("the token is $_accessToken");
 
       // Safely access fare types
       final fareTypes = _extractArray(arrayStart['FareTypes']?['FareType']);
+      print('   Available fare types count: ${fareTypes is List ? fareTypes.length : 1}');
+      
       if (fareTypes == null || (fareTypes is List && fare >= fareTypes.length)) {
-        print('Invalid fare index: $fare for booking ID: $bk');
+        print('❌ Invalid fare index: $fare for booking ID: $bk (available: ${fareTypes is List ? fareTypes.length : 1})');
         continue;
       }
 
       final fareArray = fareTypes is List ? fareTypes[fare] : fareTypes;
       final fareTypeId = fareArray['FareTypeID'];
-
       final fareTypeName = fareArray['FareTypeName'];
+      
+      print('   ✅ Using fare type: $fareTypeName (ID: $fareTypeId, index: $fare)');
 
       final fareInfos = _extractArray(fareArray['FareInfos']?['FareInfo']);
       final List<Map<String, dynamic>> paxFareInfos = [];
@@ -1343,8 +1360,8 @@ Map<String, dynamic> _buildPNRRequest({
             "DocNumber": adult.passportCnicController.text,
             "IssuingCountry": nationality,
             "ExpiryDate": adult.passportExpiryController.text.isNotEmpty
-                ? "${adult.passportExpiryController.text}T00:00:00"
-                : "2030-12-31T00:00:00"
+                ? adult.passportExpiryController.text  // No T00:00:00 suffix
+                : "2030-12-31"
           }
         ]
       };
@@ -1355,7 +1372,7 @@ Map<String, dynamic> _buildPNRRequest({
           "Address2": city.isNotEmpty ? city : "Home, Sweet Home",
           "City": city.isNotEmpty ? city : "Islamabad",
           "State": "",
-          "Postal": "12123233",
+          "Postal": 12123233,  // Number, not string
           "Country": "PK",
           "CountryCode": countryCode,
           "AreaCode": "",
@@ -1410,7 +1427,7 @@ Map<String, dynamic> _buildPNRRequest({
           "Address2": "",
           "City": "",
           "State": "",
-          "Postal": "12123233",
+          "Postal": 12123233,  // Number, not string
           "Country": "PK",
           "CountryCode": countryCode,
           "AreaCode": "",
@@ -1461,7 +1478,7 @@ Map<String, dynamic> _buildPNRRequest({
           "Address2": "",
           "City": "",
           "State": "",
-          "Postal": "12123233",
+          "Postal": 12123233,  // Number, not string
           "Country": "PK",
           "CountryCode": countryCode,
           "AreaCode": "",
@@ -1478,8 +1495,8 @@ Map<String, dynamic> _buildPNRRequest({
             "DocNumber": child.passportCnicController.text,
             "IssuingCountry": nationality,
             "ExpiryDate": child.passportExpiryController.text.isNotEmpty
-                ? "${child.passportExpiryController.text}T00:00:00"
-                : "2030-12-31T00:00:00"
+                ? child.passportExpiryController.text  // No T00:00:00 suffix
+                : "2030-12-31"
           }
         ]
       });
@@ -1526,7 +1543,7 @@ Map<String, dynamic> _buildPNRRequest({
           "Address2": "",
           "City": "",
           "State": "",
-          "Postal": "12123233",
+          "Postal": 12123233,  // Number, not string
           "Country": "PK",
           "CountryCode": countryCode,
           "AreaCode": "",
@@ -1543,8 +1560,8 @@ Map<String, dynamic> _buildPNRRequest({
             "DocNumber": infant.passportCnicController.text,
             "IssuingCountry": nationality,
             "ExpiryDate": infant.passportExpiryController.text.isNotEmpty
-                ? "${infant.passportExpiryController.text}T00:00:00"
-                : "2030-12-31T00:00:00"
+                ? infant.passportExpiryController.text  // No T00:00:00 suffix
+                : "2030-12-31"
           }
         ]
       });
@@ -1560,7 +1577,7 @@ Map<String, dynamic> _buildPNRRequest({
     // Try to obtain SecurityGUID from cartData if present
     String securityGuid = cartData['SecurityGuid'] ?? '';
     
-    print('Security GUID: $securityGuid');
+    print('Security GUID from cart: $securityGuid');
     
     return {
       "ActionType": "GetSummary",
@@ -1574,8 +1591,8 @@ Map<String, dynamic> _buildPNRRequest({
         }
       ],
       "ClientIPAddress": "",
-      "SecurityToken": "$_accessToken",
-       "SecurityGUID": "$_accessToken",
+      "SecurityToken": "",  // Empty like web request
+      "SecurityGUID": "",  // Empty like web request
       "HistoricUserName": username,
       "CarrierCurrency": "PKR",
       "DisplayCurrency": "PKR",
@@ -1612,13 +1629,20 @@ List<Map<String, dynamic>> _buildSegmentsFromArray(List<Map<String, dynamic>> se
     print('Building segments from array...');
     print('Segment array length: ${segmentArray.length}');
 
-    for (final segment in segmentArray) {
+    for (int i = 0; i < segmentArray.length; i++) {
+      final segment = segmentArray[i];
       final paxId = segment['pax'] ?? 1;
       final fareId = segment['fareID'] ?? 1;
       final extra = segment['extra'] as Map<String, dynamic>? ?? {};
 
-      print('Processing segment for pax: $paxId, fareID: $fareId');
-      print('Extra data: $extra');
+      // FareInformationID should be sequential (1, 2, 3...) for PNR, not the actual fareID
+      final fareInformationId = i + 1;
+
+      print('📍 Processing segment $i:');
+      print('   - Passenger ID (pax): $paxId');
+      print('   - Original fareID from segment: $fareId');
+      print('   - Using FareInformationID for PNR: $fareInformationId (sequential)');
+      print('   - Extra data: $extra');
 
       // Build special services (baggage and meals)
       final specialServices = _buildSpecialServices(extra, paxId);
@@ -1628,12 +1652,12 @@ List<Map<String, dynamic>> _buildSegmentsFromArray(List<Map<String, dynamic>> se
 
       segments.add({
         "PersonOrgID": -paxId,
-        "FareInformationID": fareId,
+        "FareInformationID": fareInformationId,  // Use sequential ID (1, 2, 3...)
         "SpecialServices": specialServices,
         "Seats": seats
       });
 
-      print('Added segment with ${specialServices.length} special services and ${seats.length} seats');
+      print('Added segment $i with FareInformationID: $fareInformationId, ${specialServices.length} special services and ${seats.length} seats');
     }
   } catch (e) {
     print('Error building segments from array: $e');
@@ -1645,7 +1669,7 @@ List<Map<String, dynamic>> _buildSegmentsFromArray(List<Map<String, dynamic>> se
     for (int i = 0; i < segmentArray.length; i++) {
       segments.add({
         "PersonOrgID": -(i + 1),
-        "FareInformationID": 1,
+        "FareInformationID": i + 1,  // Sequential: 1, 2, 3...
         "SpecialServices": [],
         "Seats": []
       });
@@ -1868,6 +1892,8 @@ List<Map<String, dynamic>> _buildSpecialServices(Map<String, dynamic> extra, int
 
     print('=== FLYDUBAI GET SEAT OPTIONS STARTED ===');
     print('Booking IDs: $bookingIds');
+    print('🔐 Access Token: ${_accessToken?.substring(0, 20)}...');
+    print('🔐 Token Length: ${_accessToken?.length ?? 0}');
 
     final requestBody = _buildSeatRequest(bookingIds, flightData);
 
@@ -1879,16 +1905,19 @@ List<Map<String, dynamic>> _buildSpecialServices(Map<String, dynamic> extra, int
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $_accessToken',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Cookie': 'visid_incap_3059742=mt0fc3JTQDStXbDmAKotlet1zGUAAAAAQUIPAAAAAAA/4nh9vwd+842orxzMj3FS',
       },
       body: json.encode(requestBody),
     );
 
     print('Seat Options Response Status: ${response.statusCode}');
+    print('Seat Options Response Body: ${response.body}');
     
     if (response.statusCode == 200) {
       final Map<String, dynamic> responseData = json.decode(response.body);
       print('✅ Seat options retrieved successfully');
+      printJsonPretty(responseData);
       return {
         'success': true,
         'data': responseData,
@@ -1901,7 +1930,10 @@ List<Map<String, dynamic>> _buildSpecialServices(Map<String, dynamic> extra, int
         'error': 'Token expired. Please search flights again.',
       };
     } else {
-      print('❌ Seat options failed: ${response.statusCode} - ${response.body}');
+      print('❌ Seat options failed: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+      print('Request was:');
+      printJsonPretty(requestBody);
       return {
         'success': false,
         'error': 'Failed to get seat options: ${response.statusCode}',
@@ -2042,166 +2074,183 @@ List<Map<String, dynamic>> _buildSpecialServices(Map<String, dynamic> extra, int
 Map<String, dynamic> 
 _buildSeatRequest(List<String> bookingIds, Map<String, dynamic> flightData) {
   try {
-    print('🔄 Building seat request with new structure...');
+    print('🔄 Building seat request for ${bookingIds.length} booking IDs...');
+    print('Booking IDs: $bookingIds');
+    print('📋 Flight Data Keys: ${flightData.keys.toList()}');
 
     final retrieveResult = flightData['RetrieveFareQuoteDateRangeResponse']?['RetrieveFareQuoteDateRangeResult'];
     if (retrieveResult == null) {
+      print('❌ RetrieveFareQuoteDateRangeResult is null');
+      print('Available keys in flightData: ${flightData.keys}');
       throw Exception('Invalid flight data structure');
     }
 
     final segmentDetails = _extractArray(retrieveResult['SegmentDetails']?['SegmentDetail']);
     final flightSegments = _extractArray(retrieveResult['FlightSegments']?['FlightSegment']);
 
-    final List<Map<String, dynamic>> flights = [];
-
-    // Process each booking ID to get the corresponding flight segments
-    for (int i = 0; i < bookingIds.length; i++) {
-      final bk = bookingIds[i];
-      final bkIdArray = bk.split('_');
-      if (bkIdArray.length < 2) {
-        print('⚠️ Invalid booking ID format: $bk');
-        continue;
-      }
-
-      final mainIndex = int.tryParse(bkIdArray[0]) ?? 0;
-      
-      // Find the corresponding flight segment
-      dynamic flightSegment;
-      if (flightSegments is List && mainIndex < flightSegments.length) {
-        flightSegment = flightSegments[mainIndex];
-      } else if (flightSegments is Map) {
-        flightSegment = flightSegments;
-      }
-
-      if (flightSegment == null) {
-        print('⚠️ No flight segment found for booking ID: $bk');
-        continue;
-      }
-
-      final lfid = flightSegment['LFID']?.toString();
-      
-      if (lfid == null) {
-        print('⚠️ No LFID found for flight segment');
-        continue;
-      }
-
-      // Find segment details for this LFID
-      Map<String, dynamic>? segmentInfo;
-      if (segmentDetails is List) {
-        for (final segment in segmentDetails) {
-          if (segment is Map && segment['LFID']?.toString() == lfid) {
-            segmentInfo = segment.cast<String, dynamic>();
-            break;
-          }
+    print('📊 Available segments: ${segmentDetails is List ? segmentDetails.length : 1}');
+    print('📊 Available flight segments: ${flightSegments is List ? flightSegments.length : 1}');
+    
+    // Debug: print all segment LFIDs and detailed info
+    if (segmentDetails is List) {
+      print('📋 Segment LFIDs available:');
+      for (var seg in segmentDetails) {
+        if (seg is Map) {
+          print('   - LFID: ${seg['LFID']}, ${seg['Origin']}->${seg['Destination']}');
+          print('     SellingCarrier: ${seg['SellingCarrier']}, OperatingCarrier: ${seg['OperatingCarrier']}, MarketingCarrier: ${seg['MarketingCarrier']}');
         }
-      } else if (segmentDetails is Map && segmentDetails['LFID']?.toString() == lfid) {
-        segmentInfo = segmentDetails.cast<String, dynamic>();
       }
-
-      if (segmentInfo == null) {
-        print('⚠️ No segment details found for LFID: $lfid');
-        continue;
-      }
-
-      // Parse departure date
-      String depDate = segmentInfo['DepartureDate']?.toString() ?? '';
-      if (depDate.isEmpty) {
-        // Try to get date from flight segment
-        depDate = flightSegment['DepartureDate']?.toString() ?? '';
-      }
-
-      // Ensure date format is correct (YYYY-MM-DDTHH:MM:SS)
-      DateTime? parsedDate;
-      try {
-        if (depDate.contains('T')) {
-          parsedDate = DateTime.parse(depDate);
-        } else {
-          // If no time component, add default time
-          parsedDate = DateTime.parse('${depDate.substring(0, 10)}T00:00:00');
-        }
-      } catch (e) {
-        print('⚠️ Error parsing date: $depDate, error: $e');
-        // Use current date as fallback
-        parsedDate = DateTime.now();
-      }
-
-      final formattedDate = '${parsedDate.toIso8601String().substring(0, 10)}T00:00:00';
-
-      final flight = {
-        'lfID': lfid,
-        'flightNum': segmentInfo['FlightNum']?.toString() ?? flightSegment['FlightNum']?.toString() ?? '',
-        'depDate': formattedDate,
-        'origin': segmentInfo['Origin']?.toString() ?? flightSegment['Origin']?.toString() ?? '',
-        'dest': segmentInfo['Destination']?.toString() ?? flightSegment['Destination']?.toString() ?? '',
-        'category': null,
-        'services': null,
-        'currency': 'PKR',
-        'UTCOffset': 0,
-        'operatingCarrierCode': segmentInfo['OperatingCarrier']?.toString() ?? 'FZ',
-        'marketingCarrierCode': segmentInfo['MarketingCarrier']?.toString() ?? 'FZ',
-        'channel': 'TPAPI'
-      };
-
-      flights.add(flight);
-      print('✅ Added flight: ${flight['origin']} -> ${flight['dest']} (LFID: $lfid)');
     }
 
-    // If no flights found from booking IDs, try to use all available segments
-    if (flights.isEmpty && segmentDetails != null) {
-      print('⚠️ No flights from booking IDs, using all available segments');
+    final List<Map<String, dynamic>> flights = [];
+
+    // Extract LFIDs from booking IDs to match against segments
+    final Set<String> requestedLfids = {};
+    for (final bkId in bookingIds) {
+      final parts = bkId.split('_');
+      if (parts.isNotEmpty) {
+        requestedLfids.add(parts[0]); // LFID is the first part before '_'
+      }
+    }
+    print('🎯 Requested LFIDs from booking IDs: $requestedLfids');
+
+    // For round trips, ONLY include segments that match the booking IDs
+    // This matches the web implementation which loops through booking IDs
+    if (segmentDetails != null) {
       final segmentsList = segmentDetails is List ? segmentDetails : [segmentDetails];
+      
+      print('🔍 Processing ${segmentsList.length} segments from flight data...');
       
       for (final segment in segmentsList) {
         if (segment is! Map) continue;
 
-        String depDate = segment['DepartureDate']?.toString() ?? '';
-        DateTime? parsedDate;
-        
-        try {
-          if (depDate.contains('T')) {
-            parsedDate = DateTime.parse(depDate);
-          } else if (depDate.isNotEmpty) {
-            parsedDate = DateTime.parse('${depDate.substring(0, 10)}T00:00:00');
-          } else {
-            parsedDate = DateTime.now();
-          }
-        } catch (e) {
-          parsedDate = DateTime.now();
+        // Keep lfID as number, not string
+        final lfidNum = segment['LFID'];
+        if (lfidNum == null) {
+          print('⚠️ Segment has no LFID, skipping');
+          continue;
         }
+        
+        final lfidString = lfidNum.toString();
+        
+        // IMPORTANT: Only include segments that match our booking IDs
+        if (!requestedLfids.contains(lfidString)) {
+          print('⏭️ Skipping segment with LFID $lfidString (not in booking IDs)');
+          continue;
+        }
+        
+        print('✓ Including segment with LFID $lfidString (matches booking ID)');
 
+        // Parse departure date - ALWAYS use date + T00:00:00 (matching web implementation)
+        String depDate = segment['DepartureDate']?.toString() ?? '';
+        String formattedDate;
+        
+        if (depDate.isEmpty) {
+          print('⚠️ No departure date for LFID: $lfidString');
+          formattedDate = '${DateTime.now().toIso8601String().substring(0, 10)}T00:00:00';
+        } else {
+          // Extract date part only (before 'T') and add T00:00:00, exactly like web code
+          final datePart = depDate.split('T')[0]; // Get YYYY-MM-DD part
+          formattedDate = '${datePart}T00:00:00';
+        }
+        
+        print('   Using depDate: $formattedDate (original: $depDate)');
+
+        // Use SellingCarrier for marketingCarrierCode (as per web implementation)
+        final sellingCarrier = segment['SellingCarrier']?.toString() ?? 
+                               segment['MarketingCarrier']?.toString() ?? 'FZ';
+        final operatingCarrier = segment['OperatingCarrier']?.toString() ?? 'FZ';
+        
         final flight = {
-          'lfID': segment['LFID']?.toString() ?? '',
+          'lfID': lfidString,
           'flightNum': segment['FlightNum']?.toString() ?? '',
-          'depDate': '${parsedDate.toIso8601String().substring(0, 10)}T00:00:00',
+          'depDate': formattedDate,
           'origin': segment['Origin']?.toString() ?? '',
           'dest': segment['Destination']?.toString() ?? '',
           'category': null,
           'services': null,
           'currency': 'PKR',
           'UTCOffset': 0,
-          'operatingCarrierCode': segment['OperatingCarrier']?.toString() ?? 'FZ',
-          'marketingCarrierCode': segment['MarketingCarrier']?.toString() ?? 'FZ',
+          'operatingCarrierCode': operatingCarrier,
+          'marketingCarrierCode': sellingCarrier,  // Using SellingCarrier like web
           'channel': 'TPAPI'
         };
 
         flights.add(flight);
-        print('✅ Added fallback flight: ${flight['origin']} -> ${flight['dest']}');
+        print('✅ Added flight: ${flight['origin']} -> ${flight['dest']} on ${flight['depDate']} (LFID: $lfidString)');
+        print('   Marketing: $sellingCarrier, Operating: $operatingCarrier');
       }
     }
 
+    // If we still don't have flights, try to extract from flight segments
+    if (flights.isEmpty && flightSegments != null) {
+      print('⚠️ No flights from segment details, trying flight segments...');
+      final flightSegmentsList = flightSegments is List ? flightSegments : [flightSegments];
+      
+      for (final flightSegment in flightSegmentsList) {
+        if (flightSegment is! Map) continue;
 
+        final lfid = flightSegment['LFID']?.toString();
+        if (lfid == null || lfid.isEmpty) continue;
+
+        String depDate = flightSegment['DepartureDate']?.toString() ?? '';
+        String formattedDate;
+        
+        if (depDate.isEmpty) {
+          formattedDate = '${DateTime.now().toIso8601String().substring(0, 10)}T00:00:00';
+        } else {
+          // Extract date part only and add T00:00:00, matching web code
+          final datePart = depDate.split('T')[0];
+          formattedDate = '${datePart}T00:00:00';
+        }
+
+        // Use SellingCarrier if available, fallback to MarketingCarrier or FZ
+        final sellingCarrier = flightSegment['SellingCarrier']?.toString() ?? 
+                               flightSegment['MarketingCarrier']?.toString() ?? 'FZ';
+        final operatingCarrier = flightSegment['OperatingCarrier']?.toString() ?? 'FZ';
+        
+        final flight = {
+          'lfID': lfid,
+          'flightNum': flightSegment['FlightNum']?.toString() ?? '',
+          'depDate': formattedDate,
+          'origin': flightSegment['Origin']?.toString() ?? '',
+          'dest': flightSegment['Destination']?.toString() ?? '',
+          'category': null,
+          'services': null,
+          'currency': 'PKR',
+          'UTCOffset': 0,
+          'operatingCarrierCode': operatingCarrier,
+          'marketingCarrierCode': sellingCarrier,
+          'channel': 'TPAPI'
+        };
+
+        flights.add(flight);
+        print('✅ Added flight from segment: ${flight['origin']} -> ${flight['dest']}');
+        print('   Marketing: $sellingCarrier, Operating: $operatingCarrier');
+      }
+    }
+
+    // Ensure we have at least one flight
+    if (flights.isEmpty) {
+      print('❌ No flights could be extracted from flight data');
+      throw Exception('No valid flight segments found in flight data');
+    }
 
     final request = {
       'flights': flights
     };
 
-    print('🎯 Seat request built with ${flights.length} flights');
-    printJsonPretty(request);
+    print('🎯 Seat request built with ${flights.length} flight(s)');
+    print('📋 Flights included:');
+    for (final flight in flights) {
+      print('   ${flight['origin']} → ${flight['dest']} on ${flight['depDate']} (LFID: ${flight['lfID']})');
+    }
     
     return request;
 
-  } catch (e) {
+  } catch (e, stackTrace) {
     print('❌ Error building seat request: $e');
+    print('Stack trace: $stackTrace');
     // Return minimal fallback request
     return {
       'flights': [
@@ -2258,14 +2307,25 @@ Map<String, dynamic> _buildBaggageMealRequest(
         continue;
       }
 
-      final main = int.tryParse(bkIdArray[0]) ?? 0;
+      final requestedLfid = int.tryParse(bkIdArray[0]) ?? 0;  // This is LFID, not array index
       final fare = int.tryParse(bkIdArray[1]) ?? 0;
-      debugPrint("   main index: $main, fare index: $fare");
+      debugPrint("   Requested LFID: $requestedLfid, fare index: $fare");
 
-      // Get the segment data
+      // Find the segment data with matching LFID (not using LFID as array index!)
       dynamic arrayStart;
       if (basicArray is List && basicArray.isNotEmpty) {
-        arrayStart = main < basicArray.length ? basicArray[main] : basicArray[0];
+        // Search for the segment with matching LFID
+        for (var segment in basicArray) {
+          if (segment is Map && segment['LFID'] == requestedLfid) {
+            arrayStart = segment;
+            debugPrint("   ✅ Found segment with LFID: $requestedLfid");
+            break;
+          }
+        }
+        if (arrayStart == null) {
+          debugPrint("   ⚠️ No segment found with LFID: $requestedLfid, using first segment");
+          arrayStart = basicArray[0];
+        }
       } else if (basicArray is Map) {
         arrayStart = basicArray;
       }
@@ -2276,6 +2336,7 @@ Map<String, dynamic> _buildBaggageMealRequest(
       }
 
       final lfid1 = arrayStart['LFID'];
+      debugPrint("   📌 Using segment with LFID: $lfid1");
       final fareTypes = _extractArray(arrayStart['FareTypes']?['FareType']);
       debugPrint("   lfid1: $lfid1, fareTypes type: ${fareTypes.runtimeType}");
 
