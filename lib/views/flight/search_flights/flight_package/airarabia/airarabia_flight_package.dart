@@ -5,7 +5,6 @@ import 'package:ready_flights/views/flight/form/flight_booking_controller.dart';
 import 'package:ready_flights/views/flight/search_flights/airarabia/validation_data/validation.dart';
 
 import '../../../../../services/api_service_airarabia.dart';
-import '../../../../../services/api_service_sabre.dart';
 import '../../../../../utility/colors.dart';
 import '../../airarabia/airarabia_flight_model.dart';
 import '../../airarabia/airarabia_flight_controller.dart';
@@ -45,15 +44,19 @@ class _AirArabiaPackageSelectionDialogState extends State<AirArabiaPackageSelect
   void initState() {
     super.initState();
     _initializeStaticBasicPackage();
-    _loadPackages();
-    _prefetchMarginData();
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    await _prefetchMarginData();
+    await _loadPackages();
   }
 
   void _initializeStaticBasicPackage() {
     staticBasicPackage = AirArabiaPackage(
       packageType: 'Basic',
       packageName: 'Basic',
-      basePrice: 0.0, // No additional cost for basic package
+      basePrice: 0.0,
       totalPrice: 0.0,
       baggageAllowance: 'Charges Apply',
       mealInfo: 'Charges Apply',
@@ -100,313 +103,334 @@ class _AirArabiaPackageSelectionDialogState extends State<AirArabiaPackageSelect
     return AirArabiaFlightCard(flight: widget.flight, showReturnFlight: false);
   }
 
-Future<void> _loadPackages() async {
-  try {
-    isLoadingPackages.value = true;
-    errorMessage.value = '';
+  Future<void> _loadPackages() async {
+    try {
+      isLoadingPackages.value = true;
+      errorMessage.value = '';
 
-    final flightBookingController = Get.find<FlightBookingController>();
-    
-    // Get traveler counts from the controller
-    final adult = flightBookingController.adultCount.value;
-    final child = flightBookingController.childrenCount.value;
-    final infant = flightBookingController.infantCount.value;
-
-    // Create sector data based on trip type and flight type
-    List<Map<String, dynamic>> sector;
-    int tripType;
-
-    if (flightBookingController.tripType.value == TripType.oneWay) {
-      // One way flight
-      tripType = 0;
-      sector = _convertFlightToSector(widget.flight);
-    } else if (flightBookingController.tripType.value == TripType.roundTrip) {
-      tripType = 1;
-      // For round trip, create proper sector structure with both outbound and inbound
-      sector = _createRoundTripSector();
-    } else {
-      // Multi-city
-      tripType = 2;
-      sector = _convertFlightToSector(widget.flight);
-    }
-
-    print('Package API call with - Type: $tripType, Adult: $adult, Child: $child, Infant: $infant');
-    print('Trip type from controller: ${flightBookingController.tripType.value}');
-    print('Is return flight: ${widget.isReturnFlight}');
-    print('Sector data: ${sector}');
-
-    final response = await apiService.getFlightPackages(
-      type: tripType,
-      adult: adult,
-      child: child,
-      infant: infant,
-      sector: sector,
-    );
-
-    if (response['status'] == 200) {
-      packageResponse.value = AirArabiaPackageResponse.fromJson(response);
-      print('Packages loaded successfully: ${packageResponse.value?.packages.length} packages');
-    } else {
-      errorMessage.value = response['message'] ?? 'Failed to load packages';
-      print('Package API error: ${errorMessage.value}');
-    }
-  } catch (e) {
-    errorMessage.value = 'Error loading packages: $e';
-    print('Package loading exception: $e');
-  } finally {
-    isLoadingPackages.value = false;
-  }
-}
-
-List<Map<String, dynamic>> _createRoundTripSector() {
-  final flightBookingController = Get.find<FlightBookingController>();
-  
-  // For round trip, we need to extract outbound and return flight data
-  final combinedFlight = widget.flight;
-  
-  // Check if this is a round trip flight with separate outbound/inbound data
-  if (combinedFlight.isRoundTrip && 
-      combinedFlight.outboundFlight != null && 
-      combinedFlight.inboundFlight != null) {
-    
-    // Extract outbound and return flight data from the combined flight
-    final outboundData = combinedFlight.outboundFlight!;
-    final inboundData = combinedFlight.inboundFlight!;
-    
-    // Create outbound flight segments (index 1 for outbound)
-    final outboundSegments = _createSegmentsFromFlightData(outboundData);
-    
-    // Create return flight segments (index 0 for inbound) 
-    final returnSegments = _createSegmentsFromFlightData(inboundData);
-    
-    // Get prices from the original flight data
-    final outboundPrice = _extractPriceFromFlightData(outboundData);
-    final inboundPrice = _extractPriceFromFlightData(inboundData);
-    
-    // Create outbound sector (index 1)
-    final outboundSector = {
-      "index": 1,
-      "flightSegments": outboundSegments,
-      "cabinPrices": [{
-        "cabinClass": "Y",
-        "fareFamily": "Y", 
-        "price": outboundPrice,
-        "fareOndWiseBookingClassCodes": {
-          _getSegmentCode(outboundSegments): "E30"
-        },
-        "availabilityStatus": "AVAILABLE",
-        "paxTypeWiseBasePrices": [
-          {"paxType": "ADT", "price": outboundPrice},
-          {"paxType": "CHD", "price": 0},
-          {"paxType": "INF", "price": 0},
-        ]
-      }]
-    };
-
-    // Create inbound sector (index 0)
-    final inboundSector = {
-      "index": 0,
-      "flightSegments": returnSegments,
-      "cabinPrices": [{
-        "cabinClass": "Y",
-        "fareFamily": "Y",
-        "price": inboundPrice,
-        "fareOndWiseBookingClassCodes": {
-          _getSegmentCode(returnSegments): "E33"
-        },
-        "availabilityStatus": "AVAILABLE", 
-        "paxTypeWiseBasePrices": [
-          {"paxType": "ADT", "price": inboundPrice},
-          {"paxType": "CHD", "price": 0},
-          {"paxType": "INF", "price": 0},
-        ]
-      }]
-    };
-    
-    // Return sectors with proper indexing - outbound first (index 1), then inbound (index 0)
-    return [outboundSector, inboundSector];
-  }
-  
-  // Fallback: if not a proper round trip, use the current flight only
-  print('Warning: Not a proper round trip flight, using current flight only');
-  return _convertFlightToSector(combinedFlight);
-}
-
-double _extractPriceFromFlightData(Map<String, dynamic> flightData) {
-  try {
-    if (flightData['cabinPrices'] != null && flightData['cabinPrices'] is List) {
-      final cabinPrices = flightData['cabinPrices'] as List;
-      if (cabinPrices.isNotEmpty) {
-        return (cabinPrices[0]['price'] as num).toDouble();
-      }
-    }
-    // Fallback to a default price or extract from other fields
-    return 0.0;
-  } catch (e) {
-    print('Error extracting price from flight data: $e');
-    return 0.0;
-  }
-}
-
-List<Map<String, dynamic>> _createSegmentsFromFlightData(Map<String, dynamic> flightData) {
-  try {
-    if (flightData['flightSegments'] != null && flightData['flightSegments'] is List) {
-      final flightSegments = flightData['flightSegments'] as List;
+      final flightBookingController = Get.find<FlightBookingController>();
       
-      return flightSegments.map<Map<String, dynamic>>((segment) {
-        final segmentMap = Map<String, dynamic>.from(segment);
-        final originMap = Map<String, dynamic>.from(segmentMap['origin'] ?? {});
-        final destinationMap = Map<String, dynamic>.from(segmentMap['destination'] ?? {});
+      final adult = flightBookingController.adultCount.value;
+      final child = flightBookingController.childrenCount.value;
+      final infant = flightBookingController.infantCount.value;
+
+      List<Map<String, dynamic>> sector;
+      int tripType;
+
+      if (flightBookingController.tripType.value == TripType.oneWay) {
+        tripType = 0;
+        sector = _convertFlightToSector(widget.flight);
+      } else if (flightBookingController.tripType.value == TripType.roundTrip) {
+        tripType = 1;
+        sector = _createRoundTripSector();
+      } else {
+        tripType = 2;
+        sector = _convertFlightToSector(widget.flight);
+      }
+
+      print('Package API call with - Type: $tripType, Adult: $adult, Child: $child, Infant: $infant');
+
+      final response = await apiService.getFlightPackages(
+        type: tripType,
+        adult: adult,
+        child: child,
+        infant: infant,
+        sector: sector,
+      );
+
+      if (response['status'] == 200) {
+        packageResponse.value = AirArabiaPackageResponse.fromJson(response);
+        print('Packages loaded successfully: ${packageResponse.value?.packages.length} packages');
         
-        return {
-          'flightNumber': segmentMap['flightNumber'] ?? '',
-          'origin': {
-            'airportCode': originMap['airportCode'] ?? '',
-            'terminal': originMap['terminal'] ?? '',
-            'countryCode': originMap['countryCode'] ?? _getCountryCode(originMap['airportCode'] ?? ''),
-          },
-          'destination': {
-            'airportCode': destinationMap['airportCode'] ?? '',
-            'terminal': destinationMap['terminal'] ?? '',
-            'countryCode': destinationMap['countryCode'] ?? _getCountryCode(destinationMap['airportCode'] ?? ''),
-          },
-          'departureDateTimeLocal': segmentMap['departureDateTimeLocal'] ?? '',
-          'departureDateTimeZulu': segmentMap['departureDateTimeZulu'] ?? '',
-          'arrivalDateTimeLocal': segmentMap['arrivalDateTimeLocal'] ?? '',
-          'arrivalDateTimeZulu': segmentMap['arrivalDateTimeZulu'] ?? '',
-          'segmentCode': segmentMap['segmentCode'] ?? '',
-          'availablePaxCounts': [
-            {'paxType': 'ADT', 'count': 9},
-            {'paxType': 'INF', 'count': 9},
-          ],
-          'transportMode': 'AIRCRAFT',
-          'modelName': '',
-          'aircraftModel': segmentMap['aircraftModel'] ?? 'A320',
-          'flightSegmentRef': '${segmentMap['flightSegmentRef'] ?? DateTime.now().millisecondsSinceEpoch}',
-        };
-      }).toList();
+        // Calculate prices with margin after packages are loaded
+        await _calculatePackagePrices();
+      } else {
+        errorMessage.value = response['message'] ?? 'Failed to load packages';
+        print('Package API error: ${errorMessage.value}');
+      }
+    } catch (e) {
+      errorMessage.value = 'Error loading packages: $e';
+      print('Package loading exception: $e');
+    } finally {
+      isLoadingPackages.value = false;
     }
-    return [];
-  } catch (e) {
-    print('Error creating segments from flight data: $e');
-    return [];
   }
-}
-
-String _getSegmentCode(List<Map<String, dynamic>> segments) {
-  if (segments.isEmpty) return '';
-  
-  try {
-    final firstSegment = segments.first;
-    final lastSegment = segments.last;
-    
-    final origin = firstSegment['origin']['airportCode'];
-    final destination = lastSegment['destination']['airportCode'];
-    
-    // For connecting flights, include intermediate stops
-    if (segments.length > 1) {
-      final stops = segments.map((seg) => seg['destination']['airportCode']).join('/');
-      return '$origin/$stops';
-    }
-    
-    return '$origin/$destination';
-  } catch (e) {
-    print('Error generating segment code: $e');
-    return '';
-  }
-}
-
-String _getCountryCode(String airportCode) {
-  // Map common airport codes to country codes
-  const airportToCountry = {
-    'LHE': 'PK', 'KHI': 'PK', 'ISB': 'PK', 'UET': 'PK',
-    'JED': 'SA', 'RUH': 'SA', 'DXB': 'AE', 'SHJ': 'AE',
-    'DAC': 'BD', 'CGP': 'BD', 'DEL': 'IN', 'BOM': 'IN',
-  };
-  return airportToCountry[airportCode] ?? 'PK';
-}
-
-List<Map<String, dynamic>> _convertFlightToSector(AirArabiaFlight flight) {
-  // For single flight (one way)
-  final flightSegments = _createFlightSegments(flight, widget.isReturnFlight ? 0 : 1);
-
-  return [{
-    "index": widget.isReturnFlight ? 0 : 1,
-    'flightSegments': flightSegments,
-    'cabinPrices': [{
-      'cabinClass': flight.cabinClass,
-      'fareFamily': flight.cabinClass,
-      'price': flight.price,
-      'fareOndWiseBookingClassCodes': {
-        '${flight.flightSegments.first['departure']['airport']}/${flight.flightSegments.last['arrival']['airport']}': widget.isReturnFlight ? 'E33' : 'E30'
-      },
-      'availabilityStatus': 'AVAILABLE',
-      'paxTypeWiseBasePrices': [
-        {'paxType': 'ADT', 'price': flight.price},
-        {'paxType': 'CHD', 'price': 0},
-        {'paxType': 'INF', 'price': 0},
-      ]
-    }]
-  }];
-}
-
-List<Map<String, dynamic>> _createFlightSegments(AirArabiaFlight flight, int sectorIndex) {
-  return flight.flightSegments.map((segment) {
-    return {
-      'flightNumber': segment['flightNumber'],
-      'origin': {
-        'airportCode': segment['departure']['airport'],
-        'terminal': segment['departure']['terminal'] ?? '',
-        'countryCode': _getCountryCode(segment['departure']['airport']),
-      },
-      'destination': {
-        'airportCode': segment['arrival']['airport'], 
-        'terminal': segment['arrival']['terminal'] ?? '',
-        'countryCode': _getCountryCode(segment['arrival']['airport']),
-      },
-      'departureDateTimeLocal': segment['departure']['dateTime'],
-      'departureDateTimeZulu': segment['departure']['dateTime'],
-      'arrivalDateTimeLocal': segment['arrival']['dateTime'],
-      'arrivalDateTimeZulu': segment['arrival']['dateTime'],
-      'segmentCode': '${segment['departure']['airport']}/${segment['arrival']['airport']}',
-      'availablePaxCounts': [
-        {'paxType': 'ADT', 'count': 9},
-        {'paxType': 'INF', 'count': 9},
-      ],
-      'transportMode': 'AIRCRAFT',
-      'modelName': '',
-      'aircraftModel': segment['aircraftModel'] ?? 'A320',
-      'flightSegmentRef': '${DateTime.now().millisecondsSinceEpoch}${sectorIndex}',
-    };
-  }).toList();
-}
 
   Future<void> _prefetchMarginData() async {
     try {
+      // Use the margin data from controller
+      marginData.value = airArabiaController.marginData.value;
+      
+      // If margin data is empty, wait a bit and try again
       if (marginData.value.isEmpty) {
-        final apiService = Get.find<ApiServiceSabre>();
-        marginData.value = await apiService.getMargin("FJ", "Air Arabia");
+        print('Margin data not available yet, waiting...');
+        await Future.delayed(const Duration(milliseconds: 300));
+        marginData.value = airArabiaController.marginData.value;
       }
-
-      // Pre-calculate prices for all packages when they're loaded
-      if (packageResponse.value != null) {
-        for (var package in packageResponse.value!.packages) {
-          final String packageKey = '${package.packageType}-${package.packageName}';
-
-          if (!finalPrices.containsKey(packageKey)) {
-            final apiService = Get.find<ApiServiceSabre>();
-            final marginedBasePrice = apiService.calculatePriceWithMargin(
-              package.basePrice,
-              marginData.value,
-            );
-            final totalPrice = marginedBasePrice + widget.flight.price;
-            finalPrices[packageKey] = totalPrice.obs;
-          }
-        }
+      
+      print('Using Air Arabia margin data: ${marginData.value}');
+      
+      // Validate margin data
+      final marginVal = double.tryParse(marginData.value['margin_val']?.toString() ?? '0') ?? 0.0;
+      final marginPer = double.tryParse(marginData.value['margin_per']?.toString() ?? '0') ?? 0.0;
+      
+      if (marginVal == 0 && marginPer == 0) {
+        print('Both margin values are zero - will show base prices');
+      } else {
+        print('Margin configured - Value: $marginVal, Percentage: $marginPer%');
       }
     } catch (e) {
-      // Handle margin calculation errors silently
+      print('Error in prefetch margin: $e');
+      // Set default margin on error
+      marginData.value = {'margin_val': '0.00', 'margin_per': 0};
     }
+  }
+
+  Future<void> _calculatePackagePrices() async {
+    if (packageResponse.value == null || packageResponse.value!.packages.isEmpty) {
+      print('No packages to calculate prices for');
+      return;
+    }
+    
+    print('Calculating prices for ${packageResponse.value!.packages.length} packages');
+    
+    for (var package in packageResponse.value!.packages) {
+      final String packageKey = '${package.packageType}-${package.packageName}';
+
+      if (!finalPrices.containsKey(packageKey)) {
+        double totalPrice;
+        
+        // Only apply margin to Basic package, others show original price
+        if (package.packageType.toLowerCase() == 'basic') {
+          // Apply margin to package price for Basic
+          final marginedPackagePrice = apiService.calculatePriceWithMargin(
+            package.basePrice,
+            marginData.value,
+          );
+          totalPrice = marginedPackagePrice + widget.flight.price;
+          
+          print('Basic Package (WITH margin):');
+          print('  Base: ${package.basePrice}, Margined: $marginedPackagePrice');
+          print('  Flight: ${widget.flight.price}, Total: $totalPrice');
+        } else {
+          // For Value/Ultimate, use original price WITHOUT margin
+          totalPrice = package.basePrice + widget.flight.price;
+          
+          print('${package.packageName} Package (WITHOUT margin):');
+          print('  Base: ${package.basePrice}');
+          print('  Flight: ${widget.flight.price}, Total: $totalPrice');
+        }
+        
+        finalPrices[packageKey] = totalPrice.obs;
+      }
+    }
+  }
+
+  List<Map<String, dynamic>> _createRoundTripSector() {
+    final flightBookingController = Get.find<FlightBookingController>();
+    final combinedFlight = widget.flight;
+    
+    if (combinedFlight.isRoundTrip && 
+        combinedFlight.outboundFlight != null && 
+        combinedFlight.inboundFlight != null) {
+      
+      final outboundData = combinedFlight.outboundFlight!;
+      final inboundData = combinedFlight.inboundFlight!;
+      
+      final outboundSegments = _createSegmentsFromFlightData(outboundData);
+      final returnSegments = _createSegmentsFromFlightData(inboundData);
+      
+      final outboundPrice = _extractPriceFromFlightData(outboundData);
+      final inboundPrice = _extractPriceFromFlightData(inboundData);
+      
+      final outboundSector = {
+        "index": 1,
+        "flightSegments": outboundSegments,
+        "cabinPrices": [{
+          "cabinClass": "Y",
+          "fareFamily": "Y", 
+          "price": outboundPrice,
+          "fareOndWiseBookingClassCodes": {
+            _getSegmentCode(outboundSegments): "E30"
+          },
+          "availabilityStatus": "AVAILABLE",
+          "paxTypeWiseBasePrices": [
+            {"paxType": "ADT", "price": outboundPrice},
+            {"paxType": "CHD", "price": 0},
+            {"paxType": "INF", "price": 0},
+          ]
+        }]
+      };
+
+      final inboundSector = {
+        "index": 0,
+        "flightSegments": returnSegments,
+        "cabinPrices": [{
+          "cabinClass": "Y",
+          "fareFamily": "Y",
+          "price": inboundPrice,
+          "fareOndWiseBookingClassCodes": {
+            _getSegmentCode(returnSegments): "E33"
+          },
+          "availabilityStatus": "AVAILABLE", 
+          "paxTypeWiseBasePrices": [
+            {"paxType": "ADT", "price": inboundPrice},
+            {"paxType": "CHD", "price": 0},
+            {"paxType": "INF", "price": 0},
+          ]
+        }]
+      };
+      
+      return [outboundSector, inboundSector];
+    }
+    
+    print('Warning: Not a proper round trip flight, using current flight only');
+    return _convertFlightToSector(combinedFlight);
+  }
+
+  double _extractPriceFromFlightData(Map<String, dynamic> flightData) {
+    try {
+      if (flightData['cabinPrices'] != null && flightData['cabinPrices'] is List) {
+        final cabinPrices = flightData['cabinPrices'] as List;
+        if (cabinPrices.isNotEmpty) {
+          return (cabinPrices[0]['price'] as num).toDouble();
+        }
+      }
+      return 0.0;
+    } catch (e) {
+      print('Error extracting price from flight data: $e');
+      return 0.0;
+    }
+  }
+
+  List<Map<String, dynamic>> _createSegmentsFromFlightData(Map<String, dynamic> flightData) {
+    try {
+      if (flightData['flightSegments'] != null && flightData['flightSegments'] is List) {
+        final flightSegments = flightData['flightSegments'] as List;
+        
+        return flightSegments.map<Map<String, dynamic>>((segment) {
+          final segmentMap = Map<String, dynamic>.from(segment);
+          final originMap = Map<String, dynamic>.from(segmentMap['origin'] ?? {});
+          final destinationMap = Map<String, dynamic>.from(segmentMap['destination'] ?? {});
+          
+          return {
+            'flightNumber': segmentMap['flightNumber'] ?? '',
+            'origin': {
+              'airportCode': originMap['airportCode'] ?? '',
+              'terminal': originMap['terminal'] ?? '',
+              'countryCode': originMap['countryCode'] ?? _getCountryCode(originMap['airportCode'] ?? ''),
+            },
+            'destination': {
+              'airportCode': destinationMap['airportCode'] ?? '',
+              'terminal': destinationMap['terminal'] ?? '',
+              'countryCode': destinationMap['countryCode'] ?? _getCountryCode(destinationMap['airportCode'] ?? ''),
+            },
+            'departureDateTimeLocal': segmentMap['departureDateTimeLocal'] ?? '',
+            'departureDateTimeZulu': segmentMap['departureDateTimeZulu'] ?? '',
+            'arrivalDateTimeLocal': segmentMap['arrivalDateTimeLocal'] ?? '',
+            'arrivalDateTimeZulu': segmentMap['arrivalDateTimeZulu'] ?? '',
+            'segmentCode': segmentMap['segmentCode'] ?? '',
+            'availablePaxCounts': [
+              {'paxType': 'ADT', 'count': 9},
+              {'paxType': 'INF', 'count': 9},
+            ],
+            'transportMode': 'AIRCRAFT',
+            'modelName': '',
+            'aircraftModel': segmentMap['aircraftModel'] ?? 'A320',
+            'flightSegmentRef': '${segmentMap['flightSegmentRef'] ?? DateTime.now().millisecondsSinceEpoch}',
+          };
+        }).toList();
+      }
+      return [];
+    } catch (e) {
+      print('Error creating segments from flight data: $e');
+      return [];
+    }
+  }
+
+  String _getSegmentCode(List<Map<String, dynamic>> segments) {
+    if (segments.isEmpty) return '';
+    
+    try {
+      final firstSegment = segments.first;
+      final lastSegment = segments.last;
+      
+      final origin = firstSegment['origin']['airportCode'];
+      final destination = lastSegment['destination']['airportCode'];
+      
+      if (segments.length > 1) {
+        final stops = segments.map((seg) => seg['destination']['airportCode']).join('/');
+        return '$origin/$stops';
+      }
+      
+      return '$origin/$destination';
+    } catch (e) {
+      print('Error generating segment code: $e');
+      return '';
+    }
+  }
+
+  String _getCountryCode(String airportCode) {
+    const airportToCountry = {
+      'LHE': 'PK', 'KHI': 'PK', 'ISB': 'PK', 'UET': 'PK',
+      'JED': 'SA', 'RUH': 'SA', 'DXB': 'AE', 'SHJ': 'AE',
+      'DAC': 'BD', 'CGP': 'BD', 'DEL': 'IN', 'BOM': 'IN',
+    };
+    return airportToCountry[airportCode] ?? 'PK';
+  }
+
+  List<Map<String, dynamic>> _convertFlightToSector(AirArabiaFlight flight) {
+    final flightSegments = _createFlightSegments(flight, widget.isReturnFlight ? 0 : 1);
+
+    return [{
+      "index": widget.isReturnFlight ? 0 : 1,
+      'flightSegments': flightSegments,
+      'cabinPrices': [{
+        'cabinClass': flight.cabinClass,
+        'fareFamily': flight.cabinClass,
+        'price': flight.price,
+        'fareOndWiseBookingClassCodes': {
+          '${flight.flightSegments.first['departure']['airport']}/${flight.flightSegments.last['arrival']['airport']}': widget.isReturnFlight ? 'E33' : 'E30'
+        },
+        'availabilityStatus': 'AVAILABLE',
+        'paxTypeWiseBasePrices': [
+          {'paxType': 'ADT', 'price': flight.price},
+          {'paxType': 'CHD', 'price': 0},
+          {'paxType': 'INF', 'price': 0},
+        ]
+      }]
+    }];
+  }
+
+  List<Map<String, dynamic>> _createFlightSegments(AirArabiaFlight flight, int sectorIndex) {
+    return flight.flightSegments.map((segment) {
+      return {
+        'flightNumber': segment['flightNumber'],
+        'origin': {
+          'airportCode': segment['departure']['airport'],
+          'terminal': segment['departure']['terminal'] ?? '',
+          'countryCode': _getCountryCode(segment['departure']['airport']),
+        },
+        'destination': {
+          'airportCode': segment['arrival']['airport'], 
+          'terminal': segment['arrival']['terminal'] ?? '',
+          'countryCode': _getCountryCode(segment['arrival']['airport']),
+        },
+        'departureDateTimeLocal': segment['departure']['dateTime'],
+        'departureDateTimeZulu': segment['departure']['dateTime'],
+        'arrivalDateTimeLocal': segment['arrival']['dateTime'],
+        'arrivalDateTimeZulu': segment['arrival']['dateTime'],
+        'segmentCode': '${segment['departure']['airport']}/${segment['arrival']['airport']}',
+        'availablePaxCounts': [
+          {'paxType': 'ADT', 'count': 9},
+          {'paxType': 'INF', 'count': 9},
+        ],
+        'transportMode': 'AIRCRAFT',
+        'modelName': '',
+        'aircraftModel': segment['aircraftModel'] ?? 'A320',
+        'flightSegmentRef': '${DateTime.now().millisecondsSinceEpoch}${sectorIndex}',
+      };
+    }).toList();
   }
 
   Widget _buildPackagesList() {
@@ -419,7 +443,7 @@ List<Map<String, dynamic>> _createFlightSegments(AirArabiaFlight flight, int sec
               CircularProgressIndicator(),
               SizedBox(height: 16),
               Text(
-                'Loading Flights....',
+                'Loading Packages....',
                 style: TextStyle(fontSize: 16, color: TColors.grey),
               ),
             ],
@@ -454,7 +478,6 @@ List<Map<String, dynamic>> _createFlightSegments(AirArabiaFlight flight, int sec
         );
       }
 
-      // Combine static basic package with dynamic packages
       final dynamicPackages = packageResponse.value?.packages ?? [];
       final allPackages = [staticBasicPackage, ...dynamicPackages];
 
@@ -464,7 +487,7 @@ List<Map<String, dynamic>> _createFlightSegments(AirArabiaFlight flight, int sec
           const Padding(
             padding: EdgeInsets.only(left: 16, top: 8, bottom: 16),
             child: Text(
-              'Available',
+              'Available Packages',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -492,13 +515,13 @@ List<Map<String, dynamic>> _createFlightSegments(AirArabiaFlight flight, int sec
   Widget _buildPackageCard(AirArabiaPackage package, int index) {
     final headerColor = _getPackageColor(package.packageType);
     
-    // For static basic package, use flight price. For others, calculate as before
+    // Calculate final price with margin
     final double price;
     if (package.packageType == 'Basic' && package.basePrice == 0.0) {
-      // This is our static basic package
+      // Static basic package - use flight price only (already has margin)
       price = widget.flight.price;
     } else {
-      // This is a dynamic package from API
+      // Dynamic package - use calculated price with margin
       price = finalPrices['${package.packageType}-${package.packageName}']?.value ??
           (package.totalPrice + widget.flight.price);
     }
@@ -517,7 +540,6 @@ List<Map<String, dynamic>> _createFlightSegments(AirArabiaFlight flight, int sec
       ),
       child: Column(
         children: [
-          // Header with package name and price
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
@@ -570,90 +592,54 @@ List<Map<String, dynamic>> _createFlightSegments(AirArabiaFlight flight, int sec
             ),
           ),
 
-          // Package details
           Padding(
             padding: const EdgeInsets.all(14),
             child: Column(
               children: [
-                _buildPackageDetail(
-                  Icons.work_outline_rounded,
-                  'Hand Baggage',
-                  '7 Kg',
-                ),
+                _buildPackageDetail(Icons.work_outline_rounded, 'Hand Baggage', '7 Kg'),
                 const SizedBox(height: 12),
-                _buildPackageDetail(
-                  Icons.luggage,
-                  'Checked Baggage',
-                  package.baggageAllowance,
-                ),
+                _buildPackageDetail(Icons.luggage, 'Checked Baggage', package.baggageAllowance),
                 const SizedBox(height: 12),
-                _buildPackageDetail(
-                  Icons.restaurant_rounded,
-                  'Meal',
-                  package.mealInfo,
-                ),
+                _buildPackageDetail(Icons.restaurant_rounded, 'Meal', package.mealInfo),
                 const SizedBox(height: 12),
-                _buildPackageDetail(
-                  Icons.airline_seat_recline_normal,
-                  'Seat',
-                  package.seatInfo,
-                ),
+                _buildPackageDetail(Icons.airline_seat_recline_normal, 'Seat', package.seatInfo),
                 const SizedBox(height: 12),
-                _buildPackageDetail(
-                  Icons.swap_horiz_rounded,
-                  'Modification',
-                  package.modificationPolicy,
-                ),
+                _buildPackageDetail(Icons.swap_horiz_rounded, 'Modification', package.modificationPolicy),
                 const SizedBox(height: 12),
-                _buildPackageDetail(
-                  Icons.money_off_rounded,
-                  'Cancellation',
-                  package.cancellationPolicy,
-                ),
-
+                _buildPackageDetail(Icons.money_off_rounded, 'Cancellation', package.cancellationPolicy),
                 const SizedBox(height: 16),
 
-                // Button
                 Obx(() => SizedBox(
                   width: double.infinity,
                   height: 44,
                   child: ElevatedButton(
-                    onPressed: isLoading.value
-                        ? null
-                        : () => onSelectPackage(index),
+                    onPressed: isLoading.value ? null : () => onSelectPackage(index),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: TColors.primary,
                       foregroundColor: TColors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
                     child: isLoading.value
                         ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(TColors.white),
-                      ),
-                    )
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(TColors.white),
+                            ),
+                          )
                         : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          widget.isReturnFlight
-                              ? 'Select Return Flight '
-              : 'Select Flight ',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                widget.isReturnFlight ? 'Select Return Flight ' : 'Select Flight ',
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(width: 6),
+                              const Icon(Icons.arrow_forward_rounded, size: 18),
+                            ],
                           ),
-                        ),
-                        const SizedBox(width: 6),
-                        const Icon(Icons.arrow_forward_rounded, size: 18),
-                      ],
-                    ),
                   ),
                 )),
               ],
@@ -682,20 +668,10 @@ List<Map<String, dynamic>> _createFlightSegments(AirArabiaFlight flight, int sec
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: TColors.grey,
-                  ),
-                ),
+                Text(title, style: const TextStyle(fontSize: 14, color: TColors.grey)),
                 Text(
                   value,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: TColors.text,
-                  ),
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: TColors.text),
                 ),
               ],
             ),
@@ -718,92 +694,90 @@ List<Map<String, dynamic>> _createFlightSegments(AirArabiaFlight flight, int sec
     }
   }
 
-void onSelectPackage(int selectedPackageIndex) async {
-  try {
-    isLoading.value = true;
+  void onSelectPackage(int selectedPackageIndex) async {
+    try {
+      isLoading.value = true;
 
-    // Get all packages (static + dynamic)
-    final dynamicPackages = packageResponse.value?.packages ?? [];
-    final allPackages = [staticBasicPackage, ...dynamicPackages];
-    
-    if (selectedPackageIndex >= allPackages.length) {
-      throw Exception('Invalid package selection');
-    }
-
-    final selectedPackage = allPackages[selectedPackageIndex];
-
-    // Store the selected package and flight in the controller
-    airArabiaController.selectedPackage = selectedPackage;
-    airArabiaController.selectedFlight = widget.flight;
-    airArabiaController.selectedPackageIndex = selectedPackageIndex;
-
-    // Get booking controller to access travelers data
-    final bookingController = Get.find<BookingFlightController>();
-    final flightBookingController = Get.find<FlightBookingController>();
-
-    // Prepare sector data based on trip type
-    List<Map<String, dynamic>> sector;
-    if (flightBookingController.tripType.value == TripType.roundTrip) {
-      sector = _createRoundTripSector();
-    } else {
-      sector = _convertFlightToSector(widget.flight);
-    }
-
-    // Prepare fare data
-    final fare = {
-      "bundle": {
-        "cabinClass": widget.flight.cabinClass,
-        "fareFamily": widget.flight.cabinClass,
-        "price": widget.flight.price,
-        "fareOndWiseBookingClassCodes": {
-          "${widget.flight.flightSegments.first['departure']['airport']}/${widget.flight.flightSegments.last['arrival']['airport']}": widget.isReturnFlight ? "E33" : "E30"
-        }
+      final dynamicPackages = packageResponse.value?.packages ?? [];
+      final allPackages = [staticBasicPackage, ...dynamicPackages];
+      
+      if (selectedPackageIndex >= allPackages.length) {
+        throw Exception('Invalid package selection');
       }
-    };
 
-    Get.back(); // Close the package selection dialog
+      final selectedPackage = allPackages[selectedPackageIndex];
 
-    // Determine trip type correctly
-    int tripType = 0; // Default to one way
-    
-    // Set trip type based on actual trip type from controller
-    switch (flightBookingController.tripType.value) {
-      case TripType.oneWay:
-        tripType = 0;
-        break;
-      case TripType.roundTrip:
-        tripType = 1;
-        break;
-      case TripType.multiCity:
-        tripType = 2;
-        break;
+      airArabiaController.selectedPackage = selectedPackage;
+      airArabiaController.selectedFlight = widget.flight;
+      airArabiaController.selectedPackageIndex = selectedPackageIndex;
+
+      final bookingController = Get.find<BookingFlightController>();
+      final flightBookingController = Get.find<FlightBookingController>();
+
+      List<Map<String, dynamic>> sector;
+      if (flightBookingController.tripType.value == TripType.roundTrip) {
+        sector = _createRoundTripSector();
+      } else {
+        sector = _convertFlightToSector(widget.flight);
+      }
+
+      final fare = {
+        "bundle": {
+          "cabinClass": widget.flight.cabinClass,
+          "fareFamily": widget.flight.cabinClass,
+          "price": widget.flight.price,
+          "fareOndWiseBookingClassCodes": {
+            "${widget.flight.flightSegments.first['departure']['airport']}/${widget.flight.flightSegments.last['arrival']['airport']}": widget.isReturnFlight ? "E33" : "E30"
+          }
+        }
+      };
+
+      Get.back();
+
+      int tripType = 0;
+      switch (flightBookingController.tripType.value) {
+        case TripType.oneWay:
+          tripType = 0;
+          break;
+        case TripType.roundTrip:
+          tripType = 1;
+          break;
+        case TripType.multiCity:
+          tripType = 2;
+          break;
+      }
+
+      // Calculate margined package price
+      final marginedPackagePrice = selectedPackage.packageType == 'Basic' && selectedPackage.basePrice == 0.0
+          ? 0.0
+          : apiService.calculatePriceWithMargin(selectedPackage.basePrice, marginData.value);
+
+      Get.to(() => AirArabiaRevalidationScreen(), arguments: {
+        'type': tripType,
+        'adult': bookingController.adults.length,
+        'child': bookingController.children.length,
+        'infant': bookingController.infants.length,
+        'sector': sector,
+        'fare': fare,
+        'csId': 15,
+        'selectedPackage': selectedPackage,
+        'selectedFlight': widget.flight,
+        'packagePrice': marginedPackagePrice,
+        'flightPrice': widget.flight.price,
+      });
+
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Package selection failed: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+      print('Package selection error: $e');
+    } finally {
+      isLoading.value = false;
     }
-
-    // Navigate to revalidation screen with required parameters
-    Get.to(() => AirArabiaRevalidationScreen(), arguments: {
-      'type': tripType,
-      'adult': bookingController.adults.length,
-      'child': bookingController.children.length,
-      'infant': bookingController.infants.length,
-      'sector': sector,
-      'fare': fare,
-      'csId': 15,
-      'selectedPackage': selectedPackage,
-      'selectedFlight': widget.flight,
-    });
-
-  } catch (e) {
-    Get.snackbar(
-      'Error',
-      'Package selection failed: ${e.toString()}',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.red,
-      colorText: Colors.white,
-      duration: const Duration(seconds: 3),
-    );
-    print('Package selection error: $e');
-  } finally {
-    isLoading.value = false;
   }
-}
 }

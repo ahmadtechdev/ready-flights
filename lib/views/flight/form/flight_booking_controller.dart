@@ -413,6 +413,8 @@ class FlightBookingController extends GetxController {
           origin: origin,
           destination: destination,
           depDate: formattedDates,
+
+
           adult: adultCount.value,
           child: childrenCount.value,
           infant: infantCount.value,
@@ -430,6 +432,7 @@ class FlightBookingController extends GetxController {
             adult: adultCount.value,
             child: childrenCount.value,
             infant: infantCount.value,
+            
             cabin: travelClass.value,
           ),
       ];
@@ -671,34 +674,34 @@ class FlightBookingController extends GetxController {
       flydubaiController.setErrorMessage('FlyDubai API error: ${e.toString()}');
     }
   }
-  // Future<void> _callSabreApi({
-  //   required int type,
-  //   required String origin,
-  //   required String destination,
-  //   required String depDate,
-  //   required int adult,
-  //   required int child,
-  //   required int infant,
-  //   required String cabin,
-  // }) async {
-  //   try {
-  //     final result = await apiServiceFlight.searchFlights(
-  //       type: type,
-  //       origin: origin,
-  //       destination: destination,
-  //       depDate: depDate,
-  //       adult: adult,
-  //       child: child,
-  //       infant: infant,
-  //       stop: 2,
-  //       cabin: cabin,
-  //       flight: 0,
-  //     );
-  //     flightController.loadFlights(result);
-  //   } catch (e) {
-  //     // Optionally show error in UI
-  //   }
-  // }
+  Future<void> _callSabreApi({
+    required int type,
+    required String origin,
+    required String destination,
+    required String depDate,
+    required int adult,
+    required int child,
+    required int infant,
+    required String cabin,
+  }) async { 
+    try {
+      final result = await apiServiceFlight.searchFlights(
+        type: type,
+        origin: origin,
+        destination: destination,
+        depDate: depDate,
+        adult: adult,
+        child: child,
+        infant: infant,
+        stop: 2,
+        cabin: cabin,
+        flight: 0,
+      );
+      flightController.loadFlights(result);
+    } catch (e) {
+      // Optionally show error in UI
+    }
+  }
 
   Future<void> _callAirBlueApi({
     required int type,

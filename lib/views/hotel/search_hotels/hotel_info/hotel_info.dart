@@ -626,76 +626,138 @@ class _HotelInfoScreenState extends State<HotelInfoScreen> {
     );
   }
 
-  Widget _buildFloatingSelectRoomButton() {
-    return Positioned(
-      bottom: 20,
-      left: 16,
-      right: 16,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: TColors.primary.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+Widget _buildFloatingSelectRoomButton() {
+  return Positioned(
+    bottom: 20,
+    left: 16,
+    right: 16,
+    child: Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: TColors.primary.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: () async {
+          // Set controller values
+          controller.ratingstar.value = widget.hotelData['rating']?.toInt() ?? 0;
+          controller.hotelCode.value = widget.hotelData['hotelCode'] ?? '';
+          controller.hotelCity.value = widget.hotelData['hotelCity'] ?? '';
+          controller.lat.value = widget.hotelData['latitude']?.toString() ?? '';
+          controller.lon.value = widget.hotelData['longitude']?.toString() ?? '';
+          controller.hotelAddress.value = widget.hotelData['address'] ?? '';
+          
+          controller.roomsdata.clear();
+          
+          // Show loading indicator
+          Get.dialog(
+            const Center(
+              child: CircularProgressIndicator(color: TColors.primary),
+            ),
+            barrierDismissible: false,
+          );
+          
+          await ApiServiceHotel().fetchRoomDetails(
+            widget.hotelData['hotelCode'] ?? '',
+            controller.sessionId.value,
+          );
+          
+          // Close loading dialog
+          Get.back();
+          
+          // Check if rooms are available
+          if (controller.roomsdata.isEmpty) {
+            Get.dialog(
+              AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                title: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: TColors.third, size: 28),
+                    SizedBox(width: 12),
+                    Text(
+                      'No Rooms Available',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: TColors.text,
+                      ),
+                    ),
+                  ],
+                ),
+                content: Text(
+                  'Sorry, there are no rooms available for this hotel at the moment. Please try another hotel or different dates.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: TColors.text,
+                    height: 1.5,
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Get.back(),
+                    style: TextButton.styleFrom(
+                      backgroundColor: TColors.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
+                    child: Text(
+                      'OK',
+                      style: TextStyle(
+                        color: TColors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          } else {
+            controller.filterhotler();
+            Get.to(() => const SelectRoomScreen());
+          }
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: TColors.primary,
+          foregroundColor: TColors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+          minimumSize: const Size(double.infinity, 50),
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(vertical: 4)
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.bed,
+              size: 20,
+              color: TColors.white,
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'Select Room',
+              style: TextStyle(
+                fontSize: 18,
+                color: TColors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
-        child: ElevatedButton(
-          onPressed: () {
-            // Set controller values
-            controller.ratingstar.value = widget.hotelData['rating']?.toInt() ?? 0;
-            controller.hotelCode.value = widget.hotelData['hotelCode'] ?? '';
-            controller.hotelCity.value = widget.hotelData['hotelCity'] ?? '';
-            controller.lat.value = widget.hotelData['latitude']?.toString() ?? '';
-            controller.lon.value = widget.hotelData['longitude']?.toString() ?? '';
-            controller.hotelAddress.value = widget.hotelData['address'] ?? '';
-            
-            controller.roomsdata.clear();
-            
-            ApiServiceHotel().fetchRoomDetails(
-              widget.hotelData['hotelCode'] ?? '',
-              controller.sessionId.value,
-            );
-            
-            controller.filterhotler();
-            Get.to(() => const SelectRoomScreen());
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: TColors.primary,
-            foregroundColor: TColors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
-            ),
-            minimumSize: const Size(double.infinity, 50),
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(vertical: 4)
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.bed,
-                size: 20,
-                color: TColors.white,
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Select Room',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: TColors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
-    );
-  }
-  
+    ),
+  );
+} 
 }
 class MapScreen extends StatelessWidget {
   final double latitude;

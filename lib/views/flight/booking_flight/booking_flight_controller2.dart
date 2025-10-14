@@ -28,22 +28,6 @@ class TravelerInfo {
         genderController = TextEditingController(),
         phoneController = TextEditingController(),
         emailController = TextEditingController();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-
   void dispose() {
    
   }

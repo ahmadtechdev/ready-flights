@@ -2,6 +2,7 @@
 import 'package:get/get.dart';
 
 import '../../../../services/api_service_airarabia.dart';
+import '../../../users/login/login_api_service/login_api.dart';
 import '../filters/filter_flight_model.dart';
 import '../flight_package/airarabia/airarabia_flight_package.dart';
 import 'airarabia_flight_model.dart';
@@ -9,8 +10,7 @@ import 'airarabia_flight_model.dart';
 class AirArabiaFlightController extends GetxController {
   
   final ApiServiceAirArabia apiService = Get.find<ApiServiceAirArabia>();
-   int selectedPackageIndex = 0;
-
+  int selectedPackageIndex = 0;
 
   final RxList<AirArabiaFlight> flights = <AirArabiaFlight>[].obs;
   final RxList<AirArabiaFlight> filteredFlights = <AirArabiaFlight>[].obs;
@@ -18,9 +18,71 @@ class AirArabiaFlightController extends GetxController {
   final RxString errorMessage = ''.obs;
   final RxString sortType = 'Suggested'.obs;
 
+  // Margin data storage
+  final Rx<Map<String, dynamic>> marginData = Rx<Map<String, dynamic>>({});
+  final RxBool isLoadingMargin = false.obs;
+
   // Selected flight and package for booking
   AirArabiaFlight? selectedFlight;
   AirArabiaPackage? selectedPackage;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _fetchMarginData();
+  }
+
+  // Fetch margin data on controller initialization
+  Future<void> _fetchMarginData() async {
+    try {
+      isLoadingMargin.value = true;
+      
+      // Check if user is logged in
+      final authController = Get.find<AuthController>();
+      final isLoggedIn = await authController.isLoggedIn();
+      
+      String? userEmail;
+      if (isLoggedIn) {
+        final userData = await authController.getUserData();
+        userEmail = userData?['cs_email'];
+        print('Fetching Air Arabia margin for logged-in user: $userEmail');
+      } else {
+        print('Fetching Air Arabia margin for guest user (default margin)');
+      }
+
+      // Fetch margin data
+      final margin = await apiService.getAirArabiaMargin(userEmail);
+      marginData.value = margin;
+      
+      print('Air Arabia Margin Data: $margin');
+      
+      // Validate margin data
+      final marginVal = double.tryParse(margin['margin_val']?.toString() ?? '0') ?? 0.0;
+      final marginPer = double.tryParse(margin['margin_per']?.toString() ?? '0') ?? 0.0;
+      
+      if (marginVal == 0 && marginPer == 0) {
+        print('Warning: Both margin values are zero');
+      }
+      
+    } catch (e) {
+      print('Error fetching Air Arabia margin: $e');
+      // Set default margin on error
+      marginData.value = {
+        'margin_val': '0.00',
+        'margin_per': 0,
+      };
+    } finally {
+      isLoadingMargin.value = false;
+    }
+  }
+
+  // Calculate flight price with margin
+  double calculateFlightPriceWithMargin(double basePrice) {
+    if (marginData.value.isEmpty) {
+      return basePrice;
+    }
+    return apiService.calculatePriceWithMargin(basePrice, marginData.value);
+  }
 
   void clearFlights() {
     flights.clear();
@@ -56,8 +118,8 @@ class AirArabiaFlightController extends GetxController {
         _processOneWayFlights(ondWiseFlights);
       }
 
-      // // Sort flights by price initially
-      // flights.sort((a, b) => a.price.compareTo(b.price));
+      // Apply margin to all flights
+      _applyMarginToFlights();
 
       // Initialize filtered flights with all flights
       filteredFlights.value = List.from(flights);
@@ -71,6 +133,39 @@ class AirArabiaFlightController extends GetxController {
       isLoading.value = false;
     }
   }
+
+  // Apply margin to all loaded flights
+  void _applyMarginToFlights() {
+    if (marginData.value.isEmpty) {
+      print('Warning: Margin data not loaded yet');
+      return;
+    }
+
+    for (int i = 0; i < flights.length; i++) {
+      final flight = flights[i];
+      final priceWithMargin = calculateFlightPriceWithMargin(flight.price);
+      
+      // Update flight price with margin
+      flights[i] = AirArabiaFlight(
+        id: flight.id,
+        price: priceWithMargin,
+        currency: flight.currency,
+        flightSegments: flight.flightSegments,
+        airlineCode: flight.airlineCode,
+        airlineName: flight.airlineName,
+        airlineImg: flight.airlineImg,
+        cabinClass: flight.cabinClass,
+        isRefundable: flight.isRefundable,
+        availabilityStatus: flight.availabilityStatus,
+        isRoundTrip: flight.isRoundTrip,
+        outboundFlight: flight.outboundFlight,
+        inboundFlight: flight.inboundFlight,
+      );
+    }
+    
+    print('Applied margin to ${flights.length} flights');
+  }
+
   void _processOneWayFlights(Map<String, dynamic> ondWiseFlights) {
     ondWiseFlights.forEach((route, dateWiseFlights) {
       final dateFlights = dateWiseFlights['dateWiseFlightCombinations'];
@@ -91,16 +186,9 @@ class AirArabiaFlightController extends GetxController {
   }
 
   void _processRoundTripFlights(Map<String, dynamic> ondWiseFlights) {
-    // Get all flight routes
     final routes = ondWiseFlights.keys.toList();
-
-    // We need to identify which route is outbound and which is inbound
-    // The first route in the response is typically outbound, second is inbound
     final outboundRoute = routes[1];
-    // ignore: unused_local_variable
-    final inboundRoute = routes[0];
-
-    // Get all outbound and inbound flight options
+    
     final outboundFlights = <Map<String, dynamic>>[];
     final inboundFlights = <Map<String, dynamic>>[];
 
@@ -111,7 +199,6 @@ class AirArabiaFlightController extends GetxController {
         final flightOptions = flightData['flightOptions'];
         for (var option in flightOptions) {
           if (option['availabilityStatus'] == 'AVAILABLE') {
-            // Determine if this is outbound or inbound based on route
             final isOutbound = route == outboundRoute;
 
             if (isOutbound) {
@@ -119,19 +206,16 @@ class AirArabiaFlightController extends GetxController {
             } else {
               inboundFlights.add(option);
             }
-            
           }
         }
       });
     });
 
-    // Verify we have both directions
     if (outboundFlights.isEmpty || inboundFlights.isEmpty) {
       errorMessage.value = 'Incomplete round trip options available';
       return;
     }
 
-    // When creating round trip packages, mark flights with direction
     for (var outbound in outboundFlights) {
       outbound['isOutbound'] = true;
       for (var inbound in inboundFlights) {
@@ -149,19 +233,16 @@ class AirArabiaFlightController extends GetxController {
   AirArabiaFlight _createRoundTripPackage(
       Map<String, dynamic> outbound,
       Map<String, dynamic> inbound
-      ) {
-    // Combine flight segments (outbound first, then inbound)
+  ) {
     final combinedSegments = [
       ...outbound['flightSegments'],
       ...inbound['flightSegments']
     ];
 
-    // Sum the prices
     final outboundPrice = outbound['cabinPrices'][0]['price'] as num;
     final inboundPrice = inbound['cabinPrices'][0]['price'] as num;
     final totalPrice = outboundPrice + inboundPrice;
 
-    // Create a new flight option with combined data
     final combinedOption = {
       ...outbound,
       'flightSegments': combinedSegments,
@@ -181,14 +262,13 @@ class AirArabiaFlightController extends GetxController {
 
   void handleAirArabiaFlightSelection(AirArabiaFlight flight) {
     Get.to(
-          () => AirArabiaPackageSelectionDialog(
+      () => AirArabiaPackageSelectionDialog(
         flight: flight,
         isReturnFlight: false,
       ),
     );
   }
 
-  // Updated apply filters method with better airline filtering
   void applyFilters({
     List<String>? airlines,
     List<String>? stops,
@@ -200,28 +280,22 @@ class AirArabiaFlightController extends GetxController {
     _applySortingAndFiltering(airlines: airlines, stops: stops);
   }
 
-  // Updated sorting and filtering with airline code support
   void _applySortingAndFiltering({
     List<String>? airlines,
     List<String>? stops,
   }) {
     List<AirArabiaFlight> filtered = List.from(flights);
 
-    // Apply airline filter
     if (airlines != null && !airlines.contains('all')) {
       filtered = filtered.where((flight) {
-        // For Air Arabia, check if G9 is in the selected airlines
-        // Since all Air Arabia flights have airlineCode 'G9'
         return airlines.any((airlineCode) =>
-        flight.airlineCode.toUpperCase() == airlineCode.toUpperCase()
+            flight.airlineCode.toUpperCase() == airlineCode.toUpperCase()
         );
       }).toList();
-
     }
-    // Apply stops filter
+
     if (stops != null && !stops.contains('all')) {
       filtered = filtered.where((flight) {
-        // Calculate stops based on flight segments
         int stopCount = flight.flightSegments.length - 1;
 
         if (stops.contains('nonstop')) {
@@ -236,11 +310,10 @@ class AirArabiaFlightController extends GetxController {
         if (stops.contains('3stop')) {
           return stopCount == 3;
         }
-        return false; // If no matching stop filter, exclude the flight
+        return false;
       }).toList();
     }
 
-    // Apply sorting
     switch (sortType.value) {
       case 'Cheapest':
         filtered.sort((a, b) => a.price.compareTo(b.price));
@@ -250,27 +323,22 @@ class AirArabiaFlightController extends GetxController {
         break;
       case 'Suggested':
       default:
-      // Keep original order or apply suggested logic
-      // You can implement custom suggested logic here
         break;
     }
 
     filteredFlights.value = filtered;
   }
 
-  // Method to get filtered flights by airline
   List<AirArabiaFlight> getFlightsByAirline(String airlineCode) {
     return flights.where((flight) {
       return flight.airlineCode.toUpperCase() == airlineCode.toUpperCase();
     }).toList();
   }
 
-  // Method to get flight count by airline
   int getFlightCountByAirline(String airlineCode) {
     return getFlightsByAirline(airlineCode).length;
   }
 
-  // Method to get available airlines (for Air Arabia, it's always just G9)
   List<FilterAirline> getAvailableAirlines() {
     if (flights.isEmpty) return [];
 
@@ -282,8 +350,4 @@ class AirArabiaFlightController extends GetxController {
       )
     ];
   }
-
-
-
 }
-

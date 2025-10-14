@@ -821,6 +821,11 @@ class _AirArabiaFlightCardState extends State<AirArabiaFlightCard>
                                 ),
                                 textAlign: TextAlign.center,
                               ),
+
+
+
+
+                              
                             ),
                           ),
                         ],

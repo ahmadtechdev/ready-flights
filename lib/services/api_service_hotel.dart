@@ -14,8 +14,9 @@ import '../views/hotel/search_hotels/search_hotel_controller.dart';
 
 class ApiServiceHotel extends GetxService {
   late final Dio dio;
-  static const String _apiKey = 'VyBZUyOkbCSNvvDEMOV2==';
-  static const String _baseUrl = 'http://uat-apiv2.giinfotech.ae/api/v2';
+  static const String _apiKey = 'VSXYTrVlCtVXRAOXGS2==';
+  static const String _baseUrl = 'https://apiv2.giinfotech.ae/api/v2';
+
 
   // Only margin and ROE needed
   double currentROE = 296.0; // Default ROE
@@ -237,6 +238,7 @@ class ApiServiceHotel extends GetxService {
         "TassProInfo": {"CustomerCode": "4805", "RegionID": "123"},
       },
     };
+    print(requestBody);
 
     try {
       final response = await dio.post(
@@ -353,125 +355,133 @@ class ApiServiceHotel extends GetxService {
 
   // Updated fetchRoomDetails method with margin and ROE
   Future<void> fetchRoomDetails(String hotelCode, String sessionId) async {
-    final guestsController = Get.find<GuestsController>();
+  final guestsController = Get.find<GuestsController>();
+  final searchController = Get.find<SearchHotelController>();
 
-    // Ensure we have the latest margin and ROE
-    await fetchMarginAndROE();
+  // Ensure we have the latest margin and ROE
+  await fetchMarginAndROE();
 
-    List<Map<String, dynamic>> rooms =
-    guestsController.rooms.asMap().entries.map((entry) {
-      final index = entry.key;
-      final room = entry.value;
-      return {
-        "RoomIdentifier": index + 1,
-        "Adult": room.adults.value,
-        if (room.children.value > 0) "child": room.children.value,
-      };
-    }).toList();
-
-    final requestBody = {
-      "SessionId": sessionId,
-      "SearchParameter": {
-        "HotelCode": hotelCode,
-        "Currency": "AED",
-        "Rooms": {"Room": rooms},
-      },
+  List<Map<String, dynamic>> rooms =
+  guestsController.rooms.asMap().entries.map((entry) {
+    final index = entry.key;
+    final room = entry.value;
+    return {
+      "RoomIdentifier": index + 1,
+      "Adult": room.adults.value,
+      if (room.children.value > 0) "child": room.children.value,
     };
-    print(requestBody);
+  }).toList();
 
-    try {
-      final response = await dio.post(
-        '/hotel/RoomDetails',
-        data: requestBody,
-        options: _defaultHeaders(),
-      );
+  final requestBody = {
+    "SessionId": sessionId,
+    "SearchParameter": {
+      "HotelCode": hotelCode,
+      "Currency": "USD",
+      "Rooms": {"Room": rooms},
+    },
+  };
+  print(requestBody);
 
-      if (response.statusCode == 200) {
-        final data = response.data;
-        final prettyJson = const JsonEncoder.withIndent('  ').convert(response.data);
-        _printLongText(prettyJson);
+  try {
+    final response = await dio.post(
+      '/hotel/RoomDetails',
+      data: requestBody,
+      options: _defaultHeaders(),
+    );
 
-        // Extract specific hotel info
-        final hotelInfo = data['hotel']?['hotelInfo'];
-        final roomData = data['hotel']?['rooms']?['room'];
+    if (response.statusCode == 200) {
+      final data = response.data;
+      final prettyJson = const JsonEncoder.withIndent('  ').convert(response.data);
+      _printLongText(prettyJson);
 
-        if (hotelInfo != null && roomData != null) {
-          final searchController = Get.find<SearchHotelController>();
-          searchController.hotelName.value = hotelInfo['name'];
-          searchController.image.value = hotelInfo['image'];
+      // Extract specific hotel info
+      final hotelInfo = data['hotel']?['hotelInfo'];
+      final roomData = data['hotel']?['rooms']?['room'];
 
-          // Apply pricing logic to room rates
-          List<dynamic> updatedRoomData = roomData.map((room) {
-            if (room is Map<String, dynamic>) {
-              // Create a copy of the room data
-              Map<String, dynamic> updatedRoom = Map<String, dynamic>.from(room);
-
-              // Handle direct room price structure (as shown in your API response)
-              if (updatedRoom['price'] != null && updatedRoom['price'] is Map) {
-                Map<String, dynamic> priceData = Map<String, dynamic>.from(updatedRoom['price']);
-
-                // Apply pricing to gross
-                if (priceData['gross'] != null) {
-                  double originalGross = double.tryParse(priceData['gross'].toString()) ?? 0;
-                  priceData['gross'] = applyPricingLogic(originalGross);
-                }
-
-                // Apply pricing to net
-                if (priceData['net'] != null) {
-                  double originalNet = double.tryParse(priceData['net'].toString()) ?? 0;
-                  priceData['net'] = applyPricingLogic(originalNet);
-                }
-
-                updatedRoom['price'] = priceData;
-              }
-
-              // Handle rates structure (if it exists)
-              if (updatedRoom['rates'] != null && updatedRoom['rates']['rate'] != null) {
-                List<dynamic> rates = updatedRoom['rates']['rate'];
-                updatedRoom['rates']['rate'] = rates.map((rate) {
-                  if (rate is Map<String, dynamic>) {
-                    Map<String, dynamic> updatedRate = Map<String, dynamic>.from(rate);
-
-                    // Apply only ROE and margin to sellingRate
-                    if (updatedRate['sellingRate'] != null) {
-                      double originalPrice = double.tryParse(updatedRate['sellingRate'].toString()) ?? 0;
-                      updatedRate['sellingRate'] = applyPricingLogic(originalPrice);
-                    }
-
-                    // Apply only ROE and margin to net rate if it exists
-                    if (updatedRate['net'] != null) {
-                      double originalNet = double.tryParse(updatedRate['net'].toString()) ?? 0;
-                      updatedRate['net'] = applyPricingLogic(originalNet);
-                    }
-
-                    return updatedRate;
-                  }
-                  return rate;
-                }).toList();
-              }
-
-              return updatedRoom;
-            }
-            return room;
-          }).toList();
-
-          searchController.roomsdata.value = updatedRoomData;
-
-          print("Hotel Name: ${hotelInfo['name']}");
-          print("Rooms Count: ${updatedRoomData.length}");
-          print("Applied ROE: $currentROE, Margin: $currentMargin%");
-        } else {
-          print("No hotel info found in response.");
+      // Check if hotel info or room data is null/empty
+      if (hotelInfo == null || roomData == null || (roomData is List && roomData.isEmpty)) {
+        if (kDebugMode) {
+          print("No hotel info or rooms found in response.");
         }
-      } else {
-        print("❌ Failed: ${response.statusCode}");
+        // Set empty rooms to trigger UI message
+        searchController.roomsdata.value = [];
+        searchController.hotelName.value = '';
+        searchController.image.value = '';
+        return;
       }
-    } catch (e) {
-      print("❌ Error: $e");
-    }
-  }
 
-  /// Pre-book a room.
+      searchController.hotelName.value = hotelInfo['name'] ?? '';
+      searchController.image.value = hotelInfo['image'] ?? '';
+
+      // Apply pricing logic to room rates
+      List<dynamic> updatedRoomData = roomData.map((room) {
+        if (room is Map<String, dynamic>) {
+          // Create a copy of the room data
+          Map<String, dynamic> updatedRoom = Map<String, dynamic>.from(room);
+
+          // Handle direct room price structure
+          if (updatedRoom['price'] != null && updatedRoom['price'] is Map) {
+            Map<String, dynamic> priceData = Map<String, dynamic>.from(updatedRoom['price']);
+
+            // Apply pricing to gross
+            if (priceData['gross'] != null) {
+              double originalGross = double.tryParse(priceData['gross'].toString()) ?? 0;
+              priceData['gross'] = applyPricingLogic(originalGross);
+            }
+
+            // Apply pricing to net
+            if (priceData['net'] != null) {
+              double originalNet = double.tryParse(priceData['net'].toString()) ?? 0;
+              priceData['net'] = applyPricingLogic(originalNet);
+            }
+
+            updatedRoom['price'] = priceData;
+          }
+
+          // Handle rates structure (if it exists)
+          if (updatedRoom['rates'] != null && updatedRoom['rates']['rate'] != null) {
+            List<dynamic> rates = updatedRoom['rates']['rate'];
+            updatedRoom['rates']['rate'] = rates.map((rate) {
+              if (rate is Map<String, dynamic>) {
+                Map<String, dynamic> updatedRate = Map<String, dynamic>.from(rate);
+
+                // Apply only ROE and margin to sellingRate
+                if (updatedRate['sellingRate'] != null) {
+                  double originalPrice = double.tryParse(updatedRate['sellingRate'].toString()) ?? 0;
+                  updatedRate['sellingRate'] = applyPricingLogic(originalPrice);
+                }
+
+                // Apply only ROE and margin to net rate if it exists
+                if (updatedRate['net'] != null) {
+                  double originalNet = double.tryParse(updatedRate['net'].toString()) ?? 0;
+                  updatedRate['net'] = applyPricingLogic(originalNet);
+                }
+
+                return updatedRate;
+              }
+              return rate;
+            }).toList();
+          }
+
+          return updatedRoom;
+        }
+        return room;
+      }).toList();
+
+      searchController.roomsdata.value = updatedRoomData;
+
+      print("Hotel Name: ${hotelInfo['name']}");
+      print("Rooms Count: ${updatedRoomData.length}");
+      print("Applied ROE: $currentROE, Margin: $currentMargin%");
+    } else {
+      print("❌ Failed: ${response.statusCode}");
+      searchController.roomsdata.value = [];
+    }
+  } catch (e) {
+    print("❌ Error: $e");
+    searchController.roomsdata.value = [];
+  }
+}/// Pre-book a room.
   Future<Map<String, dynamic>?> prebook({
     required String sessionId,
     required String hotelCode,

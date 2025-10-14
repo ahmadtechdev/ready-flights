@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:country_picker/country_picker.dart';
+import 'package:ready_flights/views/flight/booking_flight/airblue/slecte_seat.dart';
 import '../../../../../services/api_service_airblue.dart';
 import '../../../../../utility/colors.dart';
 import '../../../../../widgets/travelers_selection_bottom_sheet.dart';
@@ -983,224 +984,202 @@ class _AirBlueBookingFlightState extends State<AirBlueBookingFlight> {
                 ),
               ],
             ),
-            ElevatedButton(
-              onPressed: () async {
-                if (_formKey.currentState!.validate() && termsAccepted) {
-                  try {
-                    // Show loading
-                    Get.dialog(
-                      const Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            TColors.primary,
-                          ),
-                        ),
-                      ),
-                      barrierDismissible: false,
-                    );
+          // Replace your _buildBottomBar ElevatedButton onPressed method with this:
 
-                    // Step 1: Create PNR first
-                    Map<String, dynamic>? pnrResponse;
-                    AirBlueFlight? updatedOutboundFlight;
-                    AirBlueFlight? updatedReturnFlight;
-                    bool pnrCreated = false;
-
-                    try {
-                      pnrResponse = await AirBlueFlightApiService()
-                          .createAirBluePNR(
-                        flight: widget.flight,
-                        returnFlight: widget.returnFlight,
-                        multicityFlights: widget.multicityFlights,
-                        bookingController: bookingController,
-                        clientEmail: bookingController.emailController.text,
-                        clientPhone: bookingController.phoneController.text,
-                        isDomestic: bookingController.isDomesticFlight,
-                        multicityFareOptions: widget.multicityFareOptions,
-                        outboundFareOption: widget.outboundFareOption,
-                        returnFareOption: widget.returnFareOption,
-                      );
-
-                      // Process PNR response if successful
-                      if (pnrResponse != null) {
-                        pnrCreated = true;
-
-                        // Access the pricing information
-                        if (pnrResponse['pnrPricing'] != null) {
-                          for (var price in pnrResponse['rawPricingObjects'] as List<AirBluePNRPricing>) {
-                            // Handle pricing objects
-                          }
-                        }
-
-                        // Update the flight with PNR pricing
-                        updatedOutboundFlight = widget.flight.copyWithPNRPricing(
-                          pnrResponse['rawPricingObjects'] ?? [],
-                        );
-
-                        // If you have a return flight
-                        if (widget.returnFlight != null) {
-                          updatedReturnFlight = widget.returnFlight?.copyWithPNRPricing(
-                            pnrResponse['rawPricingObjects'] ?? [],
-                          );
-                        }
-
-                        Get.snackbar(
-                          'Success',
-                          'PNR created successfully',
-                          backgroundColor: Colors.green,
-                          colorText: Colors.white,
-                          snackPosition: SnackPosition.TOP,
-                        );
-                      }
-                    } catch (e) {
-                      // PNR creation failed, but we'll continue with booking save
-                      print('PNR creation failed: $e');
-                      Get.snackbar(
-                        'Warning',
-                        'PNR creation failed, but continuing with booking: $e',
-                        backgroundColor: Colors.orange,
-                        colorText: Colors.white,
-                        snackPosition: SnackPosition.TOP,
-                      );
-                    }
-
-                    // Step 2: Save booking regardless of PNR creation result
-                    try {
-                      final response = await AirBlueFlightApiService()
-                          .saveAirBlueBooking(
-                        bookingController: bookingController,
-                        flight: widget.flight,
-                        returnFlight: widget.returnFlight,
-                        multicityFlights: widget.multicityFlights,
-                        token: 'your_auth_token_here',
-                        pnr:pnrResponse?['pnr']??"",
-                        finalPrice:pnrResponse?['finalPrice']??"",
-                        pnrStatus:pnrResponse?['status']??0,
-
-
-                      );
-
-                      // Hide loading
-                      Get.back();
-
-                      if (response['status'] == 200) {
-                        Get.snackbar(
-                          'Success',
-                          'Booking saved successfully',
-                          backgroundColor: Colors.green,
-                          colorText: Colors.white,
-                          snackPosition: SnackPosition.TOP,
-                        );
-
-                        // Navigate to booking details screen
-                        Get.offAll(
-                              () => FlightBookingDetailsScreen(
-                            outboundFlight: updatedOutboundFlight ?? widget.flight,
-                            returnFlight: updatedReturnFlight ?? widget.returnFlight,
-                            outboundFareOption: widget.outboundFareOption,
-                            returnFareOption: widget.returnFareOption,
-                            pnrResponse: pnrResponse,
-                          ),
-                        );
-                      } else {
-                        // Handle API success response with error status
-                        String errorMessage = response['message'] ?? 'Failed to save booking';
-                        if (response['errors'] != null) {
-                          errorMessage += '\n${(response['errors'] as Map).entries.map((e) {
-                            return '${e.key}: ${e.value}';
-                          }).join('\n')}';
-                        }
-                        Get.snackbar(
-                          'Error',
-                          errorMessage,
-                          backgroundColor: Colors.red,
-                          colorText: Colors.white,
-                          duration: const Duration(seconds: 5),
-                          snackPosition: SnackPosition.TOP,
-                        );
-                      }
-                    } catch (e) {
-                      // Hide loading if not already hidden
-                      Get.back();
-
-                      if (e is ApiException) {
-                        String errorMessage = e.message;
-                        if (e.errors.isNotEmpty) {
-                          errorMessage += '\n${e.errors.entries.map((e) {
-                            return '${e.key}: ${e.value}';
-                          }).join('\n')}';
-                        }
-                        print(e.statusCode);
-                        print(errorMessage);
-                        Get.snackbar(
-                          'Error (${e.statusCode ?? 'Unknown'})',
-                          errorMessage,
-                          backgroundColor: Colors.red,
-                          colorText: Colors.white,
-                          duration: const Duration(seconds: 5),
-                          snackPosition: SnackPosition.TOP,
-                        );
-                      } else {
-                        print(e);
-                        Get.snackbar(
-                          'Error',
-                          'Failed to save booking: $e',
-                          backgroundColor: Colors.red,
-                          colorText: Colors.white,
-                          duration: const Duration(seconds: 5),
-                          snackPosition: SnackPosition.TOP,
-                        );
-                      }
-                    }
-
-                  } catch (e) {
-                    print(e);
-                    // Hide loading in case of unexpected error
-                    Get.back();
-                    Get.snackbar(
-                      'Error',
-                      'An unexpected error occurred: $e',
-                      backgroundColor: Colors.red,
-                      colorText: Colors.white,
-                      duration: const Duration(seconds: 5),
-                      snackPosition: SnackPosition.TOP,
-                    );
-                  }
-                } else if (!termsAccepted) {
-                  Get.snackbar(
-                    'Error',
-                    'Please accept terms and conditions',
-                    backgroundColor: Colors.red,
-                    colorText: Colors.white,
-                    snackPosition: SnackPosition.TOP,
-                  );
-                } else {
-                  Get.snackbar(
-                    'Error',
-                    'Please fill all required fields',
-                    backgroundColor: Colors.red,
-                    colorText: Colors.white,
-                    snackPosition: SnackPosition.TOP,
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: TColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 40,
-                  vertical: 16,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 2,
-              ),
-              child: const Text(
-                'Book Now',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
+ElevatedButton(
+  onPressed: () async {
+    if (_formKey.currentState!.validate() && termsAccepted) {
+      try {
+        Get.dialog(
+          const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(TColors.primary),
             ),
-          ],
+          ),
+          barrierDismissible: false,
+        );
+
+        // Step 1: Create PNR
+        Map<String, dynamic>? pnrResponse;
+        AirBlueFlight? updatedOutboundFlight;
+        AirBlueFlight? updatedReturnFlight;
+        bool pnrCreated = false;
+
+        try {
+          pnrResponse = await AirBlueFlightApiService().createAirBluePNR(
+            flight: widget.flight,
+            returnFlight: widget.returnFlight,
+            multicityFlights: widget.multicityFlights,
+            bookingController: bookingController,
+            clientEmail: bookingController.emailController.text,
+            clientPhone: bookingController.phoneController.text,
+            isDomestic: bookingController.isDomesticFlight,
+            multicityFareOptions: widget.multicityFareOptions,
+            outboundFareOption: widget.outboundFareOption,
+            returnFareOption: widget.returnFareOption,
+          );
+
+          if (pnrResponse != null) {
+            pnrCreated = true;
+
+            updatedOutboundFlight = widget.flight.copyWithPNRPricing(
+              pnrResponse['rawPricingObjects'] ?? [],
+            );
+
+            if (widget.returnFlight != null) {
+              updatedReturnFlight = widget.returnFlight?.copyWithPNRPricing(
+                pnrResponse['rawPricingObjects'] ?? [],
+              );
+            }
+
+            Get.snackbar(
+              'Success',
+              'PNR created successfully',
+              backgroundColor: Colors.green,
+              colorText: Colors.white,
+              snackPosition: SnackPosition.TOP,
+            );
+          }
+        } catch (e) {
+          Get.back(); // Close loading
+          Get.snackbar(
+            'Error',
+            'PNR creation failed: $e',
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.TOP,
+          );
+          return;
+        }
+
+        // Step 2: Save booking
+        try {
+          final response = await AirBlueFlightApiService().saveAirBlueBooking(
+            bookingController: bookingController,
+            flight: widget.flight,
+            returnFlight: widget.returnFlight,
+            multicityFlights: widget.multicityFlights,
+            token: 'your_auth_token_here',
+            pnr: pnrResponse?['pnr'] ?? "",
+            finalPrice: pnrResponse?['finalPrice'] ?? "",
+            pnrStatus: pnrResponse?['status'] ?? 0,
+          );
+
+          Get.back(); // Close loading
+
+          if (response['status'] == 200) {
+            // Calculate total passengers
+            final totalPassengers = travelersController.adultCount.value +
+                travelersController.childrenCount.value +
+                travelersController.infantCount.value;
+
+            // Navigate to seat selection
+            Get.to(
+              () => SeatSelectionScreen(
+                pnrResponse: pnrResponse!,
+                totalPassengers: totalPassengers,
+                outboundFlight: updatedOutboundFlight ?? widget.flight,
+                returnFlight: updatedReturnFlight ?? widget.returnFlight,
+                outboundFareOption: widget.outboundFareOption,
+                returnFareOption: widget.returnFareOption,
+              ),
+            );
+          } else {
+            String errorMessage = response['message'] ?? 'Failed to save booking';
+            if (response['errors'] != null) {
+              errorMessage += '\n${(response['errors'] as Map).entries.map((e) {
+                return '${e.key}: ${e.value}';
+              }).join('\n')}';
+            }
+            Get.snackbar(
+              'Error',
+              errorMessage,
+              backgroundColor: Colors.red,
+              colorText: Colors.white,
+              duration: const Duration(seconds: 5),
+              snackPosition: SnackPosition.TOP,
+            );
+          }
+        } catch (e) {
+          Get.back();
+          
+          if (e is ApiException) {
+            String errorMessage = e.message;
+            if (e.errors.isNotEmpty) {
+              errorMessage += '\n${e.errors.entries.map((e) {
+                return '${e.key}: ${e.value}';
+              }).join('\n')}';
+            }
+            Get.snackbar(
+              'Error (${e.statusCode ?? 'Unknown'})',
+              errorMessage,
+              backgroundColor: Colors.red,
+              colorText: Colors.white,
+              duration: const Duration(seconds: 5),
+              snackPosition: SnackPosition.TOP,
+            );
+          } else {
+            Get.snackbar(
+              'Error',
+              'Failed to save booking: $e',
+              backgroundColor: Colors.red,
+              colorText: Colors.white,
+              duration: const Duration(seconds: 5),
+              snackPosition: SnackPosition.TOP,
+            );
+          }
+        }
+      } catch (e) {
+        Get.back();
+        Get.snackbar(
+          'Error',
+          'An unexpected error occurred: $e',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 5),
+          snackPosition: SnackPosition.TOP,
+        );
+      }
+    } else if (!termsAccepted) {
+      Get.snackbar(
+        'Error',
+        'Please accept terms and conditions',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+      );
+    } else {
+      Get.snackbar(
+        'Error',
+        'Please fill all required fields',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
+      );
+    }
+  },
+  style: ElevatedButton.styleFrom(
+    backgroundColor: TColors.primary,
+    foregroundColor: Colors.white,
+    padding: const EdgeInsets.symmetric(
+      horizontal: 40,
+      vertical: 16,
+    ),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    elevation: 2,
+  ),
+  child: const Text(
+    'Book Now',
+    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+  ),
+),
+
+
+
+
+],
         ),
       ),
     );

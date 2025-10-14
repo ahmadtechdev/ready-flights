@@ -60,7 +60,7 @@ class _SelectRoomScreenState extends State<SelectRoomScreen>
         sessionId: controller.sessionId.value,
         hotelCode: controller.hotelCode.value,
         groupCode: groupCode,
-        currency: "AED",
+        currency: "USD",
         rateKeys: rateKeys,
       );
 
@@ -134,7 +134,7 @@ class _SelectRoomScreenState extends State<SelectRoomScreen>
         sessionId: controller.sessionId.value,
         hotelCode: controller.hotelCode.value,
         groupCode: groupCode,
-        currency: "AED",
+        currency: "USD",
         rateKeys: rateKeys,
       );
 
@@ -231,61 +231,106 @@ class _SelectRoomScreenState extends State<SelectRoomScreen>
   bool get allRoomsSelected =>
       selectedRooms.length == guestsController.roomCount.value;
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar:  AppBar(
-        elevation: 0,
-        backgroundColor: TColors.primary,
-        title: const Text(
-          "Select Room",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 24,
-          ),
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      elevation: 0,
+      backgroundColor: TColors.primary,
+      title: const Text(
+        "Select Room",
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 24,
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Get.back(),
-        ),
-      
-     
-        bottom:
-            guestsController.roomCount.value > 1
-                ? TabBar(
-                  controller: _tabController,
-                  tabs: List.generate(
-                    guestsController.roomCount.value,
-                    (index) => Tab(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Room ${index + 1}',
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                            if (selectedRooms.containsKey(index))
-                              const Icon(Icons.check_circle, size: 10),
-                          ],
+      ),
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.white),
+        onPressed: () => Get.back(),
+      ),
+      bottom: guestsController.roomCount.value > 1
+          ? TabBar(
+              controller: _tabController,
+              tabs: List.generate(
+                guestsController.roomCount.value,
+                (index) => Tab(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Room ${index + 1}',
+                          style: const TextStyle(fontSize: 14),
                         ),
-                      ),
+                        if (selectedRooms.containsKey(index))
+                          const Icon(Icons.check_circle, size: 10),
+                      ],
                     ),
                   ),
-                  labelColor: TColors.white,
-                  unselectedLabelColor: TColors.white,
-                  indicatorColor: TColors.primary,
-                )
-                : null,
-      ),
-      body: Obx(() {
-        if (controller.roomsdata.isEmpty) {
-          return const Center(
-            child: CircularProgressIndicator(color: TColors.primary),
-          );
-        }
+                ),
+              ),
+              labelColor: TColors.white,
+              unselectedLabelColor: TColors.white,
+              indicatorColor: TColors.primary,
+            )
+          : null,
+    ),
+    body: Obx(() {
+      if (controller.roomsdata.isEmpty) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.hotel_outlined,
+                size: 80,
+                color: TColors.grey.withOpacity(0.5),
+              ),
+              SizedBox(height: 24),
+              Text(
+                'No Rooms Available',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: TColors.text,
+                ),
+              ),
+              SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: Text(
+                  'Sorry, there are no rooms available for this hotel at the moment. Please go back and try another hotel.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: TColors.grey,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+              SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: () => Get.back(),
+                icon: Icon(Icons.arrow_back, size: 18),
+                label: Text('Go Back'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: TColors.primary,
+                  foregroundColor: TColors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      // Rest of your existing code for displaying rooms...
+      // (Keep your existing code for groupedRooms, TabBarView, etc.)
 
         // Group rooms by roomName
         Map<String, List<dynamic>> groupedRooms = {};

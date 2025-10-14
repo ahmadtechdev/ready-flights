@@ -46,7 +46,7 @@ class RoomCard extends StatelessWidget {
         sessionId: controller.sessionId.value,
         hotelCode: controller.hotelCode.value,
         groupCode: room['groupCode'] as int,
-        currency: "AED",
+        currency: "USD",
         rateKeys: [room['rateKey']],
       );
 
@@ -461,7 +461,7 @@ class RoomCard extends StatelessWidget {
       sessionId: controller.sessionId.value,
       hotelCode: controller.hotelCode.value,
       groupCode: room['groupCode'] as int,
-      currency: "AED",
+      currency: "USD",
       rateKeys: [room['rateKey']],
     );
 

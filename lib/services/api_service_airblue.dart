@@ -17,7 +17,7 @@ import '../views/flight/search_flights/sabre/sabre_flight_models.dart';
 
 class AirBlueFlightApiService {
   // final String link = 'https://otatest2.zapways.com/v2.0/OTAAPI.asmx';
-  final String link = 'https://ota2.zapways.com/v2.0/OTAAPI.asmx';
+  final String link = 'https://ota2.zapways.com/v3.0/OTAAPI.asmx';
   final String sslCert = 'https://onerooftravel.net/flights/classes/airBlue/newoneroof/cert.pem';
   final String sslKey = 'https://onerooftravel.net/flights/classes/airBlue/newoneroof/key.pem';
 
@@ -137,7 +137,7 @@ class AirBlueFlightApiService {
           '''<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
   <Header/>
   <Body>
-    <AirLowFareSearch xmlns="http://zapways.com/air/ota/2.0">
+    <AirLowFareSearch xmlns="http://zapways.com/air/ota/3.0">
       <airLowFareSearchRQ EchoToken="$randomString" Target="$Target" Version="$Version" xmlns="http://www.opentravel.org/OTA/2003/05">
         <POS>
           <Source ERSP_UserID="$ERSP_UserID">
@@ -965,7 +965,7 @@ class AirBlueFlightApiService {
       final request = '''<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
   <Header/>
   <Body>
-    <AirBook xmlns="http://zapways.com/air/ota/2.0">
+    <AirBook xmlns="http://zapways.com/air/ota/3.0">
       <airBookRQ EchoToken="$randomString" Target="$Target" Version="$Version" xmlns="http://www.opentravel.org/OTA/2003/05">
         <POS>
           <Source ERSP_UserID="$ERSP_UserID">
@@ -1068,8 +1068,12 @@ class AirBlueFlightApiService {
 
       final pnr = jsonResponse['soap\$Envelope']['soap\$Body']['AirBookResponse']
       ['AirBookResult']['AirReservation']['BookingReferenceID'][0]['ID'];
+       final Instance = jsonResponse['soap\$Envelope']['soap\$Body']['AirBookResponse']
+      ['AirBookResult']['AirReservation']['BookingReferenceID'][0]['Instance'];
       print("check pnr");
       print(pnr);
+      print("check instance");
+      print(Instance);
       final ticketing = jsonResponse['soap\$Envelope']['soap\$Body']['AirBookResponse']
       ['AirBookResult']['AirReservation']['Ticketing'];
 
@@ -1097,6 +1101,7 @@ class AirBlueFlightApiService {
         'pnrPricing': pnrPricing.map((p) => p.toJson()).toList(),
         'rawPricingObjects': pnrPricing, // Add the actual objects if needed
         'pnr':pnr,
+        "Instance":Instance,
         'timeLimit':timeLimit,
         'pnrJson': jsonResponse,
         'finalPrice': totalFare, // Add the total fare
@@ -1183,8 +1188,200 @@ class AirBlueFlightApiService {
       debugPrint(text.substring(i, endIndex));
     }
   }
+  // Add these methods to your AirBlueFlightApiService class
+// Add these methods to your AirBlueFlightApiService class
+Future<Map<String, dynamic>> getAirBlueSeatMap({
+  required String departureDateTime,
+  required String flightNumber,
+  required String departureAirport,
+  required String arrivalAirport,
+  required String operatingAirlineCode,
+  required String pnr,
+  required String instance,
+  required String fareType,
+  required String resBookDesigCode,
+  required String cabinClass,
+}) async {
+  try {
+    final randomString = _generateRandomString(32);
 
-  /// Converts XML string to JSON (Map)
+    // Extract date and time, keeping original time instead of forcing 00:00:00
+    String formattedDateTime;
+    if (departureDateTime.contains('T')) {
+      formattedDateTime = departureDateTime;
+    } else {
+      formattedDateTime = '${departureDateTime}T00:00:00';
+    }
+
+    final request = '''<?xml version="1.0"?>
+<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
+  <Header/>
+  <Body>
+    <AirSeatMap xmlns="http://zapways.com/air/ota/3.0">
+      <airSeatMapRQ xmlns="http://www.opentravel.org/OTA/2003/05" Target="$Target" Version="$Version">
+        <POS>
+          <Source ERSP_UserID="$ERSP_UserID">
+            <RequestorID Type="$Type" ID="$ID" MessagePassword="$MessagePassword"/>
+          </Source>
+        </POS>
+        <SeatMapRequests>
+          <SeatMapRequest>
+            <FlightSegmentInfo DepartureDateTime="$formattedDateTime" FlightNumber="$flightNumber" FareType="$fareType" ResBookDesigCode="$resBookDesigCode" CabinClass="$cabinClass">
+              <DepartureAirport LocationCode="$departureAirport"/>
+              <ArrivalAirport LocationCode="$arrivalAirport"/>
+              <OperatingAirline Code="$operatingAirlineCode" FlightNumber="$flightNumber"/>
+            </FlightSegmentInfo>
+          </SeatMapRequest>
+        </SeatMapRequests>
+        <BookingReferenceID Instance="$instance" ID="$pnr"/>
+      </airSeatMapRQ>
+    </AirSeatMap>
+  </Body>
+</Envelope>''';
+
+    printDebugData('Seat Map Request', request);
+
+    final ByteData certData = await rootBundle.load('assets/certs/cert.pem');
+    final ByteData keyData = await rootBundle.load('assets/certs/key.pem');
+    final Directory tempDir = await getTemporaryDirectory();
+    final File certFile = File('${tempDir.path}/cert.pem');
+    final File keyFile = File('${tempDir.path}/key.pem');
+    await certFile.writeAsBytes(certData.buffer.asUint8List());
+    await keyFile.writeAsBytes(keyData.buffer.asUint8List());
+    final dio = Dio(
+      BaseOptions(
+        contentType: 'text/xml; charset=utf-8',
+        headers: {'Content-Type': 'text/xml; charset=utf-8'},
+      ),
+    );
+
+    final SecurityContext securityContext = SecurityContext();
+    securityContext.useCertificateChain(certFile.path);
+    securityContext.usePrivateKey(keyFile.path);
+
+    final HttpClient httpClient = HttpClient(context: securityContext);
+    httpClient.badCertificateCallback = (cert, host, port) => true;
+
+    dio.httpClientAdapter = IOHttpClientAdapter(
+      createHttpClient: () => httpClient,
+    );
+
+    final response = await dio.post(
+      link,
+      data: request,
+      options: Options(
+        contentType: 'text/xml; charset=utf-8',
+        responseType: ResponseType.plain,
+      ),
+    );
+    printDebugData('Seat Map Response', response.data.toString());
+    return _convertXmlToJson(response.data.toString());
+  } catch (e) {
+    throw ApiException(
+      message: 'Failed to get seat map: $e',
+      statusCode: null,
+      errors: {},
+    );
+  }
+}Future<Map<String, dynamic>> updateAirBlueSeats({
+  required String pnr,
+  required String instance,
+  required List<Map<String, dynamic>> seatRequests,
+}) async {
+  try {
+    final randomString = _generateRandomString(32);
+
+    String seatRequestsXml = '';
+    for (var seatRequest in seatRequests) {
+      seatRequestsXml += '''
+            <SeatRequest>
+              <FlightRefNumber>${seatRequest['flightRefNumber']}</FlightRefNumber>
+
+
+
+              <TravelerRefNumber RPH="${seatRequest['travelerRefNumber']}"/>
+              <Seat SeatNumber="${seatRequest['seatNumber']}" 
+                    RowNumber="${seatRequest['rowNumber']}" 
+                    Status="NS"/>
+            </SeatRequest>''';
+    }
+
+    final request = '''<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
+  <Header/>
+  <Body>
+    <AirBookModify xmlns="http://zapways.com/air/ota/3.0">
+      <airBookModifyRQ Target="$Target" Version="$Version" xmlns="http://www.opentravel.org/OTA/2003/05">
+        <POS>
+          <Source ERSP_UserID="$ERSP_UserID">
+            <RequestorID Type="$Type" ID="$ID" MessagePassword="$MessagePassword"/>
+          </Source>
+        </POS>
+        <AirBookModifyRQ ModificationType="5">
+          <TravelerInfo>
+            <SpecialReqDetails>
+              <SeatRequests>
+                $seatRequestsXml
+              </SeatRequests>
+            </SpecialReqDetails>
+          </TravelerInfo>
+        </AirBookModifyRQ>
+        <AirReservation>
+          <BookingReferenceID Instance="$instance" ID="$pnr"/>
+        </AirReservation>
+      </airBookModifyRQ>
+    </AirBookModify>
+  </Body>
+</Envelope>''';
+
+    printDebugData('Seat Update Request', request);
+
+    final ByteData certData = await rootBundle.load('assets/certs/cert.pem');
+    final ByteData keyData = await rootBundle.load('assets/certs/key.pem');
+    final Directory tempDir = await getTemporaryDirectory();
+    final File certFile = File('${tempDir.path}/cert.pem');
+    final File keyFile = File('${tempDir.path}/key.pem');
+
+    await certFile.writeAsBytes(certData.buffer.asUint8List());
+    await keyFile.writeAsBytes(keyData.buffer.asUint8List());
+
+    final dio = Dio(
+      BaseOptions(
+        contentType: 'text/xml; charset=utf-8',
+        headers: {'Content-Type': 'text/xml; charset=utf-8'},
+      ),
+    );
+
+    final SecurityContext securityContext = SecurityContext();
+    securityContext.useCertificateChain(certFile.path);
+    securityContext.usePrivateKey(keyFile.path);
+
+    final HttpClient httpClient = HttpClient(context: securityContext);
+    httpClient.badCertificateCallback = (cert, host, port) => true;
+
+    dio.httpClientAdapter = IOHttpClientAdapter(
+      createHttpClient: () => httpClient,
+    );
+
+    final response = await dio.post(
+      'https://ota2.zapways.com/v3.0/OTAAPI.asmx',
+      data: request,
+      options: Options(
+        contentType: 'text/xml; charset=utf-8',
+        responseType: ResponseType.plain,
+      ),
+    );
+
+    printDebugData('Seat Update Response', response.data.toString());
+
+    return _convertXmlToJson(response.data.toString());
+  } catch (e) {
+    throw ApiException(
+      message: 'Failed to update seats: $e',
+      statusCode: null,
+      errors: {},
+    );
+  }
+}  /// Converts XML string to JSON (Map)
 
 
   /// Prints JSON nicely with chunking

@@ -22,6 +22,83 @@ class ApiServiceAirArabia {
     debugPrint(const JsonEncoder.withIndent('  ').convert(data), wrapWidth: 1024);
     print("===============================================");
   }
+
+  // NEW: Get Air Arabia margin
+  Future<Map<String, dynamic>> getAirArabiaMargin(String? email) async {
+    try {
+      final headers = {
+        'Content-Type': 'application/json',
+      };
+
+      final data = {
+        if (email != null && email.isNotEmpty) "email": email,
+      };
+
+      print("Air Arabia Margin Request *********************");
+      print(data);
+
+      final response = await _dio.request(
+        'https://readyflights.pk/api/flight-margin-arabia',
+        options: Options(
+          method: 'POST',
+          headers: headers,
+        ),
+        data: data,
+      );
+
+      print("*************** Air Arabia Margin Response *********");
+      print(response.data);
+
+      if (response.statusCode == 200) {
+        if (response.data is String) {
+          return jsonDecode(response.data) as Map<String, dynamic>;
+        }
+        return response.data as Map<String, dynamic>;
+      } else {
+        throw Exception('Failed to get Air Arabia margin: ${response.statusMessage}');
+      }
+    } catch (e) {
+      print('Error getting Air Arabia margin: $e');
+      // Return default margin on error
+      return {
+        'margin_val': '0.00',
+        'margin_per': 0,
+      };
+    }
+  }
+  // Helper method to calculate price with margin
+  double calculatePriceWithMargin(double basePrice, Map<String, dynamic> marginData) {
+    try {
+      // Parse margin value and percentage
+      final marginVal = double.tryParse(marginData['margin_val']?.toString() ?? '0') ?? 0.0;
+      final marginPer = double.tryParse(marginData['margin_per']?.toString() ?? '0') ?? 0.0;
+
+      // Validate that at least one margin type has a value
+      if (marginVal == 0 && marginPer == 0) {
+        print('Warning: Both margin values are zero, returning base price');
+        return basePrice;
+      }
+
+      // Apply percentage margin first (if exists)
+      double finalPrice = basePrice;
+      if (marginPer > 0) {
+        finalPrice = basePrice * (1 + (marginPer / 100));
+        print('Applied percentage margin: $marginPer% -> Price: $finalPrice');
+      }
+
+      // Add value margin (if exists)
+      if (marginVal > 0) {
+        finalPrice += marginVal;
+        print('Added value margin: $marginVal -> Final Price: $finalPrice');
+      }
+
+      return finalPrice;
+    } catch (e) {
+      print('Error calculating margin: $e');
+      return basePrice;
+    }
+  }
+
   Future<Map<String, dynamic>> searchFlights({
     required int type,
     required String origin,
@@ -52,7 +129,7 @@ class ApiServiceAirArabia {
       print("AirArabia Request *********************");
       print(data);
       final response = await _dio.request(
-        'https://onerooftravel.net/api/new-air-arabia-flights',
+        'https://readyflights.pk/api/new-air-arabia-flights',
         options: Options(
           method: 'POST',
           headers: headers,
@@ -60,7 +137,6 @@ class ApiServiceAirArabia {
         data: data,
       );
 
-      // printDebugData('Air Arabia Response', response);
       print("*************** Response Arabia*********");
       print(response);
       if (response.statusCode == 200) {
@@ -103,13 +179,13 @@ class ApiServiceAirArabia {
       // Print full request details
       printFullRequest(
         "GET FLIGHT PACKAGES", 
-        'https://onerooftravel.net/api/get-air-arabia-package',
+        'https://readyflights.pk/api/get-air-arabia-package',
         headers,
         data
       );
 
       print("AirArabia Packages Request *********************");
-      print("Request URL: https://onerooftravel.net/api/get-air-arabia-package");
+      print("Request URL: https://readyflights.pk/api/get-air-arabia-package");
       print("Request Headers:");
       headers.forEach((key, value) {
         print("  $key: $value");
@@ -119,7 +195,7 @@ class ApiServiceAirArabia {
       print("***************************************************");
 
       final response = await _dio.request(
-        'https://onerooftravel.net/api/get-air-arabia-package',
+        'https://readyflights.pk/api/get-air-arabia-package',
         options: Options(
           method: 'POST',
           headers: headers,
@@ -174,19 +250,18 @@ class ApiServiceAirArabia {
         "infant": infant,
         "sector": sector,
         "fare": fare,
-        // "cs_id": csId,
       };
 
       // Print full request details
       printFullRequest(
         "REVALIDATE PACKAGE", 
-        'https://onerooftravel.net/api/air-arabia-package-revalidate',
+        'https://readyflights.pk/api/air-arabia-package-revalidate',
         headers,
         data
       );
 
       print("AirArabia Package Revalidation Request *********************");
-      print("Request URL: https://onerooftravel.net/api/air-arabia-package-revalidate");
+      print("Request URL: https://readyflights.pk/api/air-arabia-package-revalidate");
       print("Request Headers:");
       headers.forEach((key, value) {
         print("  $key: $value");
@@ -196,7 +271,7 @@ class ApiServiceAirArabia {
       print("*************************************************************");
 
       final response = await _dio.request(
-        'https://onerooftravel.net/api/air-arabia-package-revalidate',
+        'https://readyflights.pk/api/air-arabia-package-revalidate',
         options: Options(
           method: 'POST',
           headers: headers,
@@ -230,139 +305,130 @@ class ApiServiceAirArabia {
     }
   }
 
-// Updated createAirArabiaBooking method in ApiServiceAirArabia class
-// Updated createAirArabiaBooking method parameters in ApiServiceAirArabia class
-Future<Map<String, dynamic>> createAirArabiaBooking({
-  required String email,
-  required String finalKey,
-  required String echoToken,
-  required String transactionIdentifier,
-  required String jsession,
-  required int adults,
-  required int child,
-  required int infant,
-  required List<int> stopsSector,
-  required String bkIdArray,
-  required String bkIdArray3,
-  required List<List<String>> adultBaggage,           // CORRECTED TYPE: 2D array
-  required List<List<List<String>>> adultMeal,        // CORRECTED TYPE: 3D array  
-  required List<List<List<String>>> adultSeat,        // CORRECTED TYPE: 3D array
-  required List<dynamic> childBaggage,
-  required List<dynamic> childMeal,
-  required List<dynamic> childSeat,
-  required String bookerName,
-  required String countryCode,
-  required String simCode,
-  required String city,
-  required String address,
-  required String phone,
-  required String remarks,
-  required double marginPer,
-  required double marginVal,
-  required double finalPrice,
-  required double totalPrice,
-  required String flightType,
-  required int csId,
-  required String csName,
-  required List<Map<String, dynamic>> adultPassengers,
-  required List<Map<String, dynamic>> childPassengers,
-  required List<Map<String, dynamic>> infantPassengers,
-  required List<Map<String, dynamic>> flightDetails,
-}) async {
-  try {
-    final headers = {
-      'Content-Type': 'application/json',
-      'Cookie': 'PHPSESSID=trfun4hl59lq621fvrhus9oti5'
-    };
+  Future<Map<String, dynamic>> createAirArabiaBooking({
+    required String email,
+    required String finalKey,
+    required String echoToken,
+    required String transactionIdentifier,
+    required String jsession,
+    required int adults,
+    required int child,
+    required int infant,
+    required List<int> stopsSector,
+    required String bkIdArray,
+    required String bkIdArray3,
+    required List<List<String>> adultBaggage,
+    required List<List<List<String>>> adultMeal,
+    required List<List<List<String>>> adultSeat,
+    required List<dynamic> childBaggage,
+    required List<dynamic> childMeal,
+    required List<dynamic> childSeat,
+    required String bookerName,
+    required String countryCode,
+    required String simCode,
+    required String city,
+    required String address,
+    required String phone,
+    required String remarks,
+    required double marginPer,
+    required double marginVal,
+    required double finalPrice,
+    required double totalPrice,
+    required String flightType,
+    required int csId,
+    required String csName,
+    required List<Map<String, dynamic>> adultPassengers,
+    required List<Map<String, dynamic>> childPassengers,
+    required List<Map<String, dynamic>> infantPassengers,
+    required List<Map<String, dynamic>> flightDetails,
+  }) async {
+    try {
+      final headers = {
+        'Content-Type': 'application/json',
+        'Cookie': 'PHPSESSID=trfun4hl59lq621fvrhus9oti5'
+      };
 
-    final data = {
-      "email": email,
-      "final_key": finalKey,
-      "EchoToken": echoToken,
-      "TransactionIdentifier": transactionIdentifier,
-      "jsession": jsession,
-      "adults": adults,
-      "child": child,
-      "infant": infant,
-      "stops_sector": stopsSector,
-      "bk_id_array": bkIdArray,
-      "bk_id_array3": bkIdArray3,
-      "adult_baggage": adultBaggage,    // Now correctly 2D array
-      "adult_meal": adultMeal,          // Now correctly 3D array
-      "adult_seat": adultSeat,          // Now correctly 3D array
-      "child_baggage": childBaggage,
-      "child_meal": childMeal,
-      "child_seat": childSeat,
-      "booker_name": bookerName,
-      "country_code": countryCode,
-      "sim_code": simCode,
-      "city": city,
-      "address": address,
-      "phone": phone,
-      "remarks": remarks,
-      "margin_per": marginPer,
-      "margin_val": marginVal,
-      "final_price": finalPrice,
-      "total_price": totalPrice,
-      "flight_type": flightType,
-      "cs_id": csId,
-      "cs_name": csName,
-      "adult_passengers": adultPassengers,
-      "child_passengers": childPassengers,
-      "infant_passengers": infantPassengers,
-      "flight_details": flightDetails,
-    };
+      final data = {
+        "email": email,
+        "final_key": finalKey,
+        "EchoToken": echoToken,
+        "TransactionIdentifier": transactionIdentifier,
+        "jsession": jsession,
+        "adults": adults,
+        "child": child,
+        "infant": infant,
+        "stops_sector": stopsSector,
+        "bk_id_array": bkIdArray,
+        "bk_id_array3": bkIdArray3,
+        "adult_baggage": adultBaggage,
+        "adult_meal": adultMeal,
+        "adult_seat": adultSeat,
+        "child_baggage": childBaggage,
+        "child_meal": childMeal,
+        "child_seat": childSeat,
+        "booker_name": bookerName,
+        "country_code": countryCode,
+        "sim_code": simCode,
+        "city": city,
+        "address": address,
+        "phone": phone,
+        "remarks": remarks,
+        "margin_per": marginPer,
+        "margin_val": marginVal,
+        "final_price": finalPrice,
+        "total_price": totalPrice,
+        "flight_type": flightType,
+        "cs_id": csId,
+        "cs_name": csName,
+        "adult_passengers": adultPassengers,
+        "child_passengers": childPassengers,
+        "infant_passengers": infantPassengers,
+        "flight_details": flightDetails,
+      };
 
-    print("AirArabia Booking Request *********************");
-    debugPrint(jsonEncode(data), wrapWidth: 1024);
+      print("AirArabia Booking Request *********************");
+      debugPrint(jsonEncode(data), wrapWidth: 1024);
 
-    final response = await _dio.request(
-      'https://onerooftravel.net/api/air-arabia-create-booking',
-      options: Options(
-        method: 'POST',
-        headers: headers,
-      ),
-      data: data,
-    );
+      final response = await _dio.request(
+        'https://readyflights.pk/api/air-arabia-create-booking',
+        options: Options(
+          method: 'POST',
+          headers: headers,
+        ),
+        data: data,
+      );
 
-    print("******** AirArabia Booking Response ********");
-    debugPrint(jsonEncode(response.data), wrapWidth: 1024);
+      print("******** AirArabia Booking Response ********");
+      debugPrint(jsonEncode(response.data), wrapWidth: 1024);
 
-    if (response.statusCode == 200) {
-      if (response.data is String) {
-        return jsonDecode(response.data) as Map<String, dynamic>;
+      if (response.statusCode == 200) {
+        if (response.data is String) {
+          return jsonDecode(response.data) as Map<String, dynamic>;
+        }
+        return response.data as Map<String, dynamic>;
+      } else {
+        throw Exception('Failed to create Air Arabia booking: ${response.statusMessage}');
       }
-      return response.data as Map<String, dynamic>;
-    } else {
-      throw Exception('Failed to create Air Arabia booking: ${response.statusMessage}');
+    } catch (e) {
+      print('Error creating Air Arabia booking: $e');
+      rethrow;
     }
-  } catch (e) {
-    print('Error creating Air Arabia booking: $e');
-    rethrow;
   }
-}
 
-Map<String, dynamic> _convertXmlToJson(String xmlString) {
+  Map<String, dynamic> _convertXmlToJson(String xmlString) {
     try {
       final transformer = Xml2Json();
       transformer.parse(xmlString);
       final jsonString = transformer.toGData();
       return jsonDecode(jsonString) as Map<String, dynamic>;
     } catch (e) {
-      // print('Error converting XML to JSON: $e');
       return {'error': 'Failed to parse XML response'};
     }
   }
 
   void printDebugData(String label, dynamic data) {
-    // print('--- DEBUG: $label ---');
-
     if (data is String && data.trim().startsWith('<')) {
-      // Handle XML string
-      // print('Raw XML:\n$data');
-
       try {
-        // Convert XML to JSON
         final jsonData = _convertXmlToJson(data);
         printJsonPretty(jsonData);
       } catch (e) {
@@ -370,18 +436,11 @@ Map<String, dynamic> _convertXmlToJson(String xmlString) {
           print('Error converting XML to JSON: $e');
         }
       }
-    } else if (data is String) {
-      // Plain string
-      // print('Plain String:\n$data');
     } else {
-      // JSON/Map or other object
       printJsonPretty(data);
     }
-
-    // print('--- END DEBUG: $label ---\n');
   }
 
-  /// Prints JSON nicely with chunking
   void printJsonPretty(dynamic jsonData) {
     const int chunkSize = 1000;
     final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);

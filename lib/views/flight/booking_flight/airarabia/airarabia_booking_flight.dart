@@ -230,9 +230,6 @@ class _AirArabiaBookingFlightState extends State<AirArabiaBookingFlight> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Flight Summary
-                _buildFlightSummary(),
-                const SizedBox(height: 24),
                 _buildTravelersForm(),
                 const SizedBox(height: 24),
                 _buildBookerDetails(),
@@ -248,92 +245,7 @@ class _AirArabiaBookingFlightState extends State<AirArabiaBookingFlight> {
     );
   }
 
-  Widget _buildFlightSummary() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: TColors.primary,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
-              ),
-            ),
-            child: const Text(
-              'Flight Summary',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '${widget.flight.flightSegments.first['departure']['airport']} → ${widget.flight.flightSegments.last['arrival']['airport']}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      '${widget.currency} ${widget.totalPrice.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: TColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Package: ${widget.selectedPackage.packageName}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Airline: ${widget.flight.airlineName}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTravelersForm() {
+ Widget _buildTravelersForm() {
     return Obx(() {
       final adults = List.generate(
         travelersController.adultCount.value,

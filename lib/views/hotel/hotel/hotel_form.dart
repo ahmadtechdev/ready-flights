@@ -377,8 +377,8 @@ class HotelForm extends StatelessWidget {
           String countryCode = selectedCity.value!.countryCode;
 
           // Default values
-          String nationality = "AE"; // You might want to make this dynamic too
-          String currency = "AED"; // You might want to make this dynamic too
+          String nationality = "PK"; // You might want to make this dynamic too
+          String currency = "USD"; // You might want to make this dynamic too
 
           String checkInDate =
               hotelDateController.checkInDate.value.toIso8601String();

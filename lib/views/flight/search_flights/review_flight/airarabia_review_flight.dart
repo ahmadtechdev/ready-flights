@@ -118,158 +118,27 @@ void _startShadowAnimation() {
             const SizedBox(height: 8),
 
             // Flight Information Section
-            const Padding(
-              padding: EdgeInsets.only(left: 16.0, top: 8.0),
-              child: Text(
-                'Flight Details',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: TColors.primary,
-                ),
-              ),
-            ),
-            
-            // Flight Card - Using AirArabiaFlightCard if available, otherwise create custom
-            Container(
-              margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: TColors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: TColors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Flight number and airline
-                  Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          color: TColors.primary.withOpacity(0.1),
-                        ),
-                        child: const Icon(
-                          Icons.flight,
-                          color: TColors.primary,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.flight.airlineName,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: TColors.primary,
-                              ),
-                            ),
-                            Text(
-                              'Flight ${widget.flight.flightSegments.first['flightNumber']}',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: TColors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Flight route information
-                  ...widget.flight.flightSegments.map((segment) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        children: [
-                          // Departure
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  segment['departure']['airport'],
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: TColors.primary,
-                                  ),
-                                ),
-                                Text(
-                                  _formatDateTime(segment['departure']['dateTime']),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: TColors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          
-                          // Flight duration and arrow
-                          Column(
-                            children: [
-                              const Icon(
-                                Icons.flight_takeoff,
-                                color: TColors.primary,
-                                size: 20,
-                              ),
-                              Text(
-                                _formatDuration(segment['elapsedTime']),
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: TColors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                          
-                          // Arrival
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  segment['arrival']['airport'],
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: TColors.primary,
-                                  ),
-                                ),
-                                Text(
-                                  _formatDateTime(segment['arrival']['dateTime']),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: TColors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ],
-              ),
-            ),
+           const Padding(
+  padding: EdgeInsets.only(left: 16.0, top: 8.0),
+  child: Text(
+    'Flight Details',
+    style: TextStyle(
+      fontWeight: FontWeight.bold,
+      fontSize: 18,
+      color: TColors.primary,
+    ),
+  ),
+),
 
+// Add proper flight card that shows backend data
+Padding(
+  padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+  child: AirArabiaFlightCard(
+    flight: widget.flight,
+    showReturnFlight: false,
+    isShowBookButton: false, // This will hide the book button and show proper layout
+  ),
+),// Flight Card - Using AirArabiaFlightCard if available, otherwise create custom
             // Selected Package Section
             const Padding(
               padding: EdgeInsets.only(left: 16.0, top: 8.0),
@@ -663,21 +532,17 @@ String _getSegmentRoute(String segmentCode) {
 }
 
 // Also update your _calculatePrices method to use the observable value:
+// Update _calculatePrices method:
 void _calculatePrices() {
-  // Base flight price
-  flightPrice = widget.flight.price;
+  // Get prices from controller
+  flightPrice = revalidationController.flightPrice.value;
+  packagePrice = revalidationController.packagePrice.value;
   
-  // Package price (if different from base)
-  packagePrice = widget.selectedPackage.totalPrice;
-  
-  // Calculate extras price from revalidation controller (this is now reactive)
-  // Remove the direct assignment and let it be handled by Obx
-  
-  // Base total price calculation (without extras for now)
-  // Total will be calculated reactively in the UI
+  // Currency from flight or controller
   currency = widget.flight.currency;
+  
+  // Note: extras price is already reactive via revalidationController.totalExtrasPrice
 }
-
 
   Widget _buildExtrasItem(IconData icon, String title, String subtitle, double price) {
     return Container(

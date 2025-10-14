@@ -26,6 +26,8 @@ class FlightBookingDetailsScreen extends StatefulWidget {
   final AirBlueFareOption? returnFareOption;
   final List<AirBlueFareOption>? multicityFareOptions;
   final Map<String, dynamic>? pnrResponse;
+   final Map<int, String>? selectedSeats;
+  
 
   const FlightBookingDetailsScreen({
     super.key,
@@ -35,7 +37,7 @@ class FlightBookingDetailsScreen extends StatefulWidget {
     this.outboundFareOption,
     this.returnFareOption,
     this.multicityFareOptions,
-    this.pnrResponse,
+    this.pnrResponse, this.selectedSeats,
   });
 
   @override
@@ -1382,54 +1384,122 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
     );
   }
 
-  Widget _buildPassengerCard({
-    required int index,
-    required String name,
-    required String type,
-    required String passport,
-    required Color typeColor,
-    required IconData typeIcon,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        children: [
-          // Serial number circle
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: typeColor.withOpacity(0.1),
-              shape: BoxShape.circle,
-              border: Border.all(color: typeColor.withOpacity(0.3)),
-            ),
-            child: Center(
-              child: Text(
-                index.toString(),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: typeColor,
-                ),
+Widget _buildPassengerCard({
+  required int index,
+  required String name,
+  required String type,
+  required String passport,
+  required Color typeColor,
+  required IconData typeIcon,
+}) {
+  // Get seat number for this passenger (index-1 because passenger index starts from 1)
+  final passengerIndex = index - 1;
+  final seatNumber = widget.selectedSeats?.containsKey(passengerIndex) == true
+      ? widget.selectedSeats![passengerIndex]
+      : null;
+
+  return Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF8FAFC),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: const Color(0xFFE2E8F0)),
+    ),
+    child: Row(
+      children: [
+        // Serial number circle
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: typeColor.withOpacity(0.1),
+            shape: BoxShape.circle,
+            border: Border.all(color: typeColor.withOpacity(0.3)),
+          ),
+          child: Center(
+            child: Text(
+              index.toString(),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: typeColor,
               ),
             ),
           ),
-          const SizedBox(width: 16),
+        ),
+        const SizedBox(width: 16),
 
-          // Passenger info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+        // Passenger info
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(typeIcon, size: 16, color: typeColor),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: typeColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      type,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: typeColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                name,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.credit_card,
+                    size: 14,
+                    color: Color(0xFF64748B),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    passport.isNotEmpty ? passport : 'Not provided',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: passport.isNotEmpty
+                          ? const Color(0xFF64748B)
+                          : Colors.red.withOpacity(0.7),
+                      fontStyle:
+                          passport.isEmpty ? FontStyle.italic : FontStyle.normal,
+                    ),
+                  ),
+                ],
+              ),
+              // Add seat information
+              if (seatNumber != null) ...[
+                const SizedBox(height: 6),
                 Row(
                   children: [
-                    Icon(typeIcon, size: 16, color: typeColor),
+                    const Icon(
+                      Icons.airline_seat_recline_normal,
+                      size: 14,
+                      color: Color(0xFF10B981),
+                    ),
                     const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -1437,90 +1507,55 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: typeColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        color: const Color(0xFF10B981).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        type,
-                        style: TextStyle(
-                          fontSize: 10,
+                        'Seat: $seatNumber',
+                        style: const TextStyle(
+                          fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: typeColor,
+                          color: Color(0xFF10B981),
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1E293B),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.credit_card,
-                      size: 14,
-                      color: Color(0xFF64748B),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      passport.isNotEmpty ? passport : 'Not provided',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color:
-                            passport.isNotEmpty
-                                ? const Color(0xFF64748B)
-                                : Colors.red.withOpacity(0.7),
-                        fontStyle:
-                            passport.isEmpty
-                                ? FontStyle.italic
-                                : FontStyle.normal,
-                      ),
-                    ),
-                  ],
-                ),
               ],
-            ),
-          ),
-
-          // Ticket status
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF64748B).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'Pending',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Ticket #',
-                style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
-              ),
             ],
           ),
-        ],
-      ),
-    );
-  }
+        ),
 
-  Widget _buildPriceBreakdownCard() {
+        // Ticket status
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF64748B).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'Pending',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Ticket #',
+              style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}Widget _buildPriceBreakdownCard() {
     final outboundFlight = widget.outboundFlight;
     final returnFlight = widget.returnFlight;
     final multicityFlights = widget.multicityFlights;
@@ -2017,43 +2052,70 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
               style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
             ),
             pw.Divider(),
-            pw.TableHelper.fromTextArray(
-              context: context,
-              border: pw.TableBorder.all(color: PdfColors.grey300),
-              headerDecoration: pw.BoxDecoration(color: PdfColors.grey200),
-              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-              headers: ['Sr', 'Name', 'Type', 'Passport#', 'Ticket #'],
-              data: [
-                ...bookingController.adults.map(
-                  (adult) => [
-                    '${bookingController.adults.indexOf(adult) + 1}',
-                    '${adult.firstNameController.text} ${adult.lastNameController.text}',
-                    'Adult',
-                    adult.passportCnicController.text,
-                    'N/A',
-                  ],
-                ),
-                ...bookingController.children.map(
-                  (child) => [
-                    '${bookingController.adults.length + bookingController.children.indexOf(child) + 1}',
-                    '${child.firstNameController.text} ${child.lastNameController.text}',
-                    'Child',
-                    child.passportCnicController.text,
-                    'N/A',
-                  ],
-                ),
-                ...bookingController.infants.map(
-                  (infant) => [
-                    '${bookingController.adults.length + bookingController.children.length + bookingController.infants.indexOf(infant) + 1}',
-                    '${infant.firstNameController.text} ${infant.lastNameController.text}',
-                    'Infant',
-                    infant.passportCnicController.text,
-                    'N/A',
-                  ],
-                ),
-              ],
-            ),
-            pw.SizedBox(height: 20),
+           pw.TableHelper.fromTextArray(
+  context: context,
+  border: pw.TableBorder.all(color: PdfColors.grey300),
+  headerDecoration: pw.BoxDecoration(color: PdfColors.grey200),
+  headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+  cellStyle: const pw.TextStyle(fontSize: 9),
+  headers: ['Sr', 'Name', 'Type', 'Passport#', 'Seat', 'Ticket #'],
+  data: [
+    ...bookingController.adults.asMap().entries.map(
+      (entry) {
+        final index = entry.key;
+        final adult = entry.value;
+        final seatNumber = widget.selectedSeats?.containsKey(index) == true
+            ? widget.selectedSeats![index]!
+            : 'Not Selected';
+        return [
+          '${index + 1}',
+          '${adult.firstNameController.text} ${adult.lastNameController.text}',
+          'Adult',
+          adult.passportCnicController.text,
+          seatNumber,
+          'N/A',
+        ];
+      },
+    ),
+    ...bookingController.children.asMap().entries.map(
+      (entry) {
+        final index = entry.key;
+        final child = entry.value;
+        final passengerIndex = bookingController.adults.length + index;
+        final seatNumber = widget.selectedSeats?.containsKey(passengerIndex) == true
+            ? widget.selectedSeats![passengerIndex]!
+            : 'Not Selected';
+        return [
+          '${passengerIndex + 1}',
+          '${child.firstNameController.text} ${child.lastNameController.text}',
+          'Child',
+          child.passportCnicController.text,
+          seatNumber,
+          'N/A',
+        ];
+      },
+    ),
+    ...bookingController.infants.asMap().entries.map(
+      (entry) {
+        final index = entry.key;
+        final infant = entry.value;
+        final passengerIndex =
+            bookingController.adults.length + bookingController.children.length + index;
+        final seatNumber = widget.selectedSeats?.containsKey(passengerIndex) == true
+            ? widget.selectedSeats![passengerIndex]!
+            : 'Not Selected';
+        return [
+          '${passengerIndex + 1}',
+          '${infant.firstNameController.text} ${infant.lastNameController.text}',
+          'Infant',
+          infant.passportCnicController.text,
+          seatNumber,
+          'N/A',
+        ];
+      },
+    ),
+  ],
+), pw.SizedBox(height: 20),
 
             // Price Breakdown
             pw.Text(

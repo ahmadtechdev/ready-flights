@@ -8,6 +8,8 @@ class AirArabiaRevalidationController extends GetxController {
   final RxInt adultPassengers = 1.obs;
   final RxInt childPassengers = 0.obs;
   final RxInt infantPassengers = 0.obs;
+  final RxDouble packagePrice = 0.0.obs;
+final RxDouble flightPrice = 0.0.obs;
   
   final RxBool isLoading = false.obs;
   final RxString errorMessage = ''.obs;
@@ -49,28 +51,33 @@ class AirArabiaRevalidationController extends GetxController {
 
   Future<void> _autoRevalidate(Map<String, dynamic> args) async {
     // Set passenger count from arguments
-    final adults = args['adult'] ?? 1;
-    final children = args['child'] ?? 0;
-    final infants = args['infant'] ?? 0;
-    
-    adultPassengers.value = adults;
-    childPassengers.value = children;
-    infantPassengers.value = infants;
-    totalPassengers.value = adults + children + infants;
-    
-    // Initialize passenger IDs
-    _initializePassengerIds();
+   final adults = args['adult'] ?? 1;
+  final children = args['child'] ?? 0;
+  final infants = args['infant'] ?? 0;
+  
+  adultPassengers.value = adults;
+  childPassengers.value = children;
+  infantPassengers.value = infants;
+  totalPassengers.value = adults + children + infants;
+  
+  // ADD THESE LINES:
+  packagePrice.value = args['packagePrice'] ?? 0.0;
+  flightPrice.value = args['flightPrice'] ?? 0.0;
+  basePrice.value = flightPrice.value + packagePrice.value;
+  
+  // Initialize passenger IDs
+  _initializePassengerIds();
 
-    await revalidatePackage(
-      type: args['type'] ?? 0,
-      adult: adults,
-      child: children,
-      infant: infants,
-      sector: args['sector'] ?? [],
-      fare: args['fare'] ?? {},
-      csId: args['csId'] ?? 15,
-    );
-  }
+  await revalidatePackage(
+    type: args['type'] ?? 0,
+    adult: adults,
+    child: children,
+    infant: infants,
+    sector: args['sector'] ?? [],
+    fare: args['fare'] ?? {},
+    csId: args['csId'] ?? 15,
+  );
+}
 
   void _initializePassengerIds() {
     passengerIds.clear();
@@ -129,48 +136,36 @@ class AirArabiaRevalidationController extends GetxController {
     }
   }
 
-  void _processResponseData() {
-    try {
-      final data = revalidationResponse.value?.data;
-      if (data == null) {
-        print('No data in revalidation response');
-        return;
-      }
-
-      // Set base price and currency - handle multiple PTC fare breakdowns
-      final ptcBreakdowns = data.pricing.ptcFareBreakdowns;
-      double totalBasePrice = 0.0;
-      
-      for (final breakdown in ptcBreakdowns) {
-        final passengerFare = breakdown.passengerFare;
-        if (passengerFare != null && passengerFare.totalFare != null) {
-          final totalFareAmount = passengerFare.totalFare!.attributes['Amount']?.toString() ?? '0';
-          final quantity = int.tryParse(breakdown.passengerTypeQuantity?.attributes['Quantity'] ?? '1') ?? 1;
-          totalBasePrice += (double.tryParse(totalFareAmount) ?? 0.0) * quantity;
-        }
-      }
-      
-      basePrice.value = totalBasePrice;
-      currency.value = ptcBreakdowns.isNotEmpty 
-          ? ptcBreakdowns.first.passengerFare?.totalFare?.attributes['CurrencyCode']?.toString() ?? 'PKR'
-          : 'PKR';
-
-      // Process baggage options
-      _processBaggageOptions(data.extras.baggage);
-
-      // Process meal options
-      _processMealOptions(data.extras.meal);
-
-      // Process seat options
-      _processSeatOptions(data.extras.seat);
-      
-    } catch (e) {
-      print('Error processing response data: $e');
-      errorMessage.value = 'Error processing flight data: ${e.toString()}';
+ void _processResponseData() {
+  try {
+    final data = revalidationResponse.value?.data;
+    if (data == null) {
+      print('No data in revalidation response');
+      return;
     }
-  }
 
-  // Updated to handle multiple OnDBaggageDetailsResponse objects
+    // REMOVE OR COMMENT OUT THIS ENTIRE BLOCK:
+    // final ptcBreakdowns = data.pricing.ptcFareBreakdowns;
+    // double totalBasePrice = 0.0;
+    // ... (the entire price calculation loop)
+    
+    // Keep basePrice from what was set in _autoRevalidate
+    // It already includes flight + package price
+    
+    currency.value = data.pricing.ptcFareBreakdowns.isNotEmpty 
+        ? data.pricing.ptcFareBreakdowns.first.passengerFare?.totalFare?.attributes['CurrencyCode']?.toString() ?? 'PKR'
+        : 'PKR';
+
+    // Process extras as before...
+    _processBaggageOptions(data.extras.baggage);
+    _processMealOptions(data.extras.meal);
+    _processSeatOptions(data.extras.seat);
+    
+  } catch (e) {
+    print('Error processing response data: $e');
+    errorMessage.value = 'Error processing flight data: ${e.toString()}';
+  }
+} // Updated to handle multiple OnDBaggageDetailsResponse objects
 void _processBaggageOptions(BaggageInfo baggageInfo) {
   try {
     final baggageDetails = baggageInfo.body.aaBaggageDetailsRS;
