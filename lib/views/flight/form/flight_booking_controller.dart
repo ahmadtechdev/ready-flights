@@ -396,16 +396,16 @@ class FlightBookingController extends GetxController {
 
       // Call APIs in parallel
       final futures = [
-      //   _callSabreApi(
-      //     type: tripType.value == TripType.multiCity ? 2 : (tripType.value == TripType.roundTrip ? 1 : 0),
-      //     origin: origin,
-      //     destination: destination,
-      //     depDate: formattedDates,
-      //     adult: adultCount.value,
-      //     child: childrenCount.value,
-      //     infant: infantCount.value,
-      //     cabin: travelClass.value.toUpperCase(),
-      //   ),
+        _callSabreApi(
+          type: tripType.value == TripType.multiCity ? 2 : (tripType.value == TripType.roundTrip ? 1 : 0),
+          origin: origin,
+          destination: destination,
+          depDate: formattedDates,
+          adult: adultCount.value,
+          child: childrenCount.value,
+          infant: infantCount.value,
+          cabin: travelClass.value.toUpperCase(),
+        ),
 
         // // Call AirBlue API for all trip types including multi-city
         _callAirBlueApi(
@@ -684,7 +684,12 @@ class FlightBookingController extends GetxController {
     required int infant,
     required String cabin,
   }) async { 
+    print("check run saber ");
+
+
     try {
+    print("check run saber 1");
+
       final result = await apiServiceFlight.searchFlights(
         type: type,
         origin: origin,

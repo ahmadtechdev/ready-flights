@@ -311,15 +311,15 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
         backgroundColor: TColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
-        actions: [
-          TextButton(
-            onPressed: _skipSeatSelection,
-            child: const Text(
-              'Skip',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
-            ),
-          ),
-        ],
+        // actions: [
+        //   TextButton(
+        //     onPressed: _skipSeatSelection,
+        //     child: const Text(
+        //       'Skip',
+        //       style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+        //     ),
+        //   ),
+        // ],
       ),
       body: isLoading
           ? const Center(
@@ -655,7 +655,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
             ),
             if (price > 0 && isAvailable)
               Text(
-                price >= 1000 ? '${(price / 1000).toStringAsFixed(0)}k' : price.toStringAsFixed(0),
+                'PKR ${price.toStringAsFixed(0)}',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 7,

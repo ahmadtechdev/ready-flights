@@ -86,34 +86,53 @@ class ApiServiceSabre extends GetxService {
   }
 
   // Add to ApiServiceFlight class
-  Future<String> generateToken() async {
-    try {
-      final response = await dio.post(
-        '/v2/auth/token',
-        options: Options(
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization':
-                'Basic VmpFNk5EY3pNVGcxT2paTlJEZzZRVUU9OlUxTlhVa1ZUT1RBPQ==',
-            'grant_type': 'client_credentials'
-          },
-        ),
-        // data: {'grant_type': 'client_credentials'},
-      );
+ Future<String> generateToken() async {
+  print("check run saber 5");
+  try {
+    // Use updated credentials from PHP
+    final pcc = '6MD8';
+    final username = '409318';  // Updated username
+    final password = 'SSWRES99';
+    
+    // Step 1: Create key like PHP: 'V1:username:pcc:AA'
+    final key = 'V1:$username:$pcc:AA';
+    final keyBase64 = base64Encode(utf8.encode(key));
+    
+    // Step 2: Encode password
+    final passwordBase64 = base64Encode(utf8.encode(password));
+    
+    // Step 3: Combine like PHP: keyBase64:passwordBase64
+    final finalKey = '$keyBase64:$passwordBase64';
+    final finalKeyBase64 = base64Encode(utf8.encode(finalKey));
+    
+    print("Authorization Key: Basic $finalKeyBase64");
+    
+    final response = await dio.post(
+      '/v2/auth/token',
+      options: Options(
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': 'Basic $finalKeyBase64',
+          'grant_type': 'client_credentials',  // Added as separate header like PHP
+        },
+      ),
+    );
+    
+    print("check run saber 6");
+    print(response.data);
 
-
-      if (response.statusCode == 200 && response.data['access_token'] != null) {
-        final token = response.data['access_token'];
-        await _storeToken(token);
-        return token;
-      } else {
-        throw Exception('Failed to generate token');
-      }
-    } catch (e) {
-      throw Exception('Error generating token: $e');
+    if (response.statusCode == 200 && response.data['access_token'] != null) {
+      final token = response.data['access_token'];
+      await _storeToken(token);
+      return token;
+    } else {
+      throw Exception('Failed to generate token');
     }
+  } catch (e) {
+    print('Error generating token: $e');
+    throw Exception('Error generating token: $e');
   }
-
+}
   // Sabre 0
   // AirBlue 1
 
@@ -127,13 +146,19 @@ class ApiServiceSabre extends GetxService {
     required int infant,
     required int stop,
     required String cabin,
-    required int flight,
+    required int flight, 
+
+    
   }) async {
     try {
-
+    print("check run saber 2");
+ 
 
       if(flight==0){
+    print("check run saber 3");
+
         final token = await getValidToken() ?? await generateToken();
+        print("check run saber 4 $token");
         // Original Sabre API call
         final sabreResponse = await _searchFlightsWithSabre(
           type: type,
@@ -186,6 +211,7 @@ class ApiServiceSabre extends GetxService {
     }
   }
   Future<Map<String, dynamic>> _searchFlightsWithSabre({
+
     required int type,
     required String origin,
     required String destination,
@@ -197,6 +223,7 @@ class ApiServiceSabre extends GetxService {
     required String cabin,
     required String token,
   }) async {
+    print("check run");
     try {
       final originArray = origin.split(',');
       final destinationArray = destination.split(',');
@@ -258,6 +285,7 @@ class ApiServiceSabre extends GetxService {
       if (adult > 0) passengers.add({"Code": "ADT", "Quantity": adult});
       if (child > 0) passengers.add({"Code": "CHD", "Quantity": child});
       if (infant > 0) passengers.add({"Code": "INF", "Quantity": infant});
+
 
       final requestBody = {
         "OTA_AirLowFareSearchRQ": {
@@ -326,6 +354,8 @@ class ApiServiceSabre extends GetxService {
           }
         }
       };
+      print("Sabre Request");
+      print(requestBody);
 
       final response = await dio.post(
         '/v3/offers/shop',
@@ -337,10 +367,9 @@ class ApiServiceSabre extends GetxService {
         ),
         data: requestBody,
       );
-
       if (response.statusCode == 200) {
-        // print("Sabre Response");
-        // printJsonPretty(response.data);
+        print("Sabre Response");
+        printJsonPretty(response.data);
         return response.data;
       } else {
         throw Exception('Failed to model_controllers flights: ${response.statusCode}');
