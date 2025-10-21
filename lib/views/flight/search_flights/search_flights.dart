@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:ready_flights/views/flight/search_flights/emirates_ndc/emirates_flight_controller.dart';
 import 'package:ready_flights/views/flight/search_flights/flydubai/flydubai_controller.dart';
+import 'package:ready_flights/views/flight/search_flights/search_flight_utils/widgets/emirates_ndc_card.dart';
 import 'package:ready_flights/views/flight/search_flights/search_flight_utils/widgets/flydubai_flight_card.dart';
 import 'package:ready_flights/views/home/home_screen.dart';
 import '../../../utility/colors.dart';
@@ -26,6 +28,7 @@ class FlightBookingPage extends StatelessWidget {
   final AirArabiaFlightController airArabiaController = Get.put(AirArabiaFlightController());
   final FlydubaiFlightController flyDubaiController = Get.put(FlydubaiFlightController());
   final FilterController filterController = Get.put(FilterController());
+   final EmiratesFlightController emiratesController = Get.put(EmiratesFlightController()); 
 
   FlightBookingPage({super.key, required this.scenario}) {
     controller.setScenario(scenario);
@@ -190,74 +193,104 @@ class FlightBookingPage extends StatelessWidget {
     );
   }
 
-  Widget _buildFlightList() {
-    final airBlueController = Get.find<AirBlueFlightController>();
-    final piaController = Get.put(PIAFlightController());
-    final flightController = Get.find<SabreFlightController>();
+// Update the _buildFlightList method to include Emirates
 
-    return Expanded(
-      child: Obx(() {
-        // Check if any controller is loading
-        final isAnyLoading = airBlueController.isLoading.value ||
-            flyDubaiController.isLoading.value ||
-            flightController.isLoading.value ||
-            piaController.isLoading.value ||
-            airArabiaController.isLoading.value;
+Widget _buildFlightList() {
+  final airBlueController = Get.find<AirBlueFlightController>();
+  final piaController = Get.put(PIAFlightController());
+  final flightController = Get.find<SabreFlightController>();
+  final emiratesController = Get.find<EmiratesFlightController>(); // Add this
 
-        // Check if all controllers have finished loading and have no flights
-        final hasNoFlights = !isAnyLoading &&
-            airBlueController.filteredFlights.isEmpty &&
-            flyDubaiController.filteredOutboundFlights.isEmpty &&
-            flightController.filteredFlights.isEmpty &&
-            piaController.filteredFlights.isEmpty &&
-            airArabiaController.filteredFlights.isEmpty;
+  return Expanded(
+    child: Obx(() {
+      // Check if any controller is loading
+      final isAnyLoading = airBlueController.isLoading.value ||
+          flyDubaiController.isLoading.value ||
+          flightController.isLoading.value ||
+          piaController.isLoading.value ||
+          airArabiaController.isLoading.value ||
+          emiratesController.isLoading.value; // Add this
 
-        // Show main loading indicator when all controllers are loading and no flights are available
-        if (isAnyLoading && hasNoFlights) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text(
-                  'Searching for flights...',
-                  style: TextStyle(
-                    color: TColors.grey,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
+      // Check if all controllers have finished loading and have no flights
+      final hasNoFlights = !isAnyLoading &&
+          airBlueController.filteredFlights.isEmpty &&
+          flyDubaiController.filteredOutboundFlights.isEmpty &&
+          flightController.filteredFlights.isEmpty &&
+          piaController.filteredFlights.isEmpty &&
+          airArabiaController.filteredFlights.isEmpty &&
+          emiratesController.filteredFlights.isEmpty; // Add this
 
-        return SingleChildScrollView(
+      // Show main loading indicator when all controllers are loading and no flights are available
+      if (isAnyLoading && hasNoFlights) {
+        return const Center(
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // AirBlue flights section
-              _buildAirBlueSection(),
-
-              // FlyDubai flights section
-              _buildFlyDubaiSection(),
-
-              // Sabre flights section
-              _buildSabreSection(),
-
-              // PIA flights section
-              _buildPIASection(),
-
-              // Air Arabia flights section
-              _buildAirArabiaSection(),
-
-              const SizedBox(height: 36),
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text(
+                'Searching for flights...',
+                style: TextStyle(
+                  color: TColors.grey,
+                  fontSize: 16,
+                ),
+              ),
             ],
           ),
         );
-      }),
-    );
-  }
+      }
 
+      return SingleChildScrollView(
+        child: Column(
+          children: [
+            // Emirates flights section
+            _buildEmiratesSection(), // Add this
+
+            // AirBlue flights section
+            _buildAirBlueSection(),
+
+            // FlyDubai flights section
+            _buildFlyDubaiSection(),
+
+            // Sabre flights section
+            _buildSabreSection(),
+
+            // PIA flights section
+            _buildPIASection(),
+
+            // Air Arabia flights section
+            _buildAirArabiaSection(),
+
+            const SizedBox(height: 36),
+          ],
+        ),
+      );
+    }),
+  );
+}
+// Add this to the FlightBookingPage class
+
+Widget _buildEmiratesSection() {
+  return Obx(() {
+    if (emiratesController.isLoading.value) {
+      return _buildSectionLoader('Emirates');
+    }
+
+    if (emiratesController.filteredFlights.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: emiratesController.filteredFlights.length,
+      itemBuilder: (context, index) {
+        final flight = emiratesController.filteredFlights[index];
+        return EmiratesFlightCard(flight: flight);
+      },
+    );
+  });
+}
   Widget _buildAirBlueSection() {
     return Obx(() {
       if (airBlueController.isLoading.value) {

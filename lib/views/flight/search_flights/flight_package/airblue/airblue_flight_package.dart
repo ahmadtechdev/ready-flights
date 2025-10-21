@@ -794,7 +794,7 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                   color: TColors.white,
-                                ),
+                            ),
                               ),
                             ),
                           ],

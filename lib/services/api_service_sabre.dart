@@ -191,7 +191,7 @@ class ApiServiceSabre extends GetxService {
             cabin: cabin,
           );
 
-          printJsonPretty(airBlueResponse);
+          // printJsonPretty(airBlueResponse);
 
           // Here you would normally process the Air Blue response and merge with Sabre results
           // For now, we're just logging it to console
@@ -369,7 +369,7 @@ class ApiServiceSabre extends GetxService {
       );
       if (response.statusCode == 200) {
         print("Sabre Response");
-        printJsonPretty(response.data);
+        // printJsonPretty(response.data);
         return response.data;
       } else {
         throw Exception('Failed to model_controllers flights: ${response.statusCode}');
