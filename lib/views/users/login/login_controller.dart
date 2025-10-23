@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:ready_flights/views/home/home_screen.dart';
 import '../../../b2b/agent_dashboard/agent_dashboard.dart';
 import 'login_api_service/login_api.dart';
 
@@ -21,6 +22,7 @@ class LoginController extends GetxController {
   Future<void> checkLoginStatus() async {
     final isLoggedIn = await authController.isLoggedIn();
     if (isLoggedIn) {
+      print("User is already logged in");
       Get.off(() => AgentDashboard());
     }
   }
@@ -48,7 +50,7 @@ class LoginController extends GetxController {
       isLoading.value = false;
 
       if (result['success']) {
-        Get.off(() => AgentDashboard());
+        Get.off(() => HomeScreen());
       } else {
         errorMessage.value = result['message'];
       }

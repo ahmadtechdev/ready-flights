@@ -1191,159 +1191,157 @@ class _FlightBookingDetailsScreenState extends State<FlightBookingDetailsScreen>
     }
   }
 
-  Widget _buildPassengerDetailsCard() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-      child: Material(
-        elevation: 2,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF10B981), Color(0xFF059669)],
-                      ),
-                      borderRadius: BorderRadius.circular(10),
+  
+Widget _buildPassengerDetailsCard() {
+  return Container(
+    margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+    child: Material(
+      elevation: 2,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF10B981), Color(0xFF059669)],
                     ),
-                    child: const Icon(
-                      Icons.people_outline,
-                      color: Colors.white,
-                      size: 20,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.people_outline,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Passenger Details',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Color(0xFF1E293B),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Passenger Details',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: Color(0xFF1E293B),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: TColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: TColors.primary.withOpacity(0.3),
                         ),
                       ),
-                      // const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: TColors.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: TColors.primary.withOpacity(0.3),
-                          ),
-                        ),
-                        child: Text(
-                          '${bookingController.adults.length + bookingController.children.length + bookingController.infants.length} Passengers',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: TColors.primary,
-                          ),
+                      child: Text(
+                        '${bookingController.adults.length + bookingController.children.length + bookingController.infants.length} Passengers',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: TColors.primary,
                         ),
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Adults Section
+            if (bookingController.adults.isNotEmpty) ...[
+              _buildPassengerTypeHeader(
+                'Adults',
+                bookingController.adults.length,
+                TColors.primary,
               ),
-              const SizedBox(height: 16),
-
-              // Adults Section
-              if (bookingController.adults.isNotEmpty) ...[
-                _buildPassengerTypeHeader(
-                  'Adults',
-                  bookingController.adults.length,
-                  TColors.primary,
-                ),
-                const SizedBox(height: 12),
-                ...bookingController.adults.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final adult = entry.value;
-                  return _buildPassengerCard(
-                    index: index + 1,
-                    name:
-                        '${adult.firstNameController.text} ${adult.lastNameController.text}',
-                    type: 'Adult',
-                    passport: adult.passportCnicController.text,
-                    typeColor: TColors.primary,
-                    typeIcon: Icons.person,
-                  );
-                }),
-                // const SizedBox(height: 4),
-              ],
-
-              // Children Section
-              if (bookingController.children.isNotEmpty) ...[
-                _buildPassengerTypeHeader(
-                  'Children',
-                  bookingController.children.length,
-                  const Color(0xFF10B981),
-                ),
-                const SizedBox(height: 12),
-                ...bookingController.children.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final child = entry.value;
-                  return _buildPassengerCard(
-                    index: bookingController.adults.length + index + 1,
-                    name:
-                        '${child.firstNameController.text} ${child.lastNameController.text}',
-                    type: 'Child',
-                    passport: child.passportCnicController.text,
-                    typeColor: const Color(0xFF10B981),
-                    typeIcon: Icons.child_care,
-                  );
-                }),
-                const SizedBox(height: 16),
-              ],
-
-              // Infants Section
-              if (bookingController.infants.isNotEmpty) ...[
-                _buildPassengerTypeHeader(
-                  'Infants',
-                  bookingController.infants.length,
-                  const Color(0xFFF59E0B),
-                ),
-                const SizedBox(height: 12),
-                ...bookingController.infants.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final infant = entry.value;
-                  return _buildPassengerCard(
-                    index:
-                        bookingController.adults.length +
-                        bookingController.children.length +
-                        index +
-                        1,
-                    name:
-                        '${infant.firstNameController.text} ${infant.lastNameController.text}',
-                    type: 'Infant',
-                    passport: infant.passportCnicController.text,
-                    typeColor: const Color(0xFFF59E0B),
-                    typeIcon: Icons.baby_changing_station,
-                  );
-                }),
-              ],
+              const SizedBox(height: 12),
+              ...bookingController.adults.asMap().entries.map((entry) {
+                final index = entry.key;
+                final adult = entry.value;
+                return _buildPassengerCard(
+                  index: index + 1,
+                  name:
+                      '${adult.firstNameController.text} ${adult.lastNameController.text}',
+                  type: 'Adult',
+                  passport: adult.passportCnicController.text,
+                  typeColor: TColors.primary,
+                  typeIcon: Icons.person,
+                );
+              }),
             ],
-          ),
+
+            // Children Section
+            if (bookingController.children.isNotEmpty) ...[
+              _buildPassengerTypeHeader(
+                'Children',
+                bookingController.children.length,
+                const Color(0xFF10B981),
+              ),
+              const SizedBox(height: 12),
+              ...bookingController.children.asMap().entries.map((entry) {
+                final index = entry.key;
+                final child = entry.value;
+                return _buildPassengerCard(
+                  index: bookingController.adults.length + index + 1,
+                  name:
+                      '${child.firstNameController.text} ${child.lastNameController.text}',
+                  type: 'Child',
+                  passport: child.passportCnicController.text,
+                  typeColor: const Color(0xFF10B981),
+                  typeIcon: Icons.child_care,
+                );
+              }),
+              const SizedBox(height: 16),
+            ],
+
+            // Infants Section
+            if (bookingController.infants.isNotEmpty) ...[
+              _buildPassengerTypeHeader(
+                'Infants',
+                bookingController.infants.length,
+                const Color(0xFFF59E0B),
+              ),
+              const SizedBox(height: 12),
+              ...bookingController.infants.asMap().entries.map((entry) {
+                final index = entry.key;
+                final infant = entry.value;
+                return _buildPassengerCard(
+                  index:
+                      bookingController.adults.length +
+                      bookingController.children.length +
+                      index +
+                      1,
+                  name:
+                      '${infant.firstNameController.text} ${infant.lastNameController.text}',
+                  type: 'Infant',
+                  passport: infant.passportCnicController.text,
+                  typeColor: const Color(0xFFF59E0B),
+                  typeIcon: Icons.baby_changing_station,
+                );
+              }),
+            ],
+          ],
         ),
       ),
-    );
-  }
-
+    ),
+  );
+}
   Widget _buildPassengerTypeHeader(String title, int count, Color color) {
     return Row(
       children: [
@@ -1555,7 +1553,9 @@ Widget _buildPassengerCard({
       ],
     ),
   );
-}Widget _buildPriceBreakdownCard() {
+}
+
+Widget _buildPriceBreakdownCard() {
     final outboundFlight = widget.outboundFlight;
     final returnFlight = widget.returnFlight;
     final multicityFlights = widget.multicityFlights;

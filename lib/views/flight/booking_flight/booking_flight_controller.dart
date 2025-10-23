@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:country_picker/country_picker.dart';
+import 'package:ready_flights/views/flight/form/flight_booking_controller.dart';
+import 'package:ready_flights/views/users/login/login_api_service/login_api.dart';
 
 import '../../../../widgets/travelers_selection_bottom_sheet.dart';
-import '../form/flight_booking_controller.dart';
 
 class TravelerInfo {
   final TextEditingController titleController;
@@ -36,7 +37,7 @@ class TravelerInfo {
         genderController = TextEditingController(),
         phoneController = TextEditingController(),
         emailController = TextEditingController(),
-        phoneCountry = Rx<Country?>(Country.parse('PK')), // Default to Pakistan
+        phoneCountry = Rx<Country?>(Country.parse('PK')),
         nationalityCountry = Rx<Country?>(Country.parse('PK')) {
 
     // Set initial values
@@ -73,7 +74,6 @@ class TravelerInfo {
         genderController.text = 'Female';
         break;
       case 'Inf':
-      // For infants, don't auto-set gender since it could be either
         break;
     }
     _isUpdatingTitleGender = false;
@@ -90,7 +90,6 @@ class TravelerInfo {
       if (isInfant) {
         titleController.text = 'Inf';
       } else if (currentTitle.isEmpty || ['Mrs', 'Ms', 'Miss'].contains(currentTitle)) {
-        // Determine if child or adult based on existing title or default logic
         bool isChild = currentTitle == 'Miss' ||
             (currentTitle.isEmpty && !isInfant && isChildTraveler());
         titleController.text = isChild ? 'Mstr' : 'Mr';
@@ -99,7 +98,6 @@ class TravelerInfo {
       if (isInfant) {
         titleController.text = 'Inf';
       } else if (currentTitle.isEmpty || ['Mr', 'Mstr'].contains(currentTitle)) {
-        // Determine if child or adult based on existing title or default logic
         bool isChild = currentTitle == 'Mstr' ||
             (currentTitle.isEmpty && !isInfant && isChildTraveler());
         titleController.text = isChild ? 'Miss' : 'Ms';
@@ -108,20 +106,24 @@ class TravelerInfo {
     _isUpdatingTitleGender = false;
   }
 
-  // Helper method to determine if this is a child traveler
-  // You might need to adjust this logic based on your app structure
   bool isChildTraveler() {
-    // This is a simple heuristic - you might want to improve this
-    // by checking the traveler's position in the children list
-    return false; // Default to adult
+    return false;
   }
 
   void dispose() {
-    // Remove listeners before disposing
     titleController.removeListener(_onTitleChanged);
     genderController.removeListener(_onGenderChanged);
 
-    
+    titleController.dispose();
+    firstNameController.dispose();
+    lastNameController.dispose();
+    passportCnicController.dispose();
+    nationalityController.dispose();
+    dateOfBirthController.dispose();
+    passportExpiryController.dispose();
+    genderController.dispose();
+    phoneController.dispose();
+    emailController.dispose();
   }
 
   bool isValid() {
@@ -152,7 +154,7 @@ class TravelerInfo {
       'firstName': firstNameController.text,
       'lastName': lastNameController.text,
       'dateOfBirth': dateOfBirthController.text,
-      'nationality': nationalityCountry.value?.countryCode ?? '', // Only country code
+      'nationality': nationalityCountry.value?.countryCode ?? '',
       'nationalityCode': nationalityCountry.value?.countryCode ?? '',
       'gender': genderController.text,
     };
@@ -161,7 +163,7 @@ class TravelerInfo {
       data.addAll({
         'passportNumber': passportCnicController.text,
         'passportExpiry': passportExpiryController.text,
-        'phone': getFormattedPhoneNumber(), // Use formatted phone number
+        'phone': getFormattedPhoneNumber(),
         'phoneCountryCode': phoneCountry.value?.phoneCode ?? '',
         'phoneCountry': phoneCountry.value?.countryCode ?? '',
         'email': emailController.text,
@@ -171,26 +173,23 @@ class TravelerInfo {
     return data;
   }
 
-// Update the helper method to format phone number correctly
   String getFormattedPhoneNumber() {
     String phone = phoneController.text.trim();
     String countryCode = phoneCountry.value?.phoneCode ?? '92';
 
-    // Remove any non-digit characters
     phone = phone.replaceAll(RegExp(r'[^0-9]'), '');
 
-    // Remove leading zero if present
     if (phone.startsWith('0')) {
       phone = phone.substring(1);
     }
 
-    // Return formatted phone number with country code
     return '+$countryCode$phone';
   }
 }
 
 class BookingFlightController extends GetxController {
   final TravelersController travelersController = Get.put(TravelersController());
+  final AuthController authController = Get.find<AuthController>();
 
   // Travelers information
   final RxList<TravelerInfo> adults = <TravelerInfo>[].obs;
@@ -213,15 +212,107 @@ class BookingFlightController extends GetxController {
 
   // Loading state
   final isLoading = false.obs;
+  final isLoadingUserData = true.obs;
 
   @override
   void onInit() {
     super.onInit();
-    initializeTravelers();
-    // Listen to changes in traveler counts
-    ever(travelersController.adultCount, (_) => updateAdults());
-    ever(travelersController.childrenCount, (_) => updateChildren());
-    ever(travelersController.infantCount, (_) => updateInfants());
+    _loadUserDataAndInitialize();
+  }
+
+  Future<void> _loadUserDataAndInitialize() async {
+    isLoadingUserData.value = true;
+    
+    try {
+      // Check if user is logged in and get their data
+      final isLoggedIn = await authController.isLoggedIn();
+      
+      if (isLoggedIn) {
+        final userData = await authController.getUserData();
+        
+        if (userData != null) {
+          _populateBookerData(userData);
+        }
+      }
+    } catch (e) {
+      print('Error loading user data: $e');
+    } finally {
+      isLoadingUserData.value = false;
+      initializeTravelers();
+      
+      // Listen to changes in traveler counts
+      ever(travelersController.adultCount, (_) => updateAdults());
+      ever(travelersController.childrenCount, (_) => updateChildren());
+      ever(travelersController.infantCount, (_) => updateInfants());
+    }
+  }
+
+  void _populateBookerData(Map<String, dynamic> userData) {
+    // Populate name - handle both full name and first/last name scenarios
+    String fullName = userData['cs_fname'] ?? userData['cs_company'] ?? '';
+    List<String> nameParts = fullName.trim().split(' ');
+    
+    if (nameParts.length > 1) {
+      firstNameController.text = nameParts.first;
+      lastNameController.text = nameParts.sublist(1).join(' ');
+    } else {
+      firstNameController.text = fullName;
+      lastNameController.text = '';
+    }
+
+    // Populate email
+    emailController.text = userData['cs_email'] ?? '';
+
+    // Populate phone
+    String phone = userData['cs_phone'] ?? '';
+    if (phone.isNotEmpty) {
+      // Clean and format phone number
+      phone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+      
+      // Try to extract country code if phone starts with +
+      if (phone.startsWith('+')) {
+        // Try to parse country code
+        String phoneWithoutPlus = phone.substring(1);
+        
+        // Common country codes (you can expand this)
+        Map<String, String> countryCodeMap = {
+          '92': 'PK',  // Pakistan
+          '1': 'US',   // USA/Canada
+          '44': 'GB',  // UK
+          '971': 'AE', // UAE
+          '966': 'SA', // Saudi Arabia
+          '91': 'IN',  // India
+        };
+        
+        // Try to match country code
+        for (var entry in countryCodeMap.entries) {
+          if (phoneWithoutPlus.startsWith(entry.key)) {
+            try {
+              bookerPhoneCountry.value = Country.parse(entry.value);
+              // Remove country code from phone number
+              phoneController.text = phoneWithoutPlus.substring(entry.key.length);
+            } catch (e) {
+              print('Error parsing country: $e');
+            }
+            break;
+          }
+        }
+        
+        // If no country code matched, just remove the + and use as is
+        if (phoneController.text.isEmpty) {
+          phoneController.text = phoneWithoutPlus;
+        }
+      } else {
+        // No country code, assume it's local number
+        // Remove leading zero if present
+        if (phone.startsWith('0')) {
+          phone = phone.substring(1);
+        }
+        phoneController.text = phone;
+      }
+    }
+
+    print('Booker data populated: ${firstNameController.text} ${lastNameController.text}, ${emailController.text}, ${phoneController.text}');
   }
 
   void initializeTravelers() {
@@ -235,12 +326,10 @@ class BookingFlightController extends GetxController {
     final newCount = travelersController.adultCount.value;
 
     if (newCount > currentCount) {
-      // Add new adult travelers
       for (var i = currentCount; i < newCount; i++) {
         adults.add(TravelerInfo(isInfant: false));
       }
     } else if (newCount < currentCount) {
-      // Remove excess adult travelers
       for (var i = currentCount - 1; i >= newCount; i--) {
         adults[i].dispose();
         adults.removeAt(i);
@@ -253,15 +342,11 @@ class BookingFlightController extends GetxController {
     final newCount = travelersController.childrenCount.value;
 
     if (newCount > currentCount) {
-      // Add new child travelers with proper identification
       for (var i = currentCount; i < newCount; i++) {
         final childTraveler = TravelerInfo(isInfant: false);
-        // Override the child check method to return true for children
-        // childTraveler.isChildTraveler = () => true;
         children.add(childTraveler);
       }
     } else if (newCount < currentCount) {
-      // Remove excess child travelers
       for (var i = currentCount - 1; i >= newCount; i--) {
         children[i].dispose();
         children.removeAt(i);
@@ -274,12 +359,10 @@ class BookingFlightController extends GetxController {
     final newCount = travelersController.infantCount.value;
 
     if (newCount > currentCount) {
-      // Add new infant travelers
       for (var i = currentCount; i < newCount; i++) {
         infants.add(TravelerInfo(isInfant: true));
       }
     } else if (newCount < currentCount) {
-      // Remove excess infant travelers
       for (var i = currentCount - 1; i >= newCount; i--) {
         infants[i].dispose();
         infants.removeAt(i);
@@ -291,32 +374,26 @@ class BookingFlightController extends GetxController {
     try {
       return Get.find<FlightBookingController>().isDomesticFlight;
     } catch (e) {
-      return false; // Default to international if controller not found
+      return false;
     }
   }
 
-// Helper method to format booker phone number with country code
   String getFormattedBookerPhoneNumber() {
     String phone = phoneController.text.trim();
     String countryCode = bookerPhoneCountry.value?.phoneCode ?? '92';
 
-    // Remove any non-digit characters
     phone = phone.replaceAll(RegExp(r'[^0-9]'), '');
 
-    // Remove leading zero if present
     if (phone.startsWith('0')) {
       phone = phone.substring(1);
     }
 
-    // Return formatted phone number with country code
     return '+$countryCode$phone';
   }
 
-  // Country picker methods
   void showPhoneCountryPicker(BuildContext context, TravelerInfo travelerInfo) {
     showCountryPicker(
       context: context,
-      // favorite: ['PK', 'US', 'AE', 'SA', 'IN'],
       showPhoneCode: true,
       onSelect: (Country country) {
         travelerInfo.phoneCountry.value = country;
@@ -325,7 +402,7 @@ class BookingFlightController extends GetxController {
         flagSize: 25,
         backgroundColor: Colors.white,
         textStyle: const TextStyle(fontSize: 16, color: Colors.blueGrey),
-        bottomSheetHeight: MediaQuery.of(context).size.height*0.8,
+        bottomSheetHeight: MediaQuery.of(context).size.height * 0.8,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(20.0),
           topRight: Radius.circular(20.0),
@@ -347,7 +424,6 @@ class BookingFlightController extends GetxController {
   void showBookerPhoneCountryPicker(BuildContext context) {
     showCountryPicker(
       context: context,
-      // favorite: ['PK', 'US', 'AE', 'SA', 'IN'],
       showPhoneCode: true,
       onSelect: (Country country) {
         bookerPhoneCountry.value = country;
@@ -356,7 +432,7 @@ class BookingFlightController extends GetxController {
         flagSize: 25,
         backgroundColor: Colors.white,
         textStyle: const TextStyle(fontSize: 16, color: Colors.blueGrey),
-        bottomSheetHeight: MediaQuery.of(context).size.height*0.8,
+        bottomSheetHeight: MediaQuery.of(context).size.height * 0.8,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(20.0),
           topRight: Radius.circular(20.0),
@@ -378,7 +454,6 @@ class BookingFlightController extends GetxController {
   void showNationalityPicker(BuildContext context, TravelerInfo travelerInfo) {
     showCountryPicker(
       context: context,
-      // favorite: ['PK', 'US', 'AE', 'SA', 'IN'],
       showPhoneCode: false,
       onSelect: (Country country) {
         travelerInfo.nationalityCountry.value = country;
@@ -406,7 +481,6 @@ class BookingFlightController extends GetxController {
     );
   }
 
-  // Validation methods
   bool isEmailValid(String email) {
     return GetUtils.isEmail(email);
   }
@@ -438,7 +512,6 @@ class BookingFlightController extends GetxController {
   }
 
   void resetForm() {
-    // Reset booker information
     firstNameController.clear();
     lastNameController.clear();
     emailController.clear();
@@ -446,25 +519,15 @@ class BookingFlightController extends GetxController {
     remarksController.clear();
     bookerPhoneCountry.value = Country.parse('PK');
 
-    // Reset all travelers
     adults.clear();
     children.clear();
     infants.clear();
 
-    // Reinitialize travelers based on current counts
     initializeTravelers();
   }
 
   @override
   void onClose() {
-    // Dispose booker information controllers
-    // firstNameController.dispose();
-    // lastNameController.dispose();
-    // emailController.dispose();
-    // phoneController.dispose();
-    // remarksController.dispose();
-
-    // Dispose all traveler controllers
     for (var adult in adults) {
       adult.dispose();
     }

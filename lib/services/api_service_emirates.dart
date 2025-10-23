@@ -787,7 +787,6 @@ Future<Map<String, dynamic>> createEmiratesNdcPnr({
       passengerRefs += i == 1 ? 'T$i' : ' T$i';
     }
     
-    
     // Extract owner
     final owner = offerData['Owner']?.toString() ?? 'EK';
     
@@ -1052,133 +1051,10 @@ Future<Map<String, dynamic>> createEmiratesNdcPnr({
     debugPrint('Stack trace: $stackTrace');
     return {
       'success': false,
+      
       'error': 'Failed to parse PNR response: $e',
     };
   }
 }
-// Add this method to ApiServiceEmirates class
-Future<Map<String, dynamic>> refreshEmiratesOffer({
-  required String offerId,
-  required String responseId,
-  required Map<String, dynamic> originalOfferData,
-}) async {
-  try {
-    debugPrint('\n🔄 === REFRESHING EMIRATES OFFER ===');
-    debugPrint('OfferID: $offerId');
-    debugPrint('ResponseID: $responseId');
 
-    final xmlData = '''<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
-  <SOAP-ENV:Header>
-    <t:TransactionControl>
-      <tc>
-        <app version="5.0.0" language="en-US">SOAP</app>
-        <iden u="emiratesfaizan" p="Fai1ZanDaska" pseudocity="ESNV" agt="faizemir" agtpwd="Fai231elemirates" agtrole="Ticketing Agent" agy="27323671"/>
-        <agent user="faizemir"/>
-        <trace admin="Y">ESNV_ek</trace>
-        <script engine="FLXDM" name="FaizanAfzal_ToursandTravels-ek-dispatch.flxdm"/>
-      </tc>
-    </t:TransactionControl>
-  </SOAP-ENV:Header>
-  <SOAP-ENV:Body>
-    <ns1:XXTransaction>
-      <REQ>
-        <OfferPriceRQ Version="17.2" TransactionIdentifier="${_generateTransactionId()}">
-          <Document id="document"/>
-          <Party>
-            <Sender>
-              <TravelAgencySender>
-                <PseudoCity>ESNV</PseudoCity>
-                <AgencyID>27323671</AgencyID>
-              </TravelAgencySender>
-            </Sender>
-          </Party>
-          <Query>
-            <Offer OfferID="$offerId" Owner="EK" ResponseID="$responseId"/>
-          </Query>
-        </OfferPriceRQ>
-      </REQ>
-    </ns1:XXTransaction>
-  </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>''';
-
-    final headers = {
-      'Ocp-Apim-Subscription-Key': '7bdbbd0e3a8c4f939b3370dddbabf1a4',
-      'SOAPAction': 'OfferPriceRQ',
-      'Agency': 'faizemir',
-      'IATA': '27323671',
-      'PCC': 'ESNV',
-      'apiTraceId': '77d1147a-e370-16e4-d5db-24cf01b61f19',
-      'clientIp': '91.108.109.86',
-      'contEnc': '',
-      'agencyName': '',
-      'Content-Type': 'application/xml',
-    };
-
-    debugPrint('Sending OfferPriceRQ to refresh offer...');
-
-    final response = await _dio.request(
-      'https://ek.farelogix.com:443/sandbox-uat/oc',
-      options: Options(
-        method: 'POST',
-        headers: headers,
-        responseType: ResponseType.plain,
-        validateStatus: (status) => status! < 600,
-      ),
-      data: xmlData,
-    );
-
-    debugPrint('Status: ${response.statusCode}');
-    _printLargeText(response.data.toString(), "OFFER REFRESH RESPONSE");
-
-    if (response.statusCode == 200) {
-      final document = xml.XmlDocument.parse(response.data.toString());
-      
-      // Check for errors
-      final errors = document.findAllElements('Error');
-      if (errors.isNotEmpty) {
-        final errorMsg = errors.first.text;
-        debugPrint('❌ Offer refresh failed: $errorMsg');
-        return {
-          'success': false,
-          'error': errorMsg,
-        };
-      }
-
-      // Parse refreshed offer
-      final offerPriceRS = document.findAllElements('OfferPriceRS').firstOrNull;
-      if (offerPriceRS != null) {
-        final priceOffer = offerPriceRS.findElements('PricedOffer').firstOrNull;
-        if (priceOffer != null) {
-          final refreshedOfferData = _xmlElementToMap(priceOffer);
-          
-          debugPrint('✅ Offer refreshed successfully!');
-          debugPrint('New OfferID: ${refreshedOfferData['OfferID']}');
-          
-          return {
-            'success': true,
-            'offerData': refreshedOfferData,
-            'message': 'Offer refreshed successfully',
-          };
-        }
-      }
-
-      return {
-        'success': false,
-        'error': 'Could not parse refreshed offer',
-      };
-    } else {
-      return {
-        'success': false,
-        'error': 'Server error ${response.statusCode}',
-      };
-    }
-  } catch (e, stackTrace) {
-    debugPrint('❌ Error refreshing offer: $e');
-    debugPrint('Stack trace: $stackTrace');
-    return {
-      'success': false,
-      'error': 'Error: ${e.toString()}',
-    };
-  }
-}
 }
