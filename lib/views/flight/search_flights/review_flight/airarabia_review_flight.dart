@@ -33,7 +33,7 @@ class AirArabiaReviewTripPageState extends State<AirArabiaReviewTripPage> {
       blurRadius: 5,
       spreadRadius: 8,
       offset: const Offset(0, 0),
-    )
+    ),
   ];
   late Timer _shadowTimer;
 
@@ -54,26 +54,27 @@ class AirArabiaReviewTripPageState extends State<AirArabiaReviewTripPage> {
     _calculatePrices();
   }
 
-void _startShadowAnimation() {
+  void _startShadowAnimation() {
     _shadowTimer = Timer.periodic(const Duration(milliseconds: 1500), (_) {
       setState(() {
-        _animatedShadow = _animatedShadow[0].offset.dy == 2
-            ? [
-          BoxShadow(
-            color: TColors.primary.withOpacity(0.4),
-            blurRadius: 2,
-            spreadRadius: 15,
-            offset: const Offset(0, 0),
-          )
-        ]
-            : [
-          BoxShadow(
-            color: TColors.primary.withOpacity(0.4),
-            blurRadius: 10,
-            spreadRadius: 2,
-            offset: const Offset(0, 2),
-          )
-        ];
+        _animatedShadow =
+            _animatedShadow[0].offset.dy == 2
+                ? [
+                  BoxShadow(
+                    color: TColors.primary.withOpacity(0.4),
+                    blurRadius: 2,
+                    spreadRadius: 15,
+                    offset: const Offset(0, 0),
+                  ),
+                ]
+                : [
+                  BoxShadow(
+                    color: TColors.primary.withOpacity(0.4),
+                    blurRadius: 10,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 2),
+                  ),
+                ];
       });
     });
   }
@@ -87,10 +88,10 @@ void _startShadowAnimation() {
   String _formatPrice(double price) {
     final parts = price.toStringAsFixed(0).split('.');
     final integerPart = parts[0];
-    
+
     final formattedInteger = integerPart.replaceAllMapped(
       RegExp(r'\B(?=(\d{3})+(?!\d))'),
-          (match) => ',',
+      (match) => ',',
     );
 
     return formattedInteger;
@@ -118,32 +119,10 @@ void _startShadowAnimation() {
             const SizedBox(height: 8),
 
             // Flight Information Section
-           const Padding(
-  padding: EdgeInsets.only(left: 16.0, top: 8.0),
-  child: Text(
-    'Flight Details',
-    style: TextStyle(
-      fontWeight: FontWeight.bold,
-      fontSize: 18,
-      color: TColors.primary,
-    ),
-  ),
-),
-
-// Add proper flight card that shows backend data
-Padding(
-  padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-  child: AirArabiaFlightCard(
-    flight: widget.flight,
-    showReturnFlight: false,
-    isShowBookButton: false, // This will hide the book button and show proper layout
-  ),
-),// Flight Card - Using AirArabiaFlightCard if available, otherwise create custom
-            // Selected Package Section
             const Padding(
               padding: EdgeInsets.only(left: 16.0, top: 8.0),
               child: Text(
-                'Selected Package',
+                'Flight Details',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -151,127 +130,72 @@ Padding(
                 ),
               ),
             ),
-            
-            Container(
-              margin: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: TColors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: TColors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+
+            // Add proper flight card that shows backend data
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+              child: AirArabiaFlightCard(
+                flight: widget.flight,
+                showReturnFlight: false,
+                isShowBookButton:
+                    false, // This will hide the book button and show proper layout
               ),
-              child: Column(
-                children: [
-                  // Package header
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: _getPackageColor(widget.selectedPackage.packageType),
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(12),
-                        topRight: Radius.circular(12),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            widget.selectedPackage.packageName,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: TColors.white,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          '$currency ${_formatPrice(widget.selectedPackage.totalPrice)}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: TColors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  // Package details
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        _buildPackageDetail(Icons.luggage, 'Checked Baggage', widget.selectedPackage.baggageAllowance),
-                        _buildPackageDetail(Icons.restaurant, 'Meals', widget.selectedPackage.mealInfo),
-                        _buildPackageDetail(Icons.airline_seat_recline_normal, 'Seats', widget.selectedPackage.seatInfo),
-                        _buildPackageDetail(Icons.change_circle, 'Modification', widget.selectedPackage.modificationPolicy),
-                        _buildPackageDetail(Icons.cancel, 'Cancellation', widget.selectedPackage.cancellationPolicy),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            ), // Flight Card - Using AirArabiaFlightCard if available, otherwise create custom
 
             // Selected Extras Section
-           Obx(() {
-  if (revalidationController.totalExtrasPrice.value > 0) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 16.0, top: 8.0),
-          child: Text(
-            'Selected Extras',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-              color: TColors.primary,
-            ),
-          ),
-        ),
-        
-        Container(
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: TColors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: TColors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Selected Baggage for all passengers
-              if (revalidationController.selectedBaggage.isNotEmpty)
-                ..._buildBaggageExtras(),
-              
-              // Selected Meals for all passengers
-              if (revalidationController.selectedMeals.isNotEmpty)
-                ..._buildMealExtras(),
-              
-              // Selected Seats for all passengers
-              if (revalidationController.selectedSeats.isNotEmpty)
-                ..._buildSeatExtras(),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-  return const SizedBox.shrink();
-}),  // Price Breakdown Section
+            Obx(() {
+              if (revalidationController.totalExtrasPrice.value > 0) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(left: 16.0, top: 8.0),
+                      child: Text(
+                        'Selected Extras',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: TColors.primary,
+                        ),
+                      ),
+                    ),
+
+                    Container(
+                      margin: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: TColors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: TColors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Selected Baggage for all passengers
+                          if (revalidationController.selectedBaggage.isNotEmpty)
+                            ..._buildBaggageExtras(),
+
+                          // Selected Meals for all passengers
+                          if (revalidationController.selectedMeals.isNotEmpty)
+                            ..._buildMealExtras(),
+
+                          // Selected Seats for all passengers
+                          if (revalidationController.selectedSeats.isNotEmpty)
+                            ..._buildSeatExtras(),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }
+              return const SizedBox.shrink();
+            }), // Price Breakdown Section
             const Padding(
               padding: EdgeInsets.only(left: 16.0, top: 8.0),
               child: Text(
@@ -283,7 +207,7 @@ Padding(
                 ),
               ),
             ),
-            
+
             Padding(
               padding: const EdgeInsets.all(16),
               child: AnimatedContainer(
@@ -304,7 +228,9 @@ Padding(
                     const SizedBox(height: 8),
                     _buildPriceRow(
                       'Package (${widget.selectedPackage.packageName})',
-                      packagePrice > 0 ? '$currency ${_formatPrice(packagePrice)}' : 'Included',
+                      packagePrice > 0
+                          ? '$currency ${_formatPrice(packagePrice)}'
+                          : 'Included',
                     ),
                     Obx(() {
                       if (revalidationController.totalExtrasPrice.value > 0) {
@@ -323,11 +249,13 @@ Padding(
                     const SizedBox(height: 12),
                     const Divider(),
                     const SizedBox(height: 8),
-                    Obx(() => _buildPriceRow(
-                      'Total Amount',
-                      '$currency ${_formatPrice(flightPrice + packagePrice + revalidationController.totalExtrasPrice.value)}',
-                      isTotal: true,
-                    )),
+                    Obx(
+                      () => _buildPriceRow(
+                        'Total Amount',
+                        '$currency ${_formatPrice(flightPrice + packagePrice + revalidationController.totalExtrasPrice.value)}',
+                        isTotal: true,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -335,77 +263,87 @@ Padding(
           ],
         ),
       ),
-     bottomNavigationBar: Column(
-  mainAxisSize: MainAxisSize.min,
-  children: [
-    const Divider(),
-    Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                widget.isReturn ? 'Round Trip Total' : 'One Way Total',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold, 
-                  color: TColors.grey
+          const Divider(),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.isReturn ? 'Round Trip Total' : 'One Way Total',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: TColors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Obx(() {
+                      final totalAmount =
+                          flightPrice +
+                          packagePrice +
+                          revalidationController.totalExtrasPrice.value;
+                      return Text(
+                        '$currency ${_formatPrice(totalAmount)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: TColors.primary,
+                        ),
+                      );
+                    }),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 2),
-              Obx(() {
-                final totalAmount = flightPrice + packagePrice + revalidationController.totalExtrasPrice.value;
-                return Text(
-                  '$currency ${_formatPrice(totalAmount)}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: TColors.primary,
+                SizedBox(
+                  width: 200,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Navigate to AirArabiaBookingFlight with all selected data
+                      final totalAmount =
+                          flightPrice +
+                          packagePrice +
+                          revalidationController.totalExtrasPrice.value;
+                      Get.to(
+                        () => AirArabiaBookingFlight(
+                          flight: widget.flight,
+                          selectedPackage: widget.selectedPackage,
+                          totalPrice: totalAmount,
+                          currency: currency,
+                          // Pass the booking summary with all selected extras
+                          extrasData:
+                              revalidationController.getBookingSummary(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: TColors.primary,
+                      foregroundColor: TColors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(48),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text(
+                      'Book Now',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                );
-              }),
-            ],
-          ),
-          SizedBox(
-            width: 200,
-            child: ElevatedButton(
-              onPressed: () {
-                // Navigate to AirArabiaBookingFlight with all selected data
-                final totalAmount = flightPrice + packagePrice + revalidationController.totalExtrasPrice.value;
-                Get.to(() => AirArabiaBookingFlight(
-                  flight: widget.flight,
-                  selectedPackage: widget.selectedPackage,
-                  totalPrice: totalAmount,
-                  currency: currency,
-                  // Pass the booking summary with all selected extras
-                  extrasData: revalidationController.getBookingSummary(),
-                ));
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: TColors.primary,
-                foregroundColor: TColors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(48),
                 ),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              child: const Text(
-                'Book Now',
-                style: TextStyle(
-                  fontSize: 16, 
-                  fontWeight: FontWeight.bold
-                ),
-              ),
+              ],
             ),
           ),
+          const SizedBox(height: 8),
         ],
       ),
-    ),
-    const SizedBox(height: 8),
-  ],
-), );
+    );
   }
 
   Widget _buildPackageDetail(IconData icon, String title, String value) {
@@ -418,10 +356,7 @@ Padding(
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(
-                fontSize: 14,
-                color: TColors.grey,
-              ),
+              style: const TextStyle(fontSize: 14, color: TColors.grey),
             ),
           ),
           Text(
@@ -436,124 +371,146 @@ Padding(
       ),
     );
   }
+
   List<Widget> _buildBaggageExtras() {
-  List<Widget> baggageWidgets = [];
-  
-  revalidationController.selectedBaggage.entries.forEach((entry) {
-    final passengerId = entry.key;
-    final baggage = entry.value;
-    final passengerIndex = revalidationController.passengerIds.indexOf(passengerId);
-    final passengerName = revalidationController.getPassengerDisplayName(passengerIndex);
-    
-    // Only show non-default baggage (exclude "No Bag" options)
-    if (!baggage.baggageCode.toLowerCase().contains('no bag') && 
-        !baggage.baggageCode.toLowerCase().contains('nobag') &&
-        double.parse(baggage.baggageCharge) > 0) {
-      baggageWidgets.add(_buildExtrasItem(
-        Icons.luggage,
-        'Extra Baggage - $passengerName',
-        baggage.baggageDescription,
-        double.parse(baggage.baggageCharge),
-      ));
-    }
-  });
-  
-  return baggageWidgets;
-}
+    List<Widget> baggageWidgets = [];
 
-List<Widget> _buildMealExtras() {
-  List<Widget> mealWidgets = [];
-  
-  revalidationController.selectedMeals.entries.forEach((passengerEntry) {
-    final passengerId = passengerEntry.key;
-    final passengerMeals = passengerEntry.value;
-    final passengerIndex = revalidationController.passengerIds.indexOf(passengerId);
-    final passengerName = revalidationController.getPassengerDisplayName(passengerIndex);
-    
-    passengerMeals.entries.forEach((segmentEntry) {
-      final segmentCode = segmentEntry.key;
-      final meals = segmentEntry.value;
-      
-      meals.forEach((meal) {
-        mealWidgets.add(_buildExtrasItem(
-          Icons.restaurant,
-          'Meal - $passengerName',
-          '${meal.mealName} (${_getSegmentRoute(segmentCode)})',
-          double.parse(meal.mealCharge),
-        ));
-      });
-    });
-  });
-  
-  return mealWidgets;
-}
+    revalidationController.selectedBaggage.entries.forEach((entry) {
+      final passengerId = entry.key;
+      final baggage = entry.value;
+      final passengerIndex = revalidationController.passengerIds.indexOf(
+        passengerId,
+      );
+      final passengerName = revalidationController.getPassengerDisplayName(
+        passengerIndex,
+      );
 
-List<Widget> _buildSeatExtras() {
-  List<Widget> seatWidgets = [];
-  
-  revalidationController.selectedSeats.entries.forEach((passengerEntry) {
-    final passengerId = passengerEntry.key;
-    final passengerSeats = passengerEntry.value;
-    final passengerIndex = revalidationController.passengerIds.indexOf(passengerId);
-    final passengerName = revalidationController.getPassengerDisplayName(passengerIndex);
-    
-    passengerSeats.entries.forEach((segmentEntry) {
-      final segmentCode = segmentEntry.key;
-      final seat = segmentEntry.value;
-      
-      if (seat.seatNumber.isNotEmpty && seat.seatCharge > 0) {
-        seatWidgets.add(_buildExtrasItem(
-          Icons.airline_seat_recline_normal,
-          'Seat ${seat.seatNumber} - $passengerName',
-          'Premium seat selection (${_getSegmentRoute(segmentCode)})',
-          seat.seatCharge,
-        ));
+      // Only show non-default baggage (exclude "No Bag" options)
+      if (!baggage.baggageCode.toLowerCase().contains('no bag') &&
+          !baggage.baggageCode.toLowerCase().contains('nobag') &&
+          double.parse(baggage.baggageCharge) > 0) {
+        baggageWidgets.add(
+          _buildExtrasItem(
+            Icons.luggage,
+            'Extra Baggage - $passengerName',
+            baggage.baggageDescription,
+            double.parse(baggage.baggageCharge),
+          ),
+        );
       }
     });
-  });
-  
-  return seatWidgets;
-}
 
-String _getSegmentRoute(String segmentCode) {
-  try {
-    final segments = revalidationController.getFlightSegments();
-    final segment = segments.firstWhere(
-      (s) => s.attributes['SegmentCode']?.toString() == segmentCode,
-      orElse: () => segments.first,
-    );
-    
-    final departure = segment.departureAirport['LocationCode'] ?? '';
-    final arrival = segment.arrivalAirport['LocationCode'] ?? '';
-    return '$departure → $arrival';
-  } catch (e) {
-    return segmentCode;
+    return baggageWidgets;
   }
-}
 
-// Also update your _calculatePrices method to use the observable value:
-// Update _calculatePrices method:
-void _calculatePrices() {
-  // Get prices from controller
-  flightPrice = revalidationController.flightPrice.value;
-  packagePrice = revalidationController.packagePrice.value;
-  
-  // Currency from flight or controller
-  currency = widget.flight.currency;
-  
-  // Note: extras price is already reactive via revalidationController.totalExtrasPrice
-}
+  List<Widget> _buildMealExtras() {
+    List<Widget> mealWidgets = [];
 
-  Widget _buildExtrasItem(IconData icon, String title, String subtitle, double price) {
+    revalidationController.selectedMeals.entries.forEach((passengerEntry) {
+      final passengerId = passengerEntry.key;
+      final passengerMeals = passengerEntry.value;
+      final passengerIndex = revalidationController.passengerIds.indexOf(
+        passengerId,
+      );
+      final passengerName = revalidationController.getPassengerDisplayName(
+        passengerIndex,
+      );
+
+      passengerMeals.entries.forEach((segmentEntry) {
+        final segmentCode = segmentEntry.key;
+        final meals = segmentEntry.value;
+
+        meals.forEach((meal) {
+          mealWidgets.add(
+            _buildExtrasItem(
+              Icons.restaurant,
+              'Meal - $passengerName',
+              '${meal.mealName} (${_getSegmentRoute(segmentCode)})',
+              double.parse(meal.mealCharge),
+            ),
+          );
+        });
+      });
+    });
+
+    return mealWidgets;
+  }
+
+  List<Widget> _buildSeatExtras() {
+    List<Widget> seatWidgets = [];
+
+    revalidationController.selectedSeats.entries.forEach((passengerEntry) {
+      final passengerId = passengerEntry.key;
+      final passengerSeats = passengerEntry.value;
+      final passengerIndex = revalidationController.passengerIds.indexOf(
+        passengerId,
+      );
+      final passengerName = revalidationController.getPassengerDisplayName(
+        passengerIndex,
+      );
+
+      passengerSeats.entries.forEach((segmentEntry) {
+        final segmentCode = segmentEntry.key;
+        final seat = segmentEntry.value;
+
+        if (seat.seatNumber.isNotEmpty && seat.seatCharge > 0) {
+          seatWidgets.add(
+            _buildExtrasItem(
+              Icons.airline_seat_recline_normal,
+              'Seat ${seat.seatNumber} - $passengerName',
+              'Premium seat selection (${_getSegmentRoute(segmentCode)})',
+              seat.seatCharge,
+            ),
+          );
+        }
+      });
+    });
+
+    return seatWidgets;
+  }
+
+  String _getSegmentRoute(String segmentCode) {
+    try {
+      final segments = revalidationController.getFlightSegments();
+      final segment = segments.firstWhere(
+        (s) => s.attributes['SegmentCode']?.toString() == segmentCode,
+        orElse: () => segments.first,
+      );
+
+      final departure = segment.departureAirport['LocationCode'] ?? '';
+      final arrival = segment.arrivalAirport['LocationCode'] ?? '';
+      return '$departure → $arrival';
+    } catch (e) {
+      return segmentCode;
+    }
+  }
+
+  // Also update your _calculatePrices method to use the observable value:
+  // Update _calculatePrices method:
+  void _calculatePrices() {
+    // Get prices from controller
+    flightPrice = revalidationController.flightPrice.value;
+    packagePrice = revalidationController.packagePrice.value;
+
+    // Currency from flight or controller
+    currency = widget.flight.currency;
+
+    // Note: extras price is already reactive via revalidationController.totalExtrasPrice
+  }
+
+  Widget _buildExtrasItem(
+    IconData icon,
+    String title,
+    String subtitle,
+    double price,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: TColors.primary.withOpacity(0.05),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: TColors.primary.withOpacity(0.2),
-        ),
+        border: Border.all(color: TColors.primary.withOpacity(0.2)),
       ),
       child: Row(
         children: [
@@ -574,10 +531,7 @@ void _calculatePrices() {
                 if (subtitle.isNotEmpty)
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: TColors.grey,
-                    ),
+                    style: TextStyle(fontSize: 12, color: TColors.grey),
                   ),
               ],
             ),
@@ -646,5 +600,4 @@ void _calculatePrices() {
     final mins = minutes % 60;
     return '${hours}h ${mins}m';
   }
-  
 }

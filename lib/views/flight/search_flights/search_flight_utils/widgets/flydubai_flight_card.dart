@@ -2,9 +2,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:ready_flights/views/flight/search_flights/flydubai/flydubai_controller.dart';
-
 import '../../../../../utility/colors.dart';
+import '../../flydubai/flydubai_controller.dart';
+
 import '../../flydubai/flydubai_model.dart';
 import '../../sabre/sabre_flight_models.dart';
 
@@ -336,8 +336,8 @@ class _FlyDubaiFlightCardState extends State<FlyDubaiFlightCard>
                               ],
                             ),
                             const SizedBox(height: 4),
-                            const Text(
-                              'Direct',
+                            Text(
+                              _getStopText(),
                               style: TextStyle(
                                 fontSize: 10,
                                 color: TColors.grey,
@@ -689,43 +689,16 @@ class _FlyDubaiFlightCardState extends State<FlyDubaiFlightCard>
     );
   }
 
-  Widget _buildSectionCard({
-    required String title,
-    required String content,
-    required IconData icon,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 16, color: TColors.primary),
-              const SizedBox(width: 8),
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            content,
-            style: TextStyle(color: Colors.grey[600], fontSize: 12),
-          ),
-        ],
-      ),
-    );
+
+// Helper method to get stop text
+  String _getStopText() {
+    if (widget.flight.stops == 0) {
+      return 'Direct';
+    } else if (widget.flight.stops == 1) {
+      return '1 stop${widget.flight.stopCities.isNotEmpty ? ' • ${widget.flight.stopCities.first}' : ''}';
+    } else {
+      return '${widget.flight.stops} stops';
+    }
   }
 
-  String _buildFareRules() {
-    return '''
-• ${widget.flight.isRefundable ? 'Refundable' : 'Non-refundable'} ticket
-• Date change permitted with fee
-• Standard meal included
-• Free seat selection
-• Cabin baggage allowed
-• Check-in baggage as per policy''';
-  }
 }

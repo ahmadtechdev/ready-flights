@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ready_flights/services/api_service_flydubai.dart';
 import 'package:ready_flights/views/flight/search_flights/flydubai/flydubai_model.dart';
+import 'flydubai_controller.dart';
 
 class FlydubaiExtrasController extends GetxController {
   final ApiServiceFlyDubai _apiService = Get.find<ApiServiceFlyDubai>();
@@ -18,6 +19,10 @@ class FlydubaiExtrasController extends GetxController {
   final RxList<dynamic> availableSeats = <dynamic>[].obs;
 
   // Selected extras
+  // Keys strategy:
+  // - For baggage: "seg{segmentCode}|p{passengerId}"
+  // - For meals:   "seg{segmentCode}|p{passengerId}"
+  // - For seats:   "seg{segmentCode}|p{passengerId}"
   final RxMap<String, dynamic> selectedBaggage = <String, dynamic>{}.obs;
   final RxMap<String, dynamic> selectedMeals = <String, dynamic>{}.obs;
   final RxMap<String, dynamic> selectedSeats = <String, dynamic>{}.obs;
@@ -26,6 +31,15 @@ class FlydubaiExtrasController extends GetxController {
   final Rx<FlydubaiFlight?> selectedFlight = Rx<FlydubaiFlight?>(null);
   final Rx<FlydubaiFlightFare?> selectedFare = Rx<FlydubaiFlightFare?>(null);
   final RxList<String> bookingIds = <String>[].obs;
+  
+  // Cart data from add-to-cart response (used for seat/baggage/meal APIs)
+  Map<String, dynamic>? cartData;
+
+  // Passengers (exclude infants for extras)
+  final RxInt adultPassengers = 1.obs;
+  final RxInt childPassengers = 0.obs;
+  final RxInt infantPassengers = 0.obs;
+  final RxList<String> passengerIds = <String>[].obs; // p0, p1, ... for adults+children only
 
   // Pricing
   final RxDouble basePrice = 0.0.obs;
@@ -44,33 +58,105 @@ class FlydubaiExtrasController extends GetxController {
     }
   }
 
+  @override
+  void onReady() {
+    super.onReady();
+    // Ensure passengers are initialized even if not passed in arguments
+    if (passengerIds.isEmpty) {
+      _initializePassengerIds();
+    }
+  }
+
   Future<void> _loadExtras(Map<String, dynamic> args) async {
     final flight = args['flight'] as FlydubaiFlight?;
     final fare = args['fare'] as FlydubaiFlightFare?;
     final isReturn = args['isReturn'] as bool? ?? false;
+    
+    // Extract cart data if available (for seat/baggage/meal APIs)
+    cartData = args['cartData'] as Map<String, dynamic>?;
+    if (cartData != null) {
+      debugPrint('✅ Cart data received for extras API calls');
+    } else {
+      debugPrint('⚠️ No cart data provided, will use flight rawData');
+    }
+
+    // Passenger counts (with defaults)
+    adultPassengers.value = (args['adult'] as int?) ?? 1;
+    childPassengers.value = (args['child'] as int?) ?? 0;
+    infantPassengers.value = (args['infant'] as int?) ?? 0;
+
+    // Initialize passenger IDs immediately
+    _initializePassengerIds();
+
+    debugPrint('Passengers initialized: Adults=${adultPassengers.value}, Children=${childPassengers.value}, Total IDs=${passengerIds.length}');
 
     if (flight != null && fare != null) {
       await loadFlightExtras(flight, fare, isReturn);
     }
   }
-
   Future<bool> loadFlightExtras(FlydubaiFlight flight, FlydubaiFlightFare fare, bool isReturnFlight) async {
     try {
       isLoading.value = true;
       errorMessage.value = '';
 
+      print('═══════════════════════════════════════════════════════');
+      print('🎒 LOADING FLIGHT EXTRAS');
+      print('═══════════════════════════════════════════════════════');
+      print('Flight: ${flight.airlineCode} ${flight.flightSegment.flightNumber}');
+      print('LFID: ${flight.flightSegment.lfid}');
+      print('Selected Fare: ${fare.fareTypeName} (FareID: ${fare.fareId})');
+      print('Is Return Flight: $isReturnFlight');
+
       // Store flight and fare info
       selectedFlight.value = flight;
       selectedFare.value = fare;
 
-      // Generate booking ID (LFID_FareIndex)
-      final fareIndex = _getFareIndex(flight, fare);
-      final bookingId = '${flight.flightSegment.lfid}_$fareIndex';
-      bookingIds.value = [bookingId];
+      // Generate booking IDs. For round-trip, include both outbound and return.
+      final List<String> ids = [];
+
+      // If this is return-leg extras, try to add outbound bookingId first
+      if (isReturnFlight) {
+        print('🔄 This is return flight, checking for outbound...');
+        try {
+          final flyController = Get.find<FlydubaiFlightController>();
+          final outboundFlight = flyController.selectedOutboundFlight;
+          final outboundFare = flyController.selectedOutboundFareOption;
+          if (outboundFlight != null && outboundFare != null) {
+            print('   Found outbound: ${outboundFlight.airlineCode} ${outboundFlight.flightSegment.flightNumber}');
+            print('   Outbound Fare: ${outboundFare.fareTypeName}');
+            
+            final outboundFareIndex = _getFareIndex(outboundFlight, outboundFare);
+            final outboundId = '${outboundFlight.flightSegment.lfid}_$outboundFareIndex';
+            ids.add(outboundId);
+            print('   ✅ Added outbound booking ID: $outboundId');
+          } else {
+            print('   ⚠️ No outbound flight found');
+          }
+        } catch (e) {
+          print('   ⚠️ Error getting outbound: $e');
+        }
+      }
+
+      // Always add current leg bookingId (outbound for one-way, return for round-trip)
+      print('📍 Adding current flight booking ID...');
+      final currentFareIndex = _getFareIndex(flight, fare);
+      final currentId = '${flight.flightSegment.lfid}_$currentFareIndex';
+      ids.add(currentId);
+      print('   ✅ Current booking ID: $currentId');
+
+      bookingIds.value = ids;
+      print('📋 Final booking IDs for extras: $ids');
 
       // Set base price
       basePrice.value = flight.price;
       currency.value = flight.currency;
+
+      print('💰 Base Price: ${flight.price} ${flight.currency}');
+      print('🚀 Starting parallel extras API calls...');
+
+      // Always use flight.rawData (search data) for extras APIs
+      // The token is already correct in the ApiService, and the structure is consistent
+      print('📦 Using FLIGHT SEARCH DATA for extras APIs');
 
       // Load all extras in parallel
       final results = await Future.wait([
@@ -78,12 +164,21 @@ class FlydubaiExtrasController extends GetxController {
         _apiService.getBaggageOptions(bookingIds: bookingIds, flightData: flight.rawData),
         _apiService.getMealOptions(bookingIds: bookingIds, flightData: flight.rawData),
       ]);
+      
+      print('✅ All extras API calls completed');
 
       // Process results
-      for (final result in results) {
+      print('📊 Processing extras API results...');
+      for (int i = 0; i < results.length; i++) {
+        final apiName = ['Seats', 'Baggage', 'Meals'][i];
+        final result = results[i];
+        
         if (result['success'] != true) {
+          print('❌ $apiName API failed: ${result['error']}');
           errorMessage.value = result['error'] ?? 'Failed to load extras';
           return false;
+        } else {
+          print('✅ $apiName API successful');
         }
       }
 
@@ -92,10 +187,19 @@ class FlydubaiExtrasController extends GetxController {
       final baggageData = results[1]['data'];
       final mealData = results[2]['data'];
 
-      // Process the data (you'll need to adapt this based on the actual API response structure)
+      print('🔄 Processing seat data...');
       _processSeatData(seatData);
+      
+      print('🔄 Processing baggage data...');
       _processBaggageData(baggageData);
+      
+      print('🔄 Processing meal data...');
       _processMealData(mealData);
+
+      print('✅ Extras loaded successfully!');
+      print('   - Seats: ${availableSeats.length}');
+      print('   - Baggage: ${availableBaggage.length}');
+      print('   - Meals: ${availableMeals.length}');
 
       return true;
     } catch (e) {
@@ -242,46 +346,57 @@ class FlydubaiExtrasController extends GetxController {
   }
   int _getFareIndex(FlydubaiFlight flight, FlydubaiFlightFare fare) {
     final options = flight.fareOptions ?? [];
+    print('   🔍 _getFareIndex (Extras):');
+    print('      Available fare options: ${options.length}');
+    print('      Looking for: ${fare.fareTypeName} (TypeID: ${fare.fareTypeId}, FareID: ${fare.fareId})');
+    
+    // Use FareID instead of array index - this matches the web implementation
     for (int i = 0; i < options.length; i++) {
-      if (options[i].fareTypeId == fare.fareTypeId) {
-        return i;
+      print('      [$i] ${options[i].fareTypeName} (TypeID: ${options[i].fareTypeId}, FareID: ${options[i].fareId})');
+      if (options[i].fareTypeId == fare.fareTypeId && options[i].fareId == fare.fareId) {
+        print('      ✅ Match found - using FareID: ${fare.fareId} (not array index)');
+        return fare.fareId; // Return FareID, not array index!
       }
     }
-    return 0;
+    
+    print('      ⚠️ No match, returning FareID: ${fare.fareId}');
+    return fare.fareId; // Return FareID, not 0
   }
 
-  void selectBaggage(String passengerId, dynamic baggage) {
-    selectedBaggage[passengerId] = baggage;
+  void selectBaggage(String key, dynamic baggage) {
+    // key should be composite: seg{code}|p{index}
+    selectedBaggage[key] = baggage;
     _updateExtrasPrice();
   }
 
-  void selectMeal(String segmentCode, dynamic meal) {
-    selectedMeals[segmentCode] = meal;
+  void selectMeal(String key, dynamic meal) {
+    // key should be composite: seg{code}|p{index}
+    selectedMeals[key] = meal;
     _updateExtrasPrice();
   }
 
   // Add these methods to your FlydubaiExtrasController class
 
 // Enhanced seat selection method
-  void selectSeat(String segmentCode, dynamic seat) {
+  void selectSeat(String key, dynamic seat) {
     if (seat['seatNumber']?.toString().isEmpty == true) {
       // Deselect current seat
-      selectedSeats.remove(segmentCode);
+      selectedSeats.remove(key);
     } else {
       // Select new seat
-      selectedSeats[segmentCode] = seat;
+      selectedSeats[key] = seat;
     }
     _updateExtrasPrice();
   }
 
-// Get selected seat for a segment
-  Map<String, dynamic>? getSelectedSeat(String segmentCode) {
-    return selectedSeats[segmentCode];
+// Get selected seat for a key
+  Map<String, dynamic>? getSelectedSeat(String key) {
+    return selectedSeats[key];
   }
 
-// Check if a specific seat is selected
-  bool isSeatSelected(String segmentCode, String seatNumber) {
-    final selectedSeat = selectedSeats[segmentCode];
+// Check if a specific seat is selected for a key
+  bool isSeatSelected(String key, String seatNumber) {
+    final selectedSeat = selectedSeats[key];
     if (selectedSeat == null) return false;
 
     return selectedSeat['seatNumber']?.toString() == seatNumber ||
@@ -296,6 +411,94 @@ class FlydubaiExtrasController extends GetxController {
       // Add your filtering logic here if needed
       return true; // Return all seats for now
     }).toList();
+  }
+
+  // Helpers for passengers/segments
+  void _initializePassengerIds() {
+    passengerIds.clear();
+    final total = adultPassengers.value + childPassengers.value;
+    debugPrint('Initializing passenger IDs for $total passengers (Adults: ${adultPassengers.value}, Children: ${childPassengers.value})');
+
+    for (int i = 0; i < total; i++) {
+      passengerIds.add('p$i');
+    }
+
+    debugPrint('Passenger IDs initialized: ${passengerIds.toList()}');
+  }
+
+  String getPassengerDisplayName(int index) {
+    if (index < 0 || index >= passengerIds.length) {
+      return 'Passenger ${index + 1}';
+    }
+
+    final adt = adultPassengers.value;
+    if (index < adt) {
+      return adt == 1 ? 'Adult' : 'Adult ${index + 1}';
+    }
+    final chIndex = index - adt;
+    final totalChildren = childPassengers.value;
+    return totalChildren == 1 ? 'Child' : 'Child ${chIndex + 1}';
+  }
+  // Add after the existing passenger selection methods
+
+// Get selected baggage for specific passenger
+  Map<String, dynamic>? getSelectedBaggageForPassenger(String segmentCode, String passengerId) {
+    final key = 'seg$segmentCode|$passengerId';
+    return selectedBaggage[key];
+  }
+
+// Get selected meal for specific passenger
+  Map<String, dynamic>? getSelectedMealForPassenger(String segmentCode, String passengerId) {
+    final key = 'seg$segmentCode|$passengerId';
+    return selectedMeals[key];
+  }
+
+// Get selected seat for specific passenger
+  Map<String, dynamic>? getSelectedSeatForPassenger(String segmentCode, String passengerId) {
+    final key = 'seg$segmentCode|$passengerId';
+    return selectedSeats[key];
+  }
+
+// Remove selection for a passenger
+  void removePassengerSelection(String segmentCode, String passengerId, String type) {
+    final key = 'seg$segmentCode|$passengerId';
+    switch (type) {
+      case 'baggage':
+        selectedBaggage.remove(key);
+        break;
+      case 'meal':
+        selectedMeals.remove(key);
+        break;
+      case 'seat':
+        selectedSeats.remove(key);
+        break;
+    }
+    _updateExtrasPrice();
+  }
+
+// Get all selections for a passenger (for summary)
+  Map<String, dynamic> getPassengerSelections(String segmentCode, String passengerId) {
+    final key = 'seg$segmentCode|$passengerId';
+    return {
+      'baggage': selectedBaggage[key],
+      'meal': selectedMeals[key],
+      'seat': selectedSeats[key],
+    };
+  }
+
+// Check if passenger has any selections
+  bool hasPassengerSelections(String segmentCode, String passengerId) {
+    final key = 'seg$segmentCode|$passengerId';
+    return selectedBaggage.containsKey(key) ||
+        selectedMeals.containsKey(key) ||
+        selectedSeats.containsKey(key);
+  }
+
+
+  List<String> getSegmentCodes() {
+    final flight = selectedFlight.value;
+    if (flight == null) return ['0'];
+    return [flight.flightSegment.lfid.toString()];
   }
 
   /// Prints JSON nicely with chunking
@@ -493,11 +696,81 @@ class FlydubaiExtrasController extends GetxController {
   }
 
   Map<String, dynamic> getBookingSummary() {
+    // Group selections by passenger for better organization
+    Map<String, Map<String, dynamic>> passengerSelections = {};
+
+    for (final passengerId in passengerIds) {
+      passengerSelections[passengerId] = {
+        'passengerName': getPassengerDisplayName(passengerIds.indexOf(passengerId)),
+        'baggage': {},
+        'meals': {},
+        'seats': {},
+      };
+    }
+
+    // Process baggage selections
+    selectedBaggage.forEach((key, value) {
+      final parts = key.split('|');
+      if (parts.length == 2) {
+        final passengerId = parts[1];
+        if (passengerSelections.containsKey(passengerId)) {
+          passengerSelections[passengerId]!['baggage'] = {
+            'description': value['description'] ?? '',
+            'charge': value['charge'] ?? '0',
+          };
+        }
+      }
+    });
+
+    // Process meal selections
+    selectedMeals.forEach((key, value) {
+      final parts = key.split('|');
+      if (parts.length == 2) {
+        final passengerId = parts[1];
+        if (passengerSelections.containsKey(passengerId)) {
+
+
+
+
+
+
+
+
+
+
+
+
+          
+          passengerSelections[passengerId]!['meals'] = {
+            'name': value['name'] ?? '',
+            'charge': value['charge'] ?? '0',
+          };
+        }
+      }
+    });
+
+    // Process seat selections
+    selectedSeats.forEach((key, value) {
+      final parts = key.split('|');
+      if (parts.length == 2) {
+        final passengerId = parts[1];
+        if (passengerSelections.containsKey(passengerId)) {
+          passengerSelections[passengerId]!['seats'] = {
+            'number': value['seatNumber'] ?? '',
+            'charge': value['charge'] ?? '0',
+          };
+        }
+      }
+    });
+
     return {
       'base_price': basePrice.value,
       'extras_price': totalExtrasPrice.value,
       'total_price': totalPrice,
       'currency': currency.value,
+      'passenger_count': passengerIds.length,
+      'passengers': passengerSelections,
+      // Legacy format for backward compatibility
       'baggage': selectedBaggage.map((key, value) => MapEntry(key, {
         'description': value['description'] ?? '',
         'charge': value['charge'] ?? '0',
@@ -507,7 +780,7 @@ class FlydubaiExtrasController extends GetxController {
         'charge': value['charge'] ?? '0',
       })),
       'seats': selectedSeats.map((key, value) => MapEntry(key, {
-        'number': value['number'] ?? '',
+        'number': value['seatNumber'] ?? '',
         'charge': value['charge'] ?? '0',
       })),
     };

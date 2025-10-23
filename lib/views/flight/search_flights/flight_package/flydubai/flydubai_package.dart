@@ -2,17 +2,16 @@
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:ready_flights/views/flight/search_flights/flydubai/flydubai_controller.dart';
-import 'package:ready_flights/views/flight/search_flights/flydubai/flydubai_model.dart';
 import '../../../../../services/api_service_sabre.dart';
 import '../../../../../utility/colors.dart';
 import '../../../form/flight_booking_controller.dart';
-import '../../flydubai/flydubai_exra.dart';
+import '../../flydubai/flydubai_controller.dart';
+import 'package:ready_flights/views/flight/search_flights/flydubai/flydubai_model.dart';
+
+import '../../flydubai/flydubai_extras.dart';
 import '../../flydubai/flydubai_extras_controller.dart';
 import '../../flydubai/flydubai_return_flight.dart';
-import '../../review_flight/flydubai_review_flight.dart';
 import '../../search_flight_utils/widgets/flydubai_flight_card.dart';
-
 class FlyDubaiPackageSelectionDialog extends StatelessWidget {
   final FlydubaiFlight flight;
   final bool isReturnFlight;
@@ -29,6 +28,7 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
   });
 
   final flyDubaiController = Get.find<FlydubaiFlightController>();
+  final bookingController = Get.find<FlightBookingController>();
   late final FlightBookingController flightBookingController;
 
   @override
@@ -515,39 +515,67 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
     try {
       isLoading.value = true;
 
+      print('═══════════════════════════════════════════════════════');
+      print('📦 PACKAGE SELECTION STARTED');
+      print('═══════════════════════════════════════════════════════');
+      print('Flight: ${flight.airlineCode} ${flight.flightSegment.flightNumber}');
+      print('LFID: ${flight.flightSegment.lfid}');
+      print('Is Return Flight: $isReturnFlight');
+      print('Selected Package Index: $selectedPackageIndex');
+
       // Get all fare options for this flight
       final List<FlydubaiFlightFare> fareOptions =
       flyDubaiController.getFareOptionsForFlight(flight);
 
+      print('Available Fare Options: ${fareOptions.length}');
+      for (int i = 0; i < fareOptions.length; i++) {
+        print('  [$i] ${fareOptions[i].fareTypeName} (FareID: ${fareOptions[i].fareId}, TypeID: ${fareOptions[i].fareTypeId})');
+      }
+
       // Get the selected fare option
       final selectedFareOption = fareOptions[selectedPackageIndex];
+      
+      print('✅ Selected Fare: ${selectedFareOption.fareTypeName}');
+      print('   - Fare ID: ${selectedFareOption.fareId}');
+      print('   - Fare Type ID: ${selectedFareOption.fareTypeId}');
+      print('   - Price: ${selectedFareOption.baseFareAmountIncludingTax}');
+      print('   - Booking Code: ${selectedFareOption.bookingCode}');
 
-      // Revalidate flight pricing before proceeding
-      final revalidationSuccess = await flyDubaiController.revalidateFlightBeforeReview(
-        flight: flight,
-        selectedFare: selectedFareOption,
-        isReturnFlight: isReturnFlight,
-      );
-
-      if (!revalidationSuccess) {
-        Get.snackbar(
-          'Price Update Required',
-          'Flight prices have changed. Please review the updated pricing.',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
-          duration: const Duration(seconds: 3),
+      // For round trips, skip revalidation for the return flight
+      // We'll add both flights to cart together later
+      final tripType = flightBookingController.tripType.value;
+      final shouldRevalidate = !(isReturnFlight && tripType == TripType.roundTrip);
+      
+      if (shouldRevalidate) {
+        print('🔄 Revalidating ${isReturnFlight ? "return" : "outbound"} flight...');
+        
+        // Revalidate flight pricing before proceeding
+        final revalidationSuccess = await flyDubaiController.revalidateFlightBeforeReview(
+          flight: flight,
+          selectedFare: selectedFareOption,
+          isReturnFlight: isReturnFlight,
         );
 
-        // Refresh the package list to show updated prices
-        await _prefetchMarginData();
-        isLoading.value = false;
-        return;
+        if (!revalidationSuccess) {
+          Get.snackbar(
+            'Price Update Required',
+            'Flight prices have changed. Please review the updated pricing.',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.orange,
+            colorText: Colors.white,
+            duration: const Duration(seconds: 3),
+          );
+
+          // Refresh the package list to show updated prices
+          await _prefetchMarginData();
+          isLoading.value = false;
+          return;
+        }
+      } else {
+        print('⏭️ Skipping revalidation for return flight (will add both to cart together)');
       }
 
       // Check if this is a one-way flight or we need to select a return flight
-      final tripType = flightBookingController.tripType.value;
-
       if (tripType == TripType.oneWay || isReturnFlight) {
         // For one-way trip or if this is already the return flight selection
         Get.back(); // Close the package selection dialog
@@ -574,15 +602,45 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
         );
 
         Get.lazyPut<FlydubaiExtrasController>(() => FlydubaiExtrasController());
-        // Get.to(() => FlydubaiExtrasScreen());
-
-// With:
+        
+        // For round trips, we need to add BOTH flights to cart together
+        // before navigating to extras (so the server has both in the session)
+        if (isReturnFlight && flyDubaiController.selectedOutboundFlight != null) {
+          print('🛒 Adding both flights to cart for round trip...');
+          
+          // Add both outbound and return flights to cart together
+          final cartResult = await flyDubaiController.addFlightsToCart();
+          
+          if (cartResult['success'] != true) {
+            Get.snackbar(
+              'Error',
+              'Failed to add flights to cart: ${cartResult['error'] ?? "Unknown error"}',
+              snackPosition: SnackPosition.BOTTOM,
+              backgroundColor: Colors.red,
+              colorText: Colors.white,
+              duration: const Duration(seconds: 3),
+            );
+            return;
+          }
+          
+          print('✅ Both flights added to cart successfully');
+        }
+        
+        // For round trips, pass combined flight data from BOTH outbound and return
+        final flightToPass = isReturnFlight && flyDubaiController.selectedOutboundFlight != null
+            ? _createCombinedFlight(flyDubaiController.selectedOutboundFlight!, flight)
+            : flight;
+        
         Get.to(
-              () => FlydubaiExtrasScreen(),
+          () => FlydubaiExtrasScreen(),
           arguments: {
-            'flight': flight,
+            'flight': flightToPass,  // Pass combined flight for round trips
             'fare': selectedFareOption,
             'isReturn': isReturnFlight,
+            'adult': bookingController.adultCount.value,
+            'child': bookingController.childrenCount.value,
+            'infant': bookingController.infantCount.value,
+            'cartData': flyDubaiController.cartData,  // Pass cart data for seat API
           },
         );
       } else {
@@ -619,6 +677,38 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
       isLoading.value = false;
     }
   }
+  // Helper method to create a flight with combined rawData for round trips
+  FlydubaiFlight _createCombinedFlight(FlydubaiFlight outbound, FlydubaiFlight returnFlight) {
+    print('🔗 Creating combined flight data for round trip');
+    print('Outbound LFID: ${outbound.flightSegment.lfid}');
+    print('Return LFID: ${returnFlight.flightSegment.lfid}');
+    
+    // Merge the rawData to include both segments
+    final combinedRawData = Map<String, dynamic>.from(returnFlight.rawData);
+    
+    // The rawData should already contain both segments from the original search
+    // But let's ensure both are present by checking and logging
+    try {
+      final retrieveResult = combinedRawData['RetrieveFareQuoteDateRangeResponse']?['RetrieveFareQuoteDateRangeResult'];
+      if (retrieveResult != null) {
+        final segmentDetails = retrieveResult['SegmentDetails']?['SegmentDetail'];
+        if (segmentDetails is List) {
+          print('✅ Combined rawData has ${segmentDetails.length} segments');
+          for (var seg in segmentDetails) {
+            if (seg is Map) {
+              print('   - LFID: ${seg['LFID']}, ${seg['Origin']}->${seg['Destination']}');
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('⚠️ Error checking combined rawData: $e');
+    }
+    
+    // Return the return flight but with confirmed combined rawData
+    return returnFlight;
+  }
+  
   void _showReturnFlights() {
     final returnFlights = flyDubaiController.getReturnFlights();
 

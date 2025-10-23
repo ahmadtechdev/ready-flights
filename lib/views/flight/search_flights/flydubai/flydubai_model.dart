@@ -3,6 +3,7 @@
 // ignore_for_file: empty_catches
 
 import 'package:flutter/foundation.dart';
+
 import '../sabre/sabre_flight_models.dart';
 
 class FlydubaiResponse {
@@ -238,6 +239,7 @@ class FlydubaiFlightFare {
   final String fareTypeName;
   final String paxId;
   final int fareId;
+  final int solnId; // Add solution ID for combinability logic
   final double displayFareAmount;
   final double baseFareAmountIncludingTax;
   final int seatsAvailable;
@@ -251,6 +253,7 @@ class FlydubaiFlightFare {
     required this.fareTypeName,
     required this.paxId,
     required this.fareId,
+    required this.solnId,
     required this.displayFareAmount,
     required this.baseFareAmountIncludingTax,
     required this.seatsAvailable,
@@ -289,6 +292,7 @@ class FlydubaiFlightFare {
         fareTypeName: fareType['FareTypeName']?.toString() ?? 'Economy',
         paxId: pax['ID']?.toString() ?? '',
         fareId: (pax['FareID'] as num?)?.toInt() ?? 0,
+        solnId: (fareType['SolnId'] as num?)?.toInt() ?? 0, // Add solution ID
         displayFareAmount: (pax['BaseFareAmtInclTax'] as num?)?.toDouble() ??
             (pax['FareAmtInclTax'] as num?)?.toDouble() ?? 0.0,
         baseFareAmountIncludingTax: (pax['BaseFareAmtInclTax'] as num?)?.toDouble() ??
@@ -329,6 +333,10 @@ class FlydubaiFlight {
   final FlydubaiFlightSegment flightSegment;
   final List<Map<String, dynamic>> changeFeeDetails;
   final List<Map<String, dynamic>> refundFeeDetails;
+  // Add stop information
+  final int stops;
+  final bool isNonStop;
+  final List<String> stopCities;
 
   FlydubaiFlight({
     required this.id,
@@ -349,8 +357,12 @@ class FlydubaiFlight {
     required this.flightSegment,
     required this.changeFeeDetails,
     required this.refundFeeDetails,
+    required this.stops,
+    required this.isNonStop,
+    required this.stopCities,
     this.fareOptions,
     required this.rawData,
+
   });
 
   factory FlydubaiFlight.fromFlightSegment(
@@ -410,6 +422,35 @@ class FlydubaiFlight {
       final taxAmount = totalPrice * 0.25; // Approximate 25% for taxes and fees
       final basePrice = totalPrice - taxAmount;
 
+
+      // Calculate stops from segment details
+      final segmentDetails = rawData['RetrieveFareQuoteDateRangeResponse']?
+      ['RetrieveFareQuoteDateRangeResult']?['SegmentDetails']?['SegmentDetail'];
+
+      int stops = 0;
+      List<String> stopCities = [];
+
+      // Find the matching segment detail by LFID
+      if (segmentDetails is List) {
+        for (var segmentDetail in segmentDetails) {
+          if ((segmentDetail['LFID'] as num?)?.toInt() == segment.lfid) {
+            stops = (segmentDetail['Stops'] as num?)?.toInt() ?? 0;
+
+            // Extract stop cities from the flight number (e.g., "360/807" means stop in DXB)
+            if (stops > 0) {
+              final flightNumbers = segmentDetail['FlightNum']?.toString().split('/') ?? [];
+              if (flightNumbers.length > 1) {
+                // For LHE-DXB-JED, the stop city would be DXB
+                // You might need additional logic to map airport codes to city names
+                stopCities = ['Dubai']; // Simplified - you'll need proper mapping
+              }
+            }
+            break;
+          }
+        }
+      }
+
+
       return FlydubaiFlight(
         id: flightId,
         price: totalPrice,
@@ -427,6 +468,9 @@ class FlydubaiFlight {
         airlineImg: airlineInfo.logoPath,
         rph: segment.lfid.toString(),
         flightSegment: segment,
+        stops: stops,
+        isNonStop: stops == 0,
+        stopCities: stopCities,
         fareOptions: segment.fareTypes,
         rawData: rawData,
         changeFeeDetails: _getChangeFees(lowestFare.fareTypeName),
@@ -771,7 +815,7 @@ class FlydubaiFlight {
       fareOptions: options,
       rawData: rawData,
       changeFeeDetails: changeFeeDetails,
-      refundFeeDetails: refundFeeDetails,
+      refundFeeDetails: refundFeeDetails, stops: stops, isNonStop: isNonStop, stopCities: stopCities,
     );
   }
 }

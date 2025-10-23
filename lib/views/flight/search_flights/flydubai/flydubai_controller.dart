@@ -6,10 +6,10 @@ import 'package:ready_flights/views/flight/search_flights/flydubai/flydubai_mode
 import 'dart:developer' as developer;
 
 import '../../../../services/api_service_flydubai.dart';
-import '../../form/flight_booking_controller.dart';
 import '../filters/filter_flight_model.dart';
 import '../flight_package/flydubai/flydubai_package.dart';
 import '../sabre/sabre_flight_models.dart';
+import 'flydubai_extras_controller.dart';
 
 class FlydubaiFlightController extends GetxController {
   // Use the separate API service
@@ -640,75 +640,268 @@ class FlydubaiFlightController extends GetxController {
   }
 
 // Add flight to cart (for final booking)
+  // In FlydubaiFlightController, update the addFlightsToCart method
   Future<Map<String, dynamic>> addFlightsToCart() async {
+  try {
+    print('═══════════════════════════════════════════════════════');
+    print('🛒 ADDING FLIGHTS TO CART');
+    print('═══════════════════════════════════════════════════════');
+
+    // Check if this is a round-trip flight
+    final isRoundTrip = selectedOutboundFlight != null && selectedReturnFlight != null;
+    
+    if (isRoundTrip) {
+      print('🔄 Round-trip flight detected - checking combinability...');
+      
+      // Apply combinability logic for round-trip flights
+      final combinabilityResult = _applyCombinabilityLogic();
+      if (!combinabilityResult['success']) {
+        return combinabilityResult;
+      }
+    }
+
+    final List<String> bookingIds = [];
+
+    // Add outbound flight if selected
+    if (selectedOutboundFlight != null && selectedOutboundFareOption != null) {
+      print('📍 Processing Outbound Flight:');
+      print('   - Flight: ${selectedOutboundFlight!.airlineCode} ${selectedOutboundFlight!.flightSegment.flightNumber}');
+      print('   - LFID: ${selectedOutboundFlight!.flightSegment.lfid}');
+      print('   - Selected Fare: ${selectedOutboundFareOption!.fareTypeName}');
+      
+      final fareIndex = _getFareIndex(selectedOutboundFlight!, selectedOutboundFareOption!);
+      final outboundId = '${selectedOutboundFlight!.flightSegment.lfid}_$fareIndex';
+      bookingIds.add(outboundId);
+      print('   ✅ Outbound Booking ID: $outboundId');
+    }
+
+    // Add return flight if selected
+    if (selectedReturnFlight != null && selectedReturnFareOption != null) {
+      print('📍 Processing Return Flight:');
+      print('   - Flight: ${selectedReturnFlight!.airlineCode} ${selectedReturnFlight!.flightSegment.flightNumber}');
+      print('   - LFID: ${selectedReturnFlight!.flightSegment.lfid}');
+      print('   - Selected Fare: ${selectedReturnFareOption!.fareTypeName}');
+      
+      final fareIndex = _getFareIndex(selectedReturnFlight!, selectedReturnFareOption!);
+      final returnId = '${selectedReturnFlight!.flightSegment.lfid}_$fareIndex';
+      bookingIds.add(returnId);
+      print('   ✅ Return Booking ID: $returnId');
+    }
+
+    if (bookingIds.isEmpty) {
+      return {
+        'success': false,
+        'error': 'No flights selected for cart',
+      };
+    }
+
+    // Use outbound flight data for cart (assuming both flights have similar structure)
+    final flightData = selectedOutboundFlight?.rawData ?? selectedReturnFlight?.rawData;
+
+    if (flightData == null) {
+      return {
+        'success': false,
+        'error': 'No flight data available',
+      };
+    }
+
+    final result = await apiService.addToCart(
+      bookingIds: bookingIds,
+      flightData: flightData,
+    );
+
+    if (result['success'] == true) {
+      print("✅ Add to cart successful");
+      developer.log('Successfully added flights to cart');
+      
+      // Store cart data AND security GUID for booking process
+      _cartData = result['data'];
+      final securityGuid = result['securityGuid'];
+      
+      if (securityGuid != null) {
+        _cartData?['SecurityGuid'] = securityGuid;
+      }
+      
+      // Debug: Check cart response structure
+      if (result['data'] != null) {
+        final cartData = result['data'] as Map<String, dynamic>;
+        print('🔍 Cart Response Analysis:');
+        print('   - Keys: ${cartData.keys.toList()}');
+        print('   - SecurityGUID (uppercase): ${cartData['SecurityGUID']}');
+        print('   - SecurityGuid (mixed): ${cartData['SecurityGuid']}');
+        print('   - securityGUID (lowercase): ${cartData['securityGUID']}');
+        print('   - Has originDestinations: ${cartData.containsKey('originDestinations')}');
+        
+        // Extract and log the actual GUID value
+        final extractedGuid = cartData['SecurityGUID'] ?? cartData['SecurityGuid'] ?? cartData['securityGUID'];
+        if (extractedGuid != null && extractedGuid.toString().isNotEmpty) {
+          print('✅ Extracted SecurityGUID from cart: $extractedGuid');
+        } else {
+          print('⚠️ No SecurityGUID found in cart response');
+        }
+      }
+      
+      developer.log('Security GUID for PNR: $securityGuid');
+    }
+
+    return result;
+  } catch (e) {
+    developer.log('Add to cart error: $e');
+    return {
+      'success': false,
+      'error': 'Failed to add flights to cart: $e',
+    };
+  }
+}
+// Apply combinability logic for round-trip flights
+  Map<String, dynamic> _applyCombinabilityLogic() {
     try {
-      developer.log('=== ADDING FLIGHTS TO CART ===');
-
-      final List<String> bookingIds = [];
-
-      // Add outbound flight if selected
-      if (selectedOutboundFlight != null && selectedOutboundFareOption != null) {
-        final outboundId = '${selectedOutboundFlight!.flightSegment.lfid}_'
-            '${_getFareIndex(selectedOutboundFlight!, selectedOutboundFareOption!)}';
-        bookingIds.add(outboundId);
-        developer.log('Outbound Booking ID: $outboundId');
-      }
-
-      // Add return flight if selected
-      if (selectedReturnFlight != null && selectedReturnFareOption != null) {
-        final returnId = '${selectedReturnFlight!.flightSegment.lfid}_'
-            '${_getFareIndex(selectedReturnFlight!, selectedReturnFareOption!)}';
-        bookingIds.add(returnId);
-        developer.log('Return Booking ID: $returnId');
-      }
-
-      if (bookingIds.isEmpty) {
-        return {
-          'success': false,
-          'error': 'No flights selected for cart',
-        };
-      }
-
-      // Use outbound flight data for cart (assuming both flights have similar structure)
+      print('🔍 Applying combinability logic...');
+      
+      // Get flight data to access combinability information
       final flightData = selectedOutboundFlight?.rawData ?? selectedReturnFlight?.rawData;
-
       if (flightData == null) {
         return {
           'success': false,
-          'error': 'No flight data available',
+          'error': 'No flight data available for combinability check',
         };
       }
 
-      final result = await apiService.addToCart(
-        bookingIds: bookingIds,
-        flightData: flightData,
-      );
-
-      if (result['success'] == true) {
-        developer.log('Successfully added flights to cart');
-        // Store cart data for booking process
-        _cartData = result['data'];
+      // Extract combinability data
+      final retrieveResult = flightData['RetrieveFareQuoteDateRangeResponse']?['RetrieveFareQuoteDateRangeResult'];
+      if (retrieveResult == null) {
+        print('⚠️ No combinability data found, proceeding without check');
+        return {'success': true};
       }
 
-      return result;
-    } catch (e) {
-      developer.log('Add to cart error: $e');
+      final combinability = retrieveResult['Combinability']?['BS'];
+      if (combinability == null || combinability is! List) {
+        print('⚠️ No combinability rules found, proceeding without check');
+        return {'success': true};
+      }
+
+      // Get selected fare solution IDs
+      final outboundSolnId = selectedOutboundFareOption?.solnId;
+      final returnSolnId = selectedReturnFareOption?.solnId;
+      
+      if (outboundSolnId == null || returnSolnId == null) {
+        print('⚠️ Missing solution IDs, proceeding without check');
+        return {'success': true};
+      }
+
+      print('🔍 Checking combinability:');
+      print('   Outbound SolnId: $outboundSolnId');
+      print('   Return SolnId: $returnSolnId');
+
+      // Check if the selected combination is valid
+      bool foundValidCombination = false;
+      for (final combo in combinability) {
+        if (combo is Map && combo['SolnRef'] is List) {
+          final solnRef = combo['SolnRef'] as List;
+          if (solnRef.length >= 2) {
+            final comboOutboundSoln = solnRef[0];
+            final comboReturnSoln = solnRef[1];
+            
+            print('   Checking combination: [$comboOutboundSoln, $comboReturnSoln]');
+            
+            if (comboOutboundSoln == outboundSolnId && comboReturnSoln == returnSolnId) {
+              print('   ✅ Found valid combination!');
+              foundValidCombination = true;
+              break;
+            }
+          }
+        }
+      }
+
+      if (foundValidCombination) {
+        print('✅ Selected fare combination is valid');
+        return {'success': true};
+      }
+
+      // If not found, try to find alternative combinations
+      print('⚠️ Selected combination not valid, looking for alternatives...');
+      
+      // Try to find a valid combination with the return flight
+      for (final combo in combinability) {
+        if (combo is Map && combo['SolnRef'] is List) {
+          final solnRef = combo['SolnRef'] as List;
+          if (solnRef.length >= 2) {
+            final comboOutboundSoln = solnRef[0];
+            final comboReturnSoln = solnRef[1];
+            
+            // If return flight matches, try to find compatible outbound
+            if (comboReturnSoln == returnSolnId) {
+              print('   Found compatible return flight, looking for outbound alternative...');
+              
+              // Find alternative outbound fare with matching solution ID
+              final alternativeOutbound = _findAlternativeFare(
+                selectedOutboundFlight!, 
+                comboOutboundSoln,
+                selectedOutboundFareOption!.fareTypeName
+              );
+              
+              if (alternativeOutbound != null) {
+                print('   ✅ Found alternative outbound fare: ${alternativeOutbound.fareTypeName}');
+                selectedOutboundFareOption = alternativeOutbound;
+                return {'success': true};
+              }
+            }
+          }
+        }
+      }
+
+      // If still no valid combination found, return error with helpful message
       return {
         'success': false,
-        'error': 'Failed to add flights to cart: $e',
+        'error': 'Selected fare combination is not compatible for round-trip booking. Please try selecting different fare types (e.g., both LITE, both VALUE, or both FLEX).',
+      };
+
+    } catch (e) {
+      print('❌ Error in combinability logic: $e');
+      return {
+        'success': false,
+        'error': 'Error checking fare compatibility: $e',
       };
     }
+  }
+
+  // Find alternative fare with specific solution ID and fare type name
+  FlydubaiFlightFare? _findAlternativeFare(
+    FlydubaiFlight flight, 
+    int targetSolnId, 
+    String targetFareTypeName
+  ) {
+    final options = fareOptionsByLFID[flight.rph] ?? [];
+    
+    for (final option in options) {
+      if (option.solnId == targetSolnId && option.fareTypeName == targetFareTypeName) {
+        return option;
+      }
+    }
+    
+    return null;
   }
 
 // Helper method to get fare index
   int _getFareIndex(FlydubaiFlight flight, FlydubaiFlightFare fare) {
     final options = fareOptionsByLFID[flight.rph] ?? [];
+    print('🔍 _getFareIndex called:');
+    print('   Flight LFID/RPH: ${flight.rph}');
+    print('   Looking for Fare Type ID: ${fare.fareTypeId} (${fare.fareTypeName})');
+    print('   Looking for Fare ID: ${fare.fareId}');
+    print('   Available options: ${options.length}');
+    
+    // Use FareID instead of array index - this matches the web implementation
     for (int i = 0; i < options.length; i++) {
-      if (options[i].fareTypeId == fare.fareTypeId) {
-        return i;
+      print('   [$i] ${options[i].fareTypeName} (TypeID: ${options[i].fareTypeId}, FareID: ${options[i].fareId})');
+      if (options[i].fareTypeId == fare.fareTypeId && options[i].fareId == fare.fareId) {
+        print('   ✅ Found match - using FareID: ${fare.fareId} (not array index)');
+        return fare.fareId; // Return FareID, not array index!
       }
     }
-    return 0;
+    
+    print('   ⚠️ No match found, returning FareID: ${fare.fareId}');
+    return fare.fareId; // Return FareID, not 0
   }
 
 // Helper method to update flight price
@@ -734,7 +927,7 @@ class FlydubaiFlightController extends GetxController {
       fareOptions: flight.fareOptions,
       rawData: flight.rawData,
       changeFeeDetails: flight.changeFeeDetails,
-      refundFeeDetails: flight.refundFeeDetails,
+      refundFeeDetails: flight.refundFeeDetails, stops: flight.stops, isNonStop: flight.isNonStop, stopCities: flight.stopCities,
     );
   }
 
@@ -750,45 +943,138 @@ class FlydubaiFlightController extends GetxController {
   }
 
 
-// Add this method to FlydubaiFlightController
+// Update the buildSegmentArray method in FlydubaiFlightController
   List<Map<String, dynamic>> buildSegmentArray() {
     final List<Map<String, dynamic>> segments = [];
+    final FlydubaiExtrasController extrasController = Get.find<FlydubaiExtrasController>();
+
+    print('═══════════════════════════════════════════════════════');
+    print('🔧 BUILDING SEGMENT ARRAY FOR PNR');
+    print('═══════════════════════════════════════════════════════');
 
     try {
       // Build segments for outbound flight
       if (selectedOutboundFlight != null && selectedOutboundFareOption != null) {
+        print('📍 Building Outbound Segment:');
+        print('   - Flight: ${selectedOutboundFlight!.airlineCode} ${selectedOutboundFlight!.flightSegment.flightNumber}');
+        print('   - LFID: ${selectedOutboundFlight!.flightSegment.lfid}');
+        print('   - Fare: ${selectedOutboundFareOption!.fareTypeName}');
+        print('   - Fare ID: ${selectedOutboundFareOption!.fareId}');
+        
         final fareId = selectedOutboundFareOption!.fareId;
+
+        // Get extras data from extras controller
+        final baggageExtras = _buildBaggageExtras(extrasController.selectedBaggage);
+        final mealExtras = _buildMealExtras(extrasController.selectedMeals);
+        final seatExtras = _buildSeatExtras(extrasController.selectedSeats);
+
+        print('   - Baggage extras: ${baggageExtras.isNotEmpty ? "Yes" : "No"}');
+        print('   - Meal extras: ${mealExtras.length}');
+        print('   - Seat extras: ${seatExtras.length}');
+
         segments.add({
           'pax': 1, // First passenger
           'fareID': fareId,
           'extra': {
-            'baggage': '',
-            'meal': [],
-            'seat': []
+            'baggage': baggageExtras,
+            'meal': mealExtras,
+            'seat': seatExtras
           }
         });
+        
+        print('   ✅ Outbound segment added');
       }
 
       // Build segments for return flight
       if (selectedReturnFlight != null && selectedReturnFareOption != null) {
+        print('📍 Building Return Segment:');
+        print('   - Flight: ${selectedReturnFlight!.airlineCode} ${selectedReturnFlight!.flightSegment.flightNumber}');
+        print('   - LFID: ${selectedReturnFlight!.flightSegment.lfid}');
+        print('   - Fare: ${selectedReturnFareOption!.fareTypeName}');
+        print('   - Fare ID: ${selectedReturnFareOption!.fareId}');
+        
         final fareId = selectedReturnFareOption!.fareId;
+
+        // Get extras data from extras controller (you might want separate handling for return flight)
+        final baggageExtras = _buildBaggageExtras(extrasController.selectedBaggage);
+        final mealExtras = _buildMealExtras(extrasController.selectedMeals);
+        final seatExtras = _buildSeatExtras(extrasController.selectedSeats);
+
+        print('   - Baggage extras: ${baggageExtras.isNotEmpty ? "Yes" : "No"}');
+        print('   - Meal extras: ${mealExtras.length}');
+        print('   - Seat extras: ${seatExtras.length}');
+
         segments.add({
           'pax': 1, // First passenger
           'fareID': fareId,
           'extra': {
-            'baggage': '',
-            'meal': [],
-            'seat': []
+            'baggage': baggageExtras,
+            'meal': mealExtras,
+            'seat': seatExtras
           }
         });
+        
+        print('   ✅ Return segment added');
       }
+      
+      print('📋 Total segments built: ${segments.length}');
+      for (int i = 0; i < segments.length; i++) {
+        print('   Segment $i: pax=${segments[i]['pax']}, fareID=${segments[i]['fareID']}');
+      }
+      
     } catch (e) {
-      print('Error building segment array: $e');
+      print('❌ Error building segment array: $e');
     }
 
     return segments;
   }
 
+// Helper methods to build extras in the correct format
+  String _buildBaggageExtras(RxMap<String, dynamic> selectedBaggage) {
+    if (selectedBaggage.isEmpty) return '';
+
+    try {
+      // Format: OfferCode!!LFID!!DepartureDate!!Amount!!Currency!!RuleId!!PFID
+      final baggage = selectedBaggage.values.first;
+      return '${baggage['id']}!!0!!${DateTime.now().toIso8601String()}!!${baggage['charge']}!!PKR!!BAGGAGE_RULE!!0';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  List<String> _buildMealExtras(RxMap<String, dynamic> selectedMeals) {
+    final List<String> meals = [];
+
+    if (selectedMeals.isEmpty) return meals;
+
+    try {
+      // Format: OfferCode!!LFID!!DepartureDate!!Amount!!Currency!!RuleId!!PFID
+      for (final meal in selectedMeals.values) {
+        meals.add('${meal['id']}!!0!!${DateTime.now().toIso8601String()}!!${meal['charge']}!!PKR!!MEAL_RULE!!0');
+      }
+    } catch (e) {
+      print('Error building meal extras: $e');
+    }
+
+    return meals;
+  }
+
+  List<String> _buildSeatExtras(RxMap<String, dynamic> selectedSeats) {
+    final List<String> seats = [];
+
+    if (selectedSeats.isEmpty) return seats;
+
+    try {
+      // Format: OfferCode!!LFID!!DepartureDate!!Amount!!Currency!!RuleId!!PFID!!RowNumber!!SeatNumber
+      for (final seat in selectedSeats.values) {
+        seats.add('SEAT!!0!!${DateTime.now().toIso8601String()}!!${seat['charge']}!!PKR!!SEAT_RULE!!0!!${seat['rowNumber']}!!${seat['seatNumber']}');
+      }
+    } catch (e) {
+      print('Error building seat extras: $e');
+    }
+
+    return seats;
+  }
 }
 
 // AirlineInfo is now imported from sabre_flight_models.dart AirlineInfo(this.name, this.logoPath);

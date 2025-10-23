@@ -3,12 +3,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:country_picker/country_picker.dart';
-import '../../../../../services/api_service_flydubai.dart';
-import '../../../../../utility/colors.dart';
-import '../../../../../widgets/travelers_selection_bottom_sheet.dart';
+import 'package:ready_flights/views/flight/form/flight_booking_controller.dart';
+import '../../../../services/api_service_flydubai.dart';
+import '../../../../utility/colors.dart';
+import '../../../../widgets/travelers_selection_bottom_sheet.dart';
 import '../../search_flights/flydubai/flydubai_controller.dart';
+import '../../search_flights/flydubai/flydubai_extras_controller.dart';
 import '../../search_flights/flydubai/flydubai_model.dart';
 import '../booking_flight_controller.dart';
+import 'flydubai_print_voucher.dart';
 
 class FlyDubaiBookingFlight extends StatefulWidget {
   final FlydubaiFlight flight;
@@ -1143,14 +1146,27 @@ class _FlyDubaiBookingFlightState extends State<FlyDubaiBookingFlight> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  '00', // You might want to calculate the actual total
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: TColors.primary,
-                  ),
-                ),
+                Obx(() {
+                  // Get the base flight price
+                  final flightPrice = widget.flight.price;
+
+                  // Get extras price from extras controller
+                  final extrasController = Get.put(FlydubaiExtrasController());
+                  final extrasPrice = extrasController.totalExtrasPrice.value;
+
+                  // Calculate total
+                  final totalPrice = flightPrice + extrasPrice;
+                  final currency = widget.flight.currency;
+
+                  return Text(
+                    '$currency ${_formatPrice(totalPrice)}',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: TColors.primary,
+                    ),
+                  );
+                }),
               ],
             ),
             ElevatedButton(
@@ -1178,8 +1194,10 @@ class _FlyDubaiBookingFlightState extends State<FlyDubaiBookingFlight> {
 
                       print('Travelers: ${adults.length} adults, ${children.length} children, ${infants.length} infants');
 
-                      // Get cart data from controller
-                      final cartData = flydubaiController.cartData;
+                      // Get combined cart data (includes both outbound and return)
+                      final cartData = flydubaiController.cartData ??
+                          flydubaiController.outboundCartData ??
+                          flydubaiController.returnCartData;
                       if (cartData == null) {
                         throw Exception('No cart data available. Please add flights to cart first.');
                       }
@@ -1194,20 +1212,26 @@ class _FlyDubaiBookingFlightState extends State<FlyDubaiBookingFlight> {
                       // Get SIM code (you might need to generate or get this)
                       final simCode = '123'; // Example SIM code
 
+
+                      print('Segment array with extras: $segmentArray');
+
+
                       // Call createPNR API
-                      final pnrResult = await apiService.createPNR(
-                        adults: adults,
-                        children: children,
-                        infants: infants,
-                        clientEmail: bookingController.emailController.text,
-                        clientPhone: bookingController.getFormattedBookerPhoneNumber(),
-                        countryCode: bookingController.bookerPhoneCountry.value?.phoneCode ?? '92',
-                        simCode: simCode,
-                        city: city,
-                        flightType: widget.returnFlight != null ? 'roundtrip' : 'oneway',
-                        segmentArray: segmentArray,
-                        cartData: cartData,
-                      );
+                     // In the _buildBottomBar method, update the booking process:
+                     final FlightBookingController flightBookingController = Get.find<FlightBookingController>();
+final pnrResult = await apiService.createPNR(
+  adults: adults,
+  children: children,
+  infants: infants,
+  clientEmail: bookingController.emailController.text,
+  clientPhone: bookingController.phoneController.text.trim(),
+  countryCode: bookingController.bookerPhoneCountry.value?.phoneCode ?? '92',
+  simCode: simCode,
+  city: city,
+  flightType: flightBookingController.tripType.value == TripType.roundTrip ? 'roundtrip' : 'oneway',
+  segmentArray: segmentArray,
+  cartData: cartData!,
+);
 
                       // Close loading dialog
                       Get.back();
@@ -1215,8 +1239,16 @@ class _FlyDubaiBookingFlightState extends State<FlyDubaiBookingFlight> {
                       if (pnrResult['success'] == true) {
                         print('✅ PNR created successfully: ${pnrResult['confirmationNumber']}');
 
-                        // Show success dialog with PNR details
-                        _showBookingConfirmation(pnrResult);
+                        // Navigate to print voucher screen
+                        Get.to(() => FlyDubaiBookingDetailsScreen(
+                          outboundFlight: widget.flight,
+                          returnFlight: widget.returnFlight,
+                          multicityFlights: widget.multicityFlights,
+                          outboundFareOption: widget.outboundFareOption,
+                          returnFareOption: widget.returnFareOption,
+                          multicityFareOptions: widget.multicityFareOptions,
+                          pnrResponse: pnrResult,
+                        ));
                       } else {
                         print('❌ PNR creation failed: ${pnrResult['error']}');
                         Get.snackbar(
@@ -1283,34 +1315,21 @@ class _FlyDubaiBookingFlightState extends State<FlyDubaiBookingFlight> {
       ),
     );
   }
-// Add this helper method to show booking confirmation
-  void _showBookingConfirmation(Map<String, dynamic> pnrResult) {
-    Get.dialog(
-      AlertDialog(
-        title: const Text('Booking Confirmation'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('PNR: ${pnrResult['confirmationNumber'] ?? "Pending"}'),
-            const SizedBox(height: 10),
-            const Text('Your booking has been successfully created!'),
-            const SizedBox(height: 10),
-            Text('Status: ${pnrResult['success'] == true ? 'Confirmed' : 'Pending'}'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Get.back();
-              // You might want to navigate to a confirmation page here
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+
+
+  // Add this helper method to format the price
+  String _formatPrice(double price) {
+    final parts = price.toStringAsFixed(0).split('.');
+    final integerPart = parts[0];
+
+    final formattedInteger = integerPart.replaceAllMapped(
+      RegExp(r'\B(?=(\d{3})+(?!\d))'),
+          (match) => ',',
     );
+
+    return formattedInteger;
   }
+
   @override
   void dispose() {
     // Don't dispose the controllers here as they are managed by BookingFlightController

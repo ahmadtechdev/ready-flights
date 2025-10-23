@@ -22,6 +22,7 @@ final RxDouble flightPrice = 0.0.obs;
 
   // Extras data
   final RxList<BaggageOption> availableBaggage = <BaggageOption>[].obs;
+  final RxMap<String, List<BaggageOption>> baggageBySegment = <String, List<BaggageOption>>{}.obs;
   final RxList<MealOption> availableMeals = <MealOption>[].obs;
   final RxMap<String, List<MealOption>> mealsBySegment = <String, List<MealOption>>{}.obs;
   final RxList<SeatOption> availableSeats = <SeatOption>[].obs;
@@ -175,6 +176,7 @@ void _processBaggageOptions(BaggageInfo baggageInfo) {
     final onDBaggageResponses = baggageResponses.onDBaggageDetailsResponse;
     
     availableBaggage.value = [];
+    baggageBySegment.clear();
     
     for (final response in onDBaggageResponses) {
       final baggageOptions = response.baggage;
@@ -187,7 +189,10 @@ void _processBaggageOptions(BaggageInfo baggageInfo) {
                           segment.attributes['RPH']?.toString() ?? 
                           'segment_${segments.indexOf(segment)}';
         
-        // Add baggage options for this segment
+        // Store baggage options for this specific segment
+        baggageBySegment[segmentCode] = baggageOptions;
+        
+        // Add to general list for backwards compatibility
         availableBaggage.addAll(baggageOptions);
 
         if (baggageOptions.isNotEmpty) {
@@ -209,6 +214,7 @@ void _processBaggageOptions(BaggageInfo baggageInfo) {
   } catch (e) {
     print('Error processing baggage options: $e');
     availableBaggage.value = [];
+    baggageBySegment.clear();
   }
 }
 
@@ -455,7 +461,7 @@ List<FlightSegmentInfo> getFlightSegments() {
 
   // Updated to handle multiple flight segments from baggage response
 // Updated to properly handle both single segment and array of segments
- List<MealOption> getMealsForSegment(String segmentCode) {
+  List<MealOption> getMealsForSegment(String segmentCode) {
     return mealsBySegment[segmentCode] ?? [];
   }
 
@@ -463,9 +469,14 @@ List<FlightSegmentInfo> getFlightSegments() {
     return seatsBySegment[segmentCode] ?? [];
   }
 
+  List<BaggageOption> getBaggageForSegment(String segmentCode) {
+    return baggageBySegment[segmentCode] ?? [];
+  }
+
   void reset() {
     revalidationResponse.value = null;
     availableBaggage.clear();
+    baggageBySegment.clear();
     availableMeals.clear();
     mealsBySegment.clear();
     availableSeats.clear();

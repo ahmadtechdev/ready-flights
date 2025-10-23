@@ -428,10 +428,11 @@ Widget _buildBaggageTab(AirArabiaRevalidationController controller) {
                           ? controller.passengerIds[_selectedPassengerIndex] 
                           : 'passenger_0';
                       
-                      // Get baggage options for this segment (filter by segment if needed)
-                      // For now, using all available baggage options
+                      // Get baggage options specific to this segment
+                      final segmentBaggage = controller.getBaggageForSegment(segmentCode);
+                      
                       return Column(
-                        children: controller.availableBaggage.map((baggage) {
+                        children: segmentBaggage.map((baggage) {
                           final isSelected = controller.getBaggageForPassenger(
                             passengerId, 
                             segmentCode: segmentCode
