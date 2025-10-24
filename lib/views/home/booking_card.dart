@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../../views/flight/form/flight_form.dart';
 import '../../views/hotel/hotel/hotel_form.dart';
-import '../../widgets/colors.dart';
-
+import '../../utility/colors.dart';
+import '../../utility/app_constants.dart';
 
 import 'type_selector/type_selector.dart';
 
@@ -23,39 +23,30 @@ class _BookingCardState extends State<BookingCard> {
     return Transform.translate(
       offset: const Offset(0, 40),
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.symmetric(horizontal: AppConstants.screenPadding),
+        padding: const EdgeInsets.all(AppConstants.cardPadding),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: TColors.primary.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(AppConstants.cardBorderRadius),
+          boxShadow: AppConstants.cardShadow,
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Type Selector
-              TypeSelector(
-                onTypeChanged: (String type) {
-                  setState(() {
-                    selectedType = type;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-              // Show the relevant form based on the selected type
-              if (selectedType == 'Flights') FlightBookingScreen(),
-              if (selectedType == 'Hotels') HotelForm(),
-            ],
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Type Selector
+            TypeSelector(
+              onTypeChanged: (String type) {
+                setState(() {
+                  selectedType = type;
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+            // Show the relevant form based on the selected type
+            if (selectedType == 'Flights') FlightBookingScreen(),
+            if (selectedType == 'Hotels') HotelForm(),
+          ],
         ),
       ),
     );

@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:country_picker/country_picker.dart';
-import 'package:ready_flights/views/flight/booking_flight/airblue/slecte_seat.dart';
+import 'package:ready_flights/views/flight/booking_flight/airblue/select_seat.dart';
 import '../../../../../services/api_service_airblue.dart';
 import '../../../../../utility/colors.dart';
 import '../../../../../widgets/travelers_selection_bottom_sheet.dart';
@@ -1080,8 +1080,10 @@ ElevatedButton(
                 totalPassengers: totalPassengers,
                 outboundFlight: updatedOutboundFlight ?? widget.flight,
                 returnFlight: updatedReturnFlight ?? widget.returnFlight,
+                multicityFlights: widget.multicityFlights,
                 outboundFareOption: widget.outboundFareOption,
                 returnFareOption: widget.returnFareOption,
+                multicityFareOptions: widget.multicityFareOptions,
               ),
             );
           } else {

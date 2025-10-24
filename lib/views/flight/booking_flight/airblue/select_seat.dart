@@ -82,10 +82,12 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       
       // Load outbound or multicity flights
       if (widget.multicityFlights != null && widget.multicityFlights!.isNotEmpty) {
+        // For multicity flights, load seat maps for all flights
         for (int i = 0; i < widget.multicityFlights!.length; i++) {
           futures.add(_loadSeatMapForFlight(i, widget.multicityFlights![i]));
         }
       } else {
+        // For one-way or round trip
         futures.add(_loadSeatMapForFlight(0, widget.outboundFlight));
         
         // Load return flight if exists
@@ -167,9 +169,10 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     // Check if all passengers have seats for all flights
     for (int flightIndex = 0; flightIndex < totalFlightSegments; flightIndex++) {
       if (selectedSeatsPerFlight[flightIndex]!.length != widget.totalPassengers) {
+        final flightTitle = _getFlightTitle(flightIndex);
         Get.snackbar(
           'Error',
-          'Please select seats for all passengers on all flights',
+          'Please select seats for all passengers on $flightTitle',
           backgroundColor: Colors.orange,
           colorText: Colors.white,
           snackPosition: SnackPosition.BOTTOM,
@@ -213,7 +216,9 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
       Get.snackbar(
         'Success',
-        'Seats updated successfully for all flights',
+        widget.multicityFlights != null && widget.multicityFlights!.isNotEmpty
+            ? 'Seats updated successfully for all ${totalFlightSegments} multicity flights'
+            : 'Seats updated successfully for all flights',
         backgroundColor: Colors.green,
         colorText: Colors.white,
         snackPosition: SnackPosition.TOP,
@@ -475,9 +480,11 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Select flight:',
-            style: TextStyle(
+          Text(
+            widget.multicityFlights != null && widget.multicityFlights!.isNotEmpty
+                ? 'Select multicity flight:'
+                : 'Select flight:',
+            style: const TextStyle(
               fontSize: 13,
               color: Colors.grey,
               fontWeight: FontWeight.w500,
@@ -673,6 +680,31 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
+          // // Current flight indicator
+          // Container(
+          //   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          //   decoration: BoxDecoration(
+          //     color: TColors.primary.withOpacity(0.1),
+          //     borderRadius: BorderRadius.circular(8),
+          //     border: Border.all(color: TColors.primary.withOpacity(0.3)),
+          //   ),
+          //   child: Row(
+          //     mainAxisAlignment: MainAxisAlignment.center,
+          //     children: [
+          //       Icon(Icons.flight, color: TColors.primary, size: 16),
+          //       const SizedBox(width: 8),
+          //       Text(
+          //         'Currently selecting seats for: ${_getFlightTitle(selectedFlightIndex)}',
+          //         style: TextStyle(
+          //           color: TColors.primary,
+          //           fontWeight: FontWeight.w600,
+          //           fontSize: 13,
+          //         ),
+          //       ),
+          //     ],
+          //   ),
+          // ),
+          // const SizedBox(height: 16),
           _buildLegend(),
           const SizedBox(height: 20),
           _buildAirplaneFront(),
@@ -871,6 +903,16 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     final currentFlightSeats = selectedSeatsPerFlight[selectedFlightIndex]!;
     final totalPrice = selectedSeatPricesPerFlight[selectedFlightIndex]!.values.fold<double>(0, (sum, price) => sum + price);
 
+    // Calculate overall progress for multicity flights
+    int totalCompletedFlights = 0;
+    if (widget.multicityFlights != null && widget.multicityFlights!.isNotEmpty) {
+      for (int i = 0; i < totalFlightSegments; i++) {
+        if (selectedSeatsPerFlight[i]!.length == widget.totalPassengers) {
+          totalCompletedFlights++;
+        }
+      }
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -909,7 +951,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Seat Details (${_getFlightTitle(selectedFlightIndex)})',
+                            '(${_getFlightTitle(selectedFlightIndex)})',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -1003,54 +1045,83 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
               ),
             Padding(
               padding: const EdgeInsets.all(16),
-              child: Row(
+              child: Column(
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${currentFlightSeats.length} of ${widget.totalPassengers} selected',
+                  // // Show multicity progress if applicable
+                  // if (widget.multicityFlights != null && widget.multicityFlights!.isNotEmpty)
+                  //   Container(
+                  //     margin: const EdgeInsets.only(bottom: 12),
+                  //     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  //     decoration: BoxDecoration(
+                  //       color: Colors.blue[50],
+                  //       borderRadius: BorderRadius.circular(8),
+                  //       border: Border.all(color: Colors.blue[200]!),
+                  //     ),
+                  //     child: Row(
+                  //       children: [
+                  //         Icon(Icons.flight, color: Colors.blue[600], size: 16),
+                  //         const SizedBox(width: 8),
+                  //         Text(
+                  //           'Multicity Progress: $totalCompletedFlights of $totalFlightSegments flights completed',
+                  //           style: TextStyle(
+                  //             fontSize: 12,
+                  //             color: Colors.blue[700],
+                  //             fontWeight: FontWeight.w600,
+                  //           ),
+                  //         ),
+                  //       ],
+                  //     ),
+                  //   ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '${currentFlightSeats.length} of ${widget.totalPassengers} selected',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            if (currentFlightSeats.length < widget.totalPassengers)
+                              Text(
+                                'Select ${widget.totalPassengers - currentFlightSeats.length} more for ${_getFlightTitle(selectedFlightIndex)}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.orange[700],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: _confirmSeats,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: TColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 28,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 2,
+                        ),
+                        child: const Text(
+                          'Confirm',
                           style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
                           ),
                         ),
-                        if (currentFlightSeats.length < widget.totalPassengers)
-                          Text(
-                            'Select ${widget.totalPassengers - currentFlightSeats.length} more for this flight',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.orange[700],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: _confirmSeats,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: TColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 28,
-                        vertical: 14,
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      elevation: 2,
-                    ),
-                    child: const Text(
-                      'Confirm',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                    ),
+                    ],
                   ),
                 ],
               ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:ready_flights/utility/colors.dart';
+import 'package:ready_flights/utility/app_constants.dart';
 import 'package:ready_flights/views/home/booking_card.dart';
 import 'package:ready_flights/views/users/login/login.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -45,13 +46,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 60),
                 const CustomerServiceSection(),
-                const SizedBox(height: 24),
+                const SizedBox(height: 30),
                 const FeatureCarousel(),
-                const SizedBox(height: 24),
+                const SizedBox(height: 30),
                 const StatsSection(),
-                const SizedBox(height: 24),
+                const SizedBox(height: 30),
                 const FeaturedPartners(),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -98,7 +99,7 @@ class HomeBanner extends StatelessWidget {
     return Stack(
       children: [
         Container(
-          height: showBookingCard ? 450 : 300,
+          height: showBookingCard ? 500 : 200,
           decoration: const BoxDecoration(
             color: TColors.primary,
             image: DecorationImage(
@@ -118,6 +119,13 @@ class HomeBanner extends StatelessWidget {
                   TColors.primary.withOpacity(0.8),
                 ],
                 stops: const [0.0, 0.5, 1.0],
+              ),
+            ),
+            child: Center(
+              child: Text(
+                'Travel Bookings Made Easy',
+                style: AppConstants.bannerTitleStyle,
+                textAlign: TextAlign.center,
               ),
             ),
           ),
@@ -144,32 +152,23 @@ class HomeBanner extends StatelessWidget {
         ] else ...[
           // Welcome content and buttons container when hidden
           Container(
-            margin: EdgeInsets.only(top: 265, left: 20, right: 20),
+            margin: const EdgeInsets.only(top: 120, left: AppConstants.screenPadding, right: AppConstants.screenPadding),
             width: double.infinity,
-            padding: const EdgeInsets.only(right: 20),
+            padding: const EdgeInsets.all(AppConstants.cardPadding),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(30),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 8,
-                  offset: Offset(0, 4),
-                ),
-              ],
+              borderRadius: BorderRadius.circular(AppConstants.cardBorderRadius),
+              boxShadow: AppConstants.cardShadow,
             ),
             child: Row(
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: onToggleBooking,
-                    icon: const Icon(Icons.flight_land_sharp, size: 20),
+                    icon: const Icon(Icons.flight_land_sharp, size: AppConstants.iconSize),
                     label: const Text(
                       'Create New Booking',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: AppConstants.buttonTextStyle,
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
@@ -179,20 +178,21 @@ class HomeBanner extends StatelessWidget {
                         vertical: 16,
                       ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
+                        borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
                       ),
                       elevation: 0,
                       shadowColor: Colors.transparent,
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 FloatingActionButton(
                   mini: true,
                   onPressed: onToggleBooking,
                   backgroundColor: Colors.white,
                   foregroundColor: TColors.primary,
                   elevation: 0,
-                  child: const Icon(Icons.add, size: 20),
+                  child: const Icon(Icons.add, size: AppConstants.iconSize),
                 ),
               ],
             ),
@@ -231,49 +231,54 @@ class CustomerServiceSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: TColors.primary.withOpacity(0.1),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      margin: const EdgeInsets.symmetric(horizontal: AppConstants.screenPadding),
+      padding: const EdgeInsets.all(AppConstants.cardPadding),
+      decoration: BoxDecoration(
+        color: TColors.primary.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(AppConstants.cardBorderRadius),
+      ),
       child: Column(
         children: [
-          const Row(
+          Row(
             children: [
-              CircleAvatar(
+              const CircleAvatar(
                 radius: 30,
                 backgroundImage: AssetImage('assets/img/help-desk.png'),
               ),
-              SizedBox(width: 16),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       '24/7 Customer Service',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: AppConstants.customerServiceTitleStyle,
                     ),
                     Text(
                       'Speak to Asma or another travel expert',
-                      style: TextStyle(color: Colors.grey),
+                      style: AppConstants.customerServiceSubtitleStyle,
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () => launchCall(),
-                  icon: const Icon(Icons.phone),
+                  icon: const Icon(Icons.phone, size: AppConstants.smallIconSize),
                   label: const Text('Call'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    foregroundColor: Theme.of(context).primaryColor,
+                    foregroundColor: TColors.primary,
                     elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+                    ),
                   ),
                 ),
               ),
@@ -281,12 +286,16 @@ class CustomerServiceSection extends StatelessWidget {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () => launchWhatsApp(),
-                  icon: Icon(MdiIcons.whatsapp),
+                  icon: Icon(MdiIcons.whatsapp, size: AppConstants.smallIconSize),
                   label: const Text('WhatsApp'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    foregroundColor: Theme.of(context).primaryColor,
+                    foregroundColor: TColors.primary,
                     elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+                    ),
                   ),
                 ),
               ),
@@ -304,8 +313,8 @@ class StatsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      // color: AppColors.primary.withOpacity(0.1),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 0),
+      margin: const EdgeInsets.symmetric(horizontal: AppConstants.screenPadding),
+      padding: const EdgeInsets.symmetric(vertical: 16),
       child: const Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
@@ -346,13 +355,13 @@ class StatItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(icon, color: Theme.of(context).primaryColor, size: 32),
+        Icon(icon, color: TColors.primary, size: 32),
         const SizedBox(height: 8),
         Text(
           number,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: AppConstants.statNumberStyle,
         ),
-        Text(label, style: const TextStyle(color: Colors.grey)),
+        Text(label, style: AppConstants.statLabelStyle),
       ],
     );
   }
@@ -369,22 +378,39 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: Colors.white,
       elevation: 0,
       automaticallyImplyLeading: false,
-      title: Image.asset("assets/images/logo.png", height: logoHeight),
-      actions: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: () {
-                  Get.to(() => Login());
-                },
-                child: Icon(Icons.person_outline, color: TColors.primary),
-              ),
-            ],
+      title: Row(
+        children: [
+          Image.asset("assets/images/logo.png", height: logoHeight),
+          const Spacer(),
+          // Currency selector
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppConstants.fieldBorderColor),
+              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('PKR', style: TextStyle(color: TColors.primary, fontSize: 12)),
+                SizedBox(width: 4),
+                Icon(Icons.keyboard_arrow_down, color: TColors.primary, size: 16),
+              ],
+            ),
           ),
-        ),
-      ],
+          const SizedBox(width: 8),
+          // Support icon
+          Icon(Icons.headset_mic_outlined, color: TColors.primary, size: AppConstants.iconSize),
+          const SizedBox(width: 8),
+          // Profile icon
+          GestureDetector(
+            onTap: () {
+              Get.to(() => Login());
+            },
+            child: Icon(Icons.person_outline, color: TColors.primary, size: AppConstants.iconSize),
+          ),
+        ],
+      ),
     );
   }
 

@@ -847,8 +847,19 @@ final EmiratesFlightController emiratesController = Get.put(EmiratesFlightContro
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder:
-          (context) => CitySelectionBottomSheet(
+      transitionAnimationController: AnimationController(
+        duration: const Duration(milliseconds: 300),
+        vsync: Navigator.of(context),
+      ),
+      builder: (context) => SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 1),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(
+          parent: ModalRoute.of(context)!.animation!,
+          curve: Curves.easeOutCubic,
+        )),
+        child: CitySelectionBottomSheet(
         fieldType: fieldType,
         onCitySelected: (AirportData airport) {
           if (tripType.value == TripType.multiCity &&
@@ -878,6 +889,7 @@ final EmiratesFlightController emiratesController = Get.put(EmiratesFlightContro
             }
           }
         },
+        ),
       ),
     );
   }

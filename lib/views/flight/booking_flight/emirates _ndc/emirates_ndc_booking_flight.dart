@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:country_picker/country_picker.dart';
 import 'package:ready_flights/services/api_service_emirates.dart';
-import 'package:ready_flights/views/flight/booking_flight/airblue/slecte_seat.dart';
+import 'package:ready_flights/views/flight/booking_flight/airblue/select_seat.dart';
 import 'package:ready_flights/views/flight/booking_flight/emirates%20_ndc/emirates_print_voucher.dart';
 import 'package:ready_flights/views/flight/search_flights/emirates_ndc/emirates_flight_controller.dart';
 import 'package:ready_flights/views/flight/search_flights/emirates_ndc/emirates_model.dart';

@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../../../utility/colors.dart';
+import '../../../utility/app_constants.dart';
 
 class AirportData {
   final String code;
@@ -269,39 +270,44 @@ class _CitySelectionBottomSheetState extends State<CitySelectionBottomSheet> {
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(vertical: 16),
             decoration: BoxDecoration(
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
+                topLeft: Radius.circular(AppConstants.cardBorderRadius),
+                topRight: Radius.circular(AppConstants.cardBorderRadius),
               ),
-              color: TColors.secondary,
+              color: TColors.primary,
             ),
             child: Center(
               child: Text(
                 widget.fieldType == FieldType.departure ? 'Select Departure City' : 'Select Destination City',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppConstants.sectionTitleStyle.copyWith(color: Colors.white),
               ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                fillColor: Colors.grey[100],
-                filled: true,
-                hintText: 'Search for city or airport',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
+            padding: const EdgeInsets.all(AppConstants.screenPadding),
+            child: Container(
+              height: AppConstants.fieldHeight,
+              decoration: BoxDecoration(
+                color: AppConstants.fieldBackgroundColor,
+                borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+                border: Border.all(color: AppConstants.fieldBorderColor),
+                boxShadow: AppConstants.cardShadow,
+              ),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search for city or airport',
+                  hintStyle: AppConstants.fieldLabelStyle,
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: AppConstants.tabInactiveColor,
+                    size: AppConstants.smallIconSize,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               ),
             ),
           ),
@@ -481,54 +487,59 @@ class _CitySelectionBottomSheetState extends State<CitySelectionBottomSheet> {
                 itemCount: _airportController.filteredAirports.length,
                 itemBuilder: (context, index) {
                   final airport = _airportController.filteredAirports[index];
-                  return ListTile(
-                    onTap: () {
-                      _airportController.addToRecentSearches(airport);
-                      widget.onCitySelected(airport);
-                      Navigator.pop(context);
-                    },
-                    title: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${airport.cityName}, ${airport.countryName}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: AppConstants.screenPadding, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+                      border: Border.all(color: AppConstants.fieldBorderColor),
+                      boxShadow: AppConstants.cardShadow,
+                    ),
+                    child: ListTile(
+                      onTap: () {
+                        _airportController.addToRecentSearches(airport);
+                        widget.onCitySelected(airport);
+                        Navigator.pop(context);
+                      },
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      title: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${airport.cityName}, ${airport.countryName}',
+                                  style: AppConstants.fieldValueStyle,
                                 ),
-                              ),
-                              Text(
-                                airport.name,
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 12,
+                                const SizedBox(height: 2),
+                                Text(
+                                  airport.name,
+                                  style: AppConstants.fieldLabelStyle,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            airport.code,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
+                              ],
                             ),
                           ),
-                        ),
-                      ],
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: TColors.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+                            ),
+                            child: Text(
+                              airport.code,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: TColors.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   );
                 },
               );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import '../../../widgets/colors.dart';
+import '../../../utility/colors.dart';
+import '../../../utility/app_constants.dart';
 
 class TypeSelector extends StatefulWidget {
   final ValueChanged<String> onTypeChanged;
@@ -15,8 +16,8 @@ class TypeSelectorState extends State<TypeSelector> {
   String selectedType = 'Flights';
 
   final List<Map<String, dynamic>> travelTypes = [
-    {'icon': Icons.flight, 'label': 'Flights'},
-    {'icon': MdiIcons.bed, 'label': 'Hotels'},
+    {'icon': Icons.flight_takeoff, 'label': 'Flights'},
+    {'icon': Icons.hotel, 'label': 'Hotels'},
   ];
 
   @override
@@ -31,37 +32,43 @@ class TypeSelectorState extends State<TypeSelector> {
                 widget.onTypeChanged(selectedType);
               });
             },
-            // Increase tap area with padding
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-              // Optional: Add background color for visual feedback
+              margin: const EdgeInsets.symmetric(horizontal: 2),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
               decoration: BoxDecoration(
                 color: selectedType == type['label']
-                    ? TColors.white.withOpacity(0.1)
+                    ? TColors.primary
                     : Colors.white,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: selectedType == type['label']
+                      ? TColors.primary
+                      : AppConstants.fieldBorderColor,
+                  width: 1,
+                ),
+                boxShadow: selectedType == type['label']
+                    ? AppConstants.cardShadow
+                    : null,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     type['icon'],
-                    size: 28, // Slightly larger icon
+                    size: 16,
                     color: selectedType == type['label']
-                        ? TColors.primary
-                        : TColors.grey,
+                        ? Colors.white
+                        : AppConstants.tabInactiveColor,
                   ),
-                  const SizedBox(height: 8), // Increased spacing
+                  const SizedBox(width: 6),
                   Text(
                     type['label'],
                     style: TextStyle(
                       color: selectedType == type['label']
-                          ? TColors.primary
-                          : TColors.grey,
-                      fontWeight: selectedType == type['label']
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      fontSize: 14, // Explicit font size
+                          ? Colors.white
+                          : AppConstants.tabInactiveColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
                     ),
                   ),
                 ],
