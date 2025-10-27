@@ -700,6 +700,9 @@ final EmiratesFlightController emiratesController = Get.put(EmiratesFlightContro
   required String cabin,
 }) async {
   try {
+    // Clear previous flights before new search
+    emiratesController.clearFlights();
+    
     debugPrint('=== CALLING EMIRATES API ===');
     debugPrint('Type: $type');
     debugPrint('Origin: $origin');
@@ -721,14 +724,16 @@ final EmiratesFlightController emiratesController = Get.put(EmiratesFlightContro
 
     debugPrint('Emirates API result keys: ${result.keys}');
 
-    // Load flights into controller (you'll implement this based on response structure)
-    emiratesController.loadFlights(result);
+    // Load flights into controller with search parameters
+    emiratesController.loadFlights(result, searchOrigin: fromCity.value, searchDestination: toCity.value);
     
     debugPrint('Emirates flights loaded successfully');
   } catch (e, stackTrace) {
     debugPrint('Emirates API error: $e');
     debugPrint('Stack trace: $stackTrace');
     emiratesController.setErrorMessage('Emirates API error: ${e.toString()}');
+    // Clear flights on error as well
+    emiratesController.clearFlights();
   }
 }
   Future<void> _callSabreApi({

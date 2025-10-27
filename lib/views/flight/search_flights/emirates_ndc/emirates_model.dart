@@ -52,10 +52,12 @@ class EmiratesFlight {
      required this.responseId,
   });
 
-  factory EmiratesFlight.fromJson(Map<String, dynamic> json) {
+  factory EmiratesFlight.fromJson(Map<String, dynamic> json, {String? searchOrigin, String? searchDestination}) {
     try {
       debugPrint('\n🔵 Creating EmiratesFlight from JSON');
       debugPrint('Offer ID: ${json['OfferID']}');
+      debugPrint('Search Origin: $searchOrigin');
+      debugPrint('Search Destination: $searchDestination');
        // ✅ Extract ResponseID from rawData
       String responseId = '';
       if (json['ResponseID'] != null) {
@@ -68,8 +70,12 @@ class EmiratesFlight {
       // Extract DataLists for reference data
       final dataLists = json['DataLists'] ?? {};
       
-      // Extract flight segment information
-      final flightSegmentData = _extractFlightSegmentData(json, dataLists);
+      // Extract flight segment information - throw exception if extraction fails
+      final flightSegmentData = _extractFlightSegmentData(json, dataLists, searchOrigin: searchOrigin, searchDestination: searchDestination);
+      if (flightSegmentData == null) {
+        debugPrint('❌ Failed to extract flight segment data - skipping this offer');
+        throw Exception('Failed to extract flight segment data');
+      }
       debugPrint('Flight segment data extracted: ${flightSegmentData['departure']['airport']} -> ${flightSegmentData['arrival']['airport']}');
 
       // Extract price information (real price without margin)
@@ -245,32 +251,34 @@ class EmiratesFlight {
     }
   }
 
-  static Map<String, dynamic> _extractFlightSegmentData(
+  static Map<String, dynamic>? _extractFlightSegmentData(
     Map<String, dynamic> offer,
-    Map<String, dynamic> dataLists,
-  ) {
+    Map<String, dynamic> dataLists, {
+    String? searchOrigin,
+    String? searchDestination,
+  }) {
     try {
       final offerItem = offer['OfferItem'];
-      if (offerItem == null) return _getDefaultSegmentData();
+      if (offerItem == null) return null;
 
       final fareDetail = offerItem['FareDetail'];
-      if (fareDetail == null) return _getDefaultSegmentData();
+      if (fareDetail == null) return null;
 
       final fareComponent = fareDetail['FareComponent'];
-      if (fareComponent == null) return _getDefaultSegmentData();
+      if (fareComponent == null) return null;
 
       final segmentRefs = fareComponent['SegmentRefs'];
-      if (segmentRefs == null) return _getDefaultSegmentData();
+      if (segmentRefs == null) return null;
 
       final onPoint = segmentRefs['ON_Point']?.toString() ?? '';
       final offPoint = segmentRefs['OFF_Point']?.toString() ?? '';
       final segmentKey = segmentRefs['\$t']?.toString() ?? segmentRefs.toString();
 
       final flightSegmentList = dataLists['FlightSegmentList'];
-      if (flightSegmentList == null) return _getDefaultSegmentData();
+      if (flightSegmentList == null) return null;
 
       final flightSegments = flightSegmentList['FlightSegment'];
-      if (flightSegments == null) return _getDefaultSegmentData();
+      if (flightSegments == null) return null;
 
       Map<String, dynamic>? segmentData;
       if (flightSegments is Map) {
@@ -297,7 +305,7 @@ class EmiratesFlight {
         segmentData = flightSegments.first;
       }
 
-      if (segmentData == null) return _getDefaultSegmentData();
+      if (segmentData == null) return null;
 
       final departure = segmentData['Departure'] ?? {};
       final arrival = segmentData['Arrival'] ?? {};
@@ -339,7 +347,7 @@ class EmiratesFlight {
       };
     } catch (e) {
       debugPrint('❌ Error extracting flight segment: $e');
-      return _getDefaultSegmentData();
+      return null;
     }
   }
 
@@ -352,34 +360,67 @@ class EmiratesFlight {
     return value.toString();
   }
 
-  static Map<String, dynamic> _getDefaultSegmentData() {
-    return {
-      'departure': {
-        'airport': 'LHE',
-        'city': 'Lahore',
-        'terminal': 'Main',
-        'time': '09:00',
-        'date': '',
-        'dateTime': 'T09:00',
-      },
-      'arrival': {
-        'airport': 'DXB',
-        'city': 'Dubai',
-        'terminal': '3',
-        'time': '11:15',
-        'date': '',
-        'dateTime': 'T11:15',
-      },
-      'carrier': {
-        'marketing': 'EK',
-        'marketingFlightNumber': '625',
-        'operating': 'EK',
-      },
-      'equipment': '777',
-      'flightNumber': '625',
-      'duration': 195,
+  static String _getCityName(String airportCode) {
+    // Map of common airport codes to city names
+    final cityMap = {
+      'LHE': 'Lahore',
+      'JED': 'Jeddah',
+      'DXB': 'Dubai',
+      'AUH': 'Abu Dhabi',
+      'KHI': 'Karachi',
+      'ISB': 'Islamabad',
+      'PEW': 'Peshawar',
+      'MUX': 'Multan',
+      'LYP': 'Faisalabad',
+      'SKT': 'Sialkot',
+      'DEL': 'New Delhi',
+      'BOM': 'Mumbai',
+      'BLR': 'Bangalore',
+      'MAA': 'Chennai',
+      'CCU': 'Kolkata',
+      'HYD': 'Hyderabad',
+      'AMD': 'Ahmedabad',
+      'COK': 'Kochi',
+      'TRV': 'Thiruvananthapuram',
+      'GOI': 'Goa',
+      'IXC': 'Chandigarh',
+      'PNQ': 'Pune',
+      'BDQ': 'Vadodara',
+      'JAI': 'Jaipur',
+      'LKO': 'Lucknow',
+      'VNS': 'Varanasi',
+      'PAT': 'Patna',
+      'GAU': 'Guwahati',
+      'IXB': 'Bagdogra',
+      'IXJ': 'Jammu',
+      'IXL': 'Leh',
+      'IXZ': 'Port Blair',
+      'IXE': 'Mangalore',
+      'IXM': 'Madurai',
+      'IXU': 'Aurangabad',
+      'IXA': 'Agartala',
+      'IXC': 'Chandigarh',
+      'IXD': 'Allahabad',
+      'IXG': 'Belgaum',
+      'IXH': 'Kailashahar',
+      'IXI': 'Lilabari',
+      'IXK': 'Kandla',
+      'IXN': 'Khowai',
+      'IXO': 'Kullu',
+      'IXP': 'Pathankot',
+      'IXQ': 'Kamalpur',
+      'IXR': 'Ranchi',
+      'IXS': 'Silchar',
+      'IXT': 'Pasighat',
+      'IXV': 'Along',
+      'IXW': 'Jamshedpur',
+      'IXY': 'Kandla',
+      'IXZ': 'Port Blair',
     };
+    
+    return cityMap[airportCode.toUpperCase()] ?? airportCode;
   }
+
 
   static Map<String, dynamic> _extractPriceInfo(Map<String, dynamic> json) {
     try {
@@ -641,18 +682,6 @@ class EmiratesFlight {
     return amenities;
   }
 
-  static String _getCityName(String airportCode) {
-    const cityMap = {
-      'LHE': 'Lahore',
-      'DXB': 'Dubai',
-      'AUH': 'Abu Dhabi',
-      'KHI': 'Karachi',
-      'ISB': 'Islamabad',
-      'JED': 'Jeddah',
-      'RUH': 'Riyadh',
-    };
-    return cityMap[airportCode] ?? airportCode;
-  }
 }
 
 class BaggageAllowance {

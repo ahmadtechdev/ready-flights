@@ -40,7 +40,7 @@ class EmiratesFlightController extends GetxController {
     errorMessage.value = message;
   }
 
-  void loadFlights(Map<String, dynamic> response) {
+  void loadFlights(Map<String, dynamic> response, {String? searchOrigin, String? searchDestination}) {
      try {
     isLoading.value = true;
     errorMessage.value = '';
@@ -119,7 +119,7 @@ class EmiratesFlightController extends GetxController {
           offerData['DataLists'] = dataLists;
         }
         
-        final flight = EmiratesFlight.fromJson(offerData);
+        final flight = EmiratesFlight.fromJson(offerData, searchOrigin: searchOrigin, searchDestination: searchDestination);
         
         final uniqueKey = '${flight.offerId}-${flight.priceClassName}';
         
@@ -132,6 +132,7 @@ class EmiratesFlightController extends GetxController {
         
       } catch (e, stackTrace) {
         debugPrint('❌ Error processing offer ${i + 1}: $e');
+        skippedCount++;
       }
     }
       
