@@ -46,17 +46,17 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Get.back(),
         ),
-        title: Text(
-          isReturnFlight
-              ? 'Select Return Flight Package'
-              : 'Select Flight Package',
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        title: const Text(
+          'Select a fare option',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
       body: Column(
         children: [
           _buildFlightInfo(),
-          Expanded(
+          SizedBox(height: 12),
+          SizedBox(
+            height: 340, // Fixed height for the horizontal scrolling cards
             child: _buildPackagesList(),
           ),
         ],
@@ -124,196 +124,122 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 16, top: 8, bottom: 16),
-          child: Text(
-            'Available Packages',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: TColors.text,
-            ),
-          ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: fareOptions.length,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: _buildVerticalPackageCard(fareOptions[index], flight, index),
-              );
-            },
-          ),
-        ),
-      ],
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemCount: fareOptions.length,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: _buildHorizontalPackageCard(fareOptions[index], flight, index),
+        );
+      },
     );
   }
 
-  Widget _buildVerticalPackageCard(FlydubaiFlightFare package, FlydubaiFlight flight, int index) {
-    final headerColor = TColors.primary;
+  Widget _buildHorizontalPackageCard(FlydubaiFlightFare package, FlydubaiFlight flight, int index) {
     final isSoldOut = package.seatsAvailable <= 0;
     final price = finalPrices['${package.cabin}-${package.fareTypeName}']?.value ??
         package.baseFareAmountIncludingTax;
 
+    // Determine if this is the cheapest option
+    final List<FlydubaiFlightFare> allOptions = flyDubaiController.getFareOptionsForFlight(flight);
+    final sortedOptions = List<FlydubaiFlightFare>.from(allOptions);
+    sortedOptions.sort((a, b) => (finalPrices['${a.cabin}-${a.fareTypeName}']?.value ?? a.baseFareAmountIncludingTax).compareTo(finalPrices['${b.cabin}-${b.fareTypeName}']?.value ?? b.baseFareAmountIncludingTax));
+    final isCheapest = sortedOptions.isNotEmpty && package == sortedOptions.first;
+
     return Container(
+      width: 280, // Decreased width so next card is partially visible
       decoration: BoxDecoration(
         color: TColors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Column(
+      child: Stack(
         children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  headerColor,
-                  headerColor.withOpacity(0.85),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(
+                  package.fareTypeName,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: TColors.text,
+                  ),
+                ),
               ),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
+              
+              // Package details
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    _buildCompactPackageDetail(
+                      Icons.work_outline_rounded,
+                      'Hand Baggage',
+                      '7 KG',
+                    ),
+                    const SizedBox(height: 12),
+                    _buildCompactPackageDetail(
+                      Icons.luggage,
+                      'Checked Baggage',
+                      getBaggageInfo(package.fareTypeName),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildCompactPackageDetail(
+                      Icons.restaurant_rounded,
+                      'Meal',
+                      _getMealInfo(package.fareTypeName),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildCompactPackageDetail(
+                      Icons.airline_seat_recline_normal,
+                      'Cabin',
+                      getCabinDisplayName(package.cabin),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildCompactPackageDetail(
+                      Icons.event_seat,
+                      'Seat Selection',
+                      _getSeatSelectionInfo(package.fareTypeName),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildCompactPackageDetail(
+                      Icons.swap_horiz_rounded,
+                      'Change Fee',
+                      _getChangeFeeDisplay(package.fareTypeName),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildCompactPackageDetail(
+                      Icons.money_off_rounded,
+                      'Refund Fee',
+                      _getRefundFeeDisplay(package.fareTypeName),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
               ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        package.fareTypeName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: TColors.white,
-                        ),
-                      ),
-                      if (isSoldOut)
-                        const Text(
-                          'SOLD OUT',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.red,
-                          ),
-                        ),
-                      if (package.seatsAvailable <= 3 && package.seatsAvailable > 0)
-                        Text(
-                          '${package.seatsAvailable} seats left',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: TColors.white,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: TColors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: TColors.white.withOpacity(0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Text(
-                    '${package.currency} ${price.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: TColors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Package details
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              children: [
-                // First row
-                _buildPackageDetail(
-                  Icons.work_outline_rounded,
-                  'Hand Baggage',
-                  '7 KG',
-                ),
-                const SizedBox(height: 12),
-                _buildPackageDetail(
-                  Icons.luggage,
-                  'Checked Baggage',
-                  getBaggageInfo(package.fareTypeName),
-                ),
-
-                const SizedBox(height: 12),
-
-                // Second row
-                _buildPackageDetail(
-                  Icons.restaurant_rounded,
-                  'Meal',
-                  _getMealInfo(package.fareTypeName),
-                ),
-                const SizedBox(height: 12),
-                _buildPackageDetail(
-                  Icons.airline_seat_recline_normal,
-                  'Cabin',
-                  getCabinDisplayName(package.cabin),
-                ),
-
-                const SizedBox(height: 12),
-
-                // Third row
-                _buildPackageDetail(
-                  Icons.event_seat,
-                  'Seat Selection',
-                  _getSeatSelectionInfo(package.fareTypeName),
-                ),
-                const SizedBox(height: 12),
-                _buildPackageDetail(
-                  Icons.swap_horiz_rounded,
-                  'Change Fee',
-                  _getChangeFeeDisplay(package.fareTypeName),
-                  details: flight.changeFeeDetails,
-                ),
-
-                const SizedBox(height: 12),
-
-                _buildPackageDetail(
-                  Icons.money_off_rounded,
-                  'Refund Fee',
-                  _getRefundFeeDisplay(package.fareTypeName),
-                  details: flight.refundFeeDetails,
-                ),
-
-                const SizedBox(height: 16),
-
-                // Button
-                Obx(() => SizedBox(
+              
+              // Price button
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Obx(() => SizedBox(
                   width: double.infinity,
-                  height: 44,
+                  height: 48,
                   child: ElevatedButton(
                     onPressed: isSoldOut || isLoading.value
                         ? null
@@ -322,7 +248,7 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
                       backgroundColor: isSoldOut ? Colors.grey : TColors.primary,
                       foregroundColor: TColors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       elevation: 0,
                     ),
@@ -335,25 +261,47 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
                         valueColor: AlwaysStoppedAnimation<Color>(TColors.white),
                       ),
                     )
-                        : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          _getButtonText(),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        const Icon(Icons.arrow_forward_rounded, size: 18),
-                      ],
+                        : Text(
+                      '${package.currency} ${price.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 )),
-              ],
-            ),
+              ),
+            ],
           ),
+          
+          // "Cheapest" text positioned on top border
+          if (isCheapest)
+            Positioned(
+              top: -8,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.grey.shade200,
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    'Cheapest',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.green.shade600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -451,6 +399,39 @@ class FlyDubaiPackageSelectionDialog extends StatelessWidget {
       default:
         return 'Fee applies';
     }
+  }
+
+  Widget _buildCompactPackageDetail(
+      IconData icon,
+      String title,
+      String value) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 16,
+          color: TColors.text.withOpacity(0.6),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 13,
+              color: TColors.text.withOpacity(0.7),
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: TColors.text,
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildPackageDetail(IconData icon, String title, String value,

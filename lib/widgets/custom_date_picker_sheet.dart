@@ -347,28 +347,18 @@ Future<DateTime?> showCustomDatePicker({
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    transitionAnimationController: AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: Navigator.of(context),
-    ),
-    builder: (context) => SlideTransition(
-      position: Tween<Offset>(
-        begin: const Offset(0, 1),
-        end: Offset.zero,
-      ).animate(CurvedAnimation(
-        parent: ModalRoute.of(context)!.animation!,
-        curve: Curves.easeOutCubic,
-      )),
-      child: CustomDatePickerSheet(
-        selectedDate: selectedDate,
-        initialDate: initialDate,
-        title: title,
-        label: label,
-        isRangeSelection: false,
-        onDateSelected: (date) {
-          result = date;
-        },
-      ),
+    enableDrag: true,
+    isDismissible: true,
+    useSafeArea: true,
+    builder: (context) => _AnimatedDatePickerSheet(
+      selectedDate: selectedDate,
+      initialDate: initialDate,
+      title: title,
+      label: label,
+      isRangeSelection: false,
+      onDateSelected: (date) {
+        result = date;
+      },
     ),
   ).then((_) => result);
 }
@@ -387,28 +377,150 @@ Future<DateTimeRange?> showCustomDateRangePicker({
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    transitionAnimationController: AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: Navigator.of(context),
-    ),
-    builder: (context) => SlideTransition(
-      position: Tween<Offset>(
-        begin: const Offset(0, 1),
-        end: Offset.zero,
-      ).animate(CurvedAnimation(
-        parent: ModalRoute.of(context)!.animation!,
-        curve: Curves.easeOutCubic,
-      )),
-      child: CustomDatePickerSheet(
-        selectedDateRange: selectedDateRange,
-        initialDate: initialDate,
-        title: title,
-        label: label,
-        isRangeSelection: true,
-        onDateRangeSelected: (dateRange) {
-          result = dateRange;
-        },
-      ),
+    enableDrag: true,
+    isDismissible: true,
+    useSafeArea: true,
+    builder: (context) => _AnimatedDatePickerSheet(
+      selectedDateRange: selectedDateRange,
+      initialDate: initialDate,
+      title: title,
+      label: label,
+      isRangeSelection: true,
+      onDateRangeSelected: (dateRange) {
+        result = dateRange;
+      },
     ),
   ).then((_) => result);
+}
+
+// Animated wrapper for the date picker sheet
+class _AnimatedDatePickerSheet extends StatefulWidget {
+  final DateTime? selectedDate;
+  final DateTime? initialDate;
+  final DateTimeRange? selectedDateRange;
+  final Function(DateTime)? onDateSelected;
+  final Function(DateTimeRange)? onDateRangeSelected;
+  final String title;
+  final String? label;
+  final bool isRangeSelection;
+
+  const _AnimatedDatePickerSheet({
+    this.selectedDate,
+    this.initialDate,
+    this.selectedDateRange,
+    this.onDateSelected,
+    this.onDateRangeSelected,
+    required this.title,
+    this.label,
+    this.isRangeSelection = false,
+  });
+
+  @override
+  State<_AnimatedDatePickerSheet> createState() => _AnimatedDatePickerSheetState();
+}
+
+class _AnimatedDatePickerSheetState extends State<_AnimatedDatePickerSheet>
+    with TickerProviderStateMixin {
+  late AnimationController _slideController;
+  late AnimationController _fadeController;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Slide animation controller
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+    
+    // Fade animation controller
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    
+    // Slide animation (bottom to up)
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _slideController,
+      curve: Curves.easeOutCubic,
+    ));
+    
+    // Fade animation for backdrop
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeOut,
+    ));
+    
+    // Start animations
+    _slideController.forward();
+    _fadeController.forward();
+  }
+
+  @override
+  void dispose() {
+    _slideController.dispose();
+    _fadeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _closeSheet() async {
+    await Future.wait([
+      _slideController.reverse(),
+      _fadeController.reverse(),
+    ]);
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([_slideAnimation, _fadeAnimation]),
+      builder: (context, child) {
+        return Stack(
+          children: [
+            // Backdrop with fade animation
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: _closeSheet,
+                child: Container(
+                  color: Colors.black.withOpacity(0.5 * _fadeAnimation.value),
+                ),
+              ),
+            ),
+            
+            // Date picker sheet with slide animation
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: CustomDatePickerSheet(
+                  selectedDate: widget.selectedDate,
+                  initialDate: widget.initialDate,
+                  selectedDateRange: widget.selectedDateRange,
+                  onDateSelected: widget.onDateSelected,
+                  onDateRangeSelected: widget.onDateRangeSelected,
+                  title: widget.title,
+                  label: widget.label,
+                  isRangeSelection: widget.isRangeSelection,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }

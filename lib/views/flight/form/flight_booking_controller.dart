@@ -1,5 +1,6 @@
 // ignore_for_file: body_might_complete_normally_catch_error
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -354,175 +355,23 @@ final EmiratesFlightController emiratesController = Get.put(EmiratesFlightContro
 
   // Update the searchFlights method to include proper PIA API calls
   Future<void> searchFlights() async {
+    // Prevent multiple simultaneous searches
+    if (isSearching.value) {
+      debugPrint('Search already in progress, ignoring duplicate request');
+      return;
+    }
+    
     try {
       isSearching.value = true;
-
-      // Clear previous results
-      flightController.clearFlights();
-      airBlueFlightController.clearFlights();
-      airArabiaController.clearFlights();
-      piaFlightController.clearFlights();
-      flydubaiController.clearFlights();
-
-
-
-      // Prepare parameters
-      String origin = '';
-      String destination = '';
-      String formattedDates = '';
-
-      if (tripType.value == TripType.multiCity) {
-        origins.clear();
-        destinations.clear();
-
-        for (var pair in cityPairs) {
-          origins.add(pair.fromCity.value);
-          destinations.add(pair.toCity.value);
-        }
-
-        formattedDates = ',';
-        for (int i = 0; i < cityPairs.length; i++) {
-          if (i > 0) formattedDates += ',';
-          formattedDates += _formatDateForAPI(
-            cityPairs[i].departureDateTime.value,
-          );
-        }
-
-        origin = formattedOrigins;
-        destination = formattedDestinations;
-      } else {
-        origin = ',${fromCity.value}';
-        destination = ',${toCity.value}';
-        formattedDates = ',${_formatDateForAPI(departureDateTimeValue.value)}';
-        if (tripType.value == TripType.roundTrip) {
-          formattedDates += ',${_formatDateForAPI(returnDateTimeValue.value)}';
-        }
-      }
-
-      // Call APIs in parallel
-      final futures = [
-          _callEmiratesApi(
-        type: tripType.value == TripType.multiCity ? 2 : (tripType.value == TripType.roundTrip ? 1 : 0),
-        origin: origin,
-        destination: destination,
-        depDate: formattedDates,
-        adult: adultCount.value,
-        child: childrenCount.value,
-        infant: infantCount.value,
-        cabin: travelClass.value,
-      ),
-        _callSabreApi(
-          type: tripType.value == TripType.multiCity ? 2 : (tripType.value == TripType.roundTrip ? 1 : 0),
-          origin: origin,
-          destination: destination,
-          depDate: formattedDates,
-          adult: adultCount.value,
-          child: childrenCount.value,
-          infant: infantCount.value,
-          cabin: travelClass.value.toUpperCase(),
-        ),
-
-        // // Call AirBlue API for all trip types including multi-city
-        _callAirBlueApi(
-          type: tripType.value == TripType.multiCity ? 2 : (tripType.value == TripType.roundTrip ? 1 : 0),
-          origin: origin,
-          destination: destination,
-          depDate: formattedDates,
-
-
-          adult: adultCount.value,
-          child: childrenCount.value,
-          infant: infantCount.value,
-          cabin: travelClass.value,
-        ),
-
-
-
-        // Call Air Arabia API for all trip types except multi-city
-          _callAirArabiaApi(
-            type: tripType.value == TripType.multiCity ? 2 : (tripType.value == TripType.roundTrip ? 1 : 0),
-            origin: origin,
-            destination: destination,
-            depDate: formattedDates,
-            adult: adultCount.value,
-            child: childrenCount.value,
-            infant: infantCount.value,
-            
-            cabin: travelClass.value,
-          ),
-      ];
-
-      // 2. FlyDubai API (via FlyDubai controller) - SINGLE CALL, NO DUPLICATES
-      futures.add(_callFlyDubaiApi(
-        type: tripType.value == TripType.multiCity ? 2 : (tripType.value == TripType.roundTrip ? 1 : 0),
-        origin: origin,
-        destination: destination,
-        depDate: formattedDates,
-        adult: adultCount.value,
-        child: childrenCount.value,
-        infant: infantCount.value,
-        cabin: travelClass.value,
-      ));
-
-      // Add PIA API call based on trip type
-      if (tripType.value == TripType.multiCity && cityPairs.isNotEmpty) {
-        // Prepare multi-city segments
-        final segments = cityPairs
-            .map(
-              (pair) => {
-            'from': pair.fromCity.value,
-            'to': pair.toCity.value,
-            'date': _formatDateForAPI(pair.departureDateTime.value),
-          },
-        )
-            .toList();
+      debugPrint('Starting flight search...');
       
-        futures.add(
-          _callPiaApi(
-            fromCity: cityPairs.first.fromCity.value,
-            toCity: cityPairs.first.toCity.value,
-            departureDate: _formatDateForAPI(
-              cityPairs.first.departureDateTime.value,
-            ),
-            adultCount: adultCount.value,
-            childCount: childrenCount.value,
-            infantCount: infantCount.value,
-            tripType: 'MULTI_DIRECTIONAL',
-            multiCitySegments: segments,
-          ),
-        );
-      } else {
-        futures.add(
-          _callPiaApi(
-            fromCity: fromCity.value,
-            toCity: toCity.value,
-            departureDate: _formatDateForAPI(departureDateTimeValue.value),
-            adultCount: adultCount.value,
-            childCount: childrenCount.value,
-            infantCount: infantCount.value,
-            tripType: tripType.value == TripType.roundTrip ? 'ROUND_TRIP' : 'ONE_WAY',
-            returnDate: tripType.value == TripType.roundTrip
-                ? _formatDateForAPI(returnDateTimeValue.value)
-                : null,
-          ),
-        );
-      }
-
-      // Don't wait for all APIs to complete - they'll update UI as they finish
-      Future.wait(futures).catchError((e) {
-        debugPrint('Error in flight model_controllers: $e');
-      });
-
-      // Navigate immediately to results page
-      Get.to(
-            () => FlightBookingPage(
-          scenario: tripType.value == TripType.roundTrip
-              ? FlightScenario.returnFlight
-              : (tripType.value == TripType.multiCity
-              ? FlightScenario.multiCity
-              : FlightScenario.oneWay),
-        ),
-      );
+      // Add a timeout to prevent the button from being stuck indefinitely
+      await Future.any([
+        _performSearch(),
+        Future.delayed(const Duration(seconds: 30), () {
+          throw TimeoutException('Search timeout after 30 seconds', const Duration(seconds: 30));
+        }),
+      ]);
     } catch (e, stackTrace) {
       debugPrint('Error in searchFlights: $e');
       debugPrint('Stack trace: $stackTrace');
@@ -534,8 +383,170 @@ final EmiratesFlightController emiratesController = Get.put(EmiratesFlightContro
         colorText: Colors.white,
       );
     } finally {
+      // Ensure isSearching is always reset, even if there's an error
       isSearching.value = false;
+      debugPrint('Search completed, isSearching reset to false');
     }
+  }
+
+  Future<void> _performSearch() async {
+    // Clear previous results
+    flightController.clearFlights();
+    airBlueFlightController.clearFlights();
+    airArabiaController.clearFlights();
+    piaFlightController.clearFlights();
+    flydubaiController.clearFlights();
+
+    // Prepare parameters
+    String origin = '';
+    String destination = '';
+    String formattedDates = '';
+
+    if (tripType.value == TripType.multiCity) {
+      origins.clear();
+      destinations.clear();
+
+      for (var pair in cityPairs) {
+        origins.add(pair.fromCity.value);
+        destinations.add(pair.toCity.value);
+      }
+
+      formattedDates = ',';
+      for (int i = 0; i < cityPairs.length; i++) {
+        if (i > 0) formattedDates += ',';
+        formattedDates += _formatDateForAPI(
+          cityPairs[i].departureDateTime.value,
+        );
+      }
+
+      origin = formattedOrigins;
+      destination = formattedDestinations;
+    } else {
+      origin = ',${fromCity.value}';
+      destination = ',${toCity.value}';
+      formattedDates = ',${_formatDateForAPI(departureDateTimeValue.value)}';
+      if (tripType.value == TripType.roundTrip) {
+        formattedDates += ',${_formatDateForAPI(returnDateTimeValue.value)}';
+      }
+    }
+
+    // Call APIs in parallel
+    final futures = [
+      _callEmiratesApi(
+        type: tripType.value == TripType.multiCity ? 2 : (tripType.value == TripType.roundTrip ? 1 : 0),
+        origin: origin,
+        destination: destination,
+        depDate: formattedDates,
+        adult: adultCount.value,
+        child: childrenCount.value,
+        infant: infantCount.value,
+        cabin: travelClass.value,
+      ),
+      _callSabreApi(
+        type: tripType.value == TripType.multiCity ? 2 : (tripType.value == TripType.roundTrip ? 1 : 0),
+        origin: origin,
+        destination: destination,
+        depDate: formattedDates,
+        adult: adultCount.value,
+        child: childrenCount.value,
+        infant: infantCount.value,
+        cabin: travelClass.value.toUpperCase(),
+      ),
+      // Call AirBlue API for all trip types including multi-city
+      _callAirBlueApi(
+        type: tripType.value == TripType.multiCity ? 2 : (tripType.value == TripType.roundTrip ? 1 : 0),
+        origin: origin,
+        destination: destination,
+        depDate: formattedDates,
+        adult: adultCount.value,
+        child: childrenCount.value,
+        infant: infantCount.value,
+        cabin: travelClass.value,
+      ),
+      // Call Air Arabia API for all trip types except multi-city
+      _callAirArabiaApi(
+        type: tripType.value == TripType.multiCity ? 2 : (tripType.value == TripType.roundTrip ? 1 : 0),
+        origin: origin,
+        destination: destination,
+        depDate: formattedDates,
+        adult: adultCount.value,
+        child: childrenCount.value,
+        infant: infantCount.value,
+        cabin: travelClass.value,
+      ),
+    ];
+
+    // FlyDubai API (via FlyDubai controller) - SINGLE CALL, NO DUPLICATES
+    futures.add(_callFlyDubaiApi(
+      type: tripType.value == TripType.multiCity ? 2 : (tripType.value == TripType.roundTrip ? 1 : 0),
+      origin: origin,
+      destination: destination,
+      depDate: formattedDates,
+      adult: adultCount.value,
+      child: childrenCount.value,
+      infant: infantCount.value,
+      cabin: travelClass.value,
+    ));
+
+    // Add PIA API call based on trip type
+    if (tripType.value == TripType.multiCity && cityPairs.isNotEmpty) {
+      // Prepare multi-city segments
+      final segments = cityPairs
+          .map(
+            (pair) => {
+          'from': pair.fromCity.value,
+          'to': pair.toCity.value,
+          'date': _formatDateForAPI(pair.departureDateTime.value),
+        },
+      )
+          .toList();
+    
+      futures.add(
+        _callPiaApi(
+          fromCity: cityPairs.first.fromCity.value,
+          toCity: cityPairs.first.toCity.value,
+          departureDate: _formatDateForAPI(
+            cityPairs.first.departureDateTime.value,
+          ),
+          adultCount: adultCount.value,
+          childCount: childrenCount.value,
+          infantCount: infantCount.value,
+          tripType: 'MULTI_DIRECTIONAL',
+          multiCitySegments: segments,
+        ),
+      );
+    } else {
+      futures.add(
+        _callPiaApi(
+          fromCity: fromCity.value,
+          toCity: toCity.value,
+          departureDate: _formatDateForAPI(departureDateTimeValue.value),
+          adultCount: adultCount.value,
+          childCount: childrenCount.value,
+          infantCount: infantCount.value,
+          tripType: tripType.value == TripType.roundTrip ? 'ROUND_TRIP' : 'ONE_WAY',
+          returnDate: tripType.value == TripType.roundTrip
+              ? _formatDateForAPI(returnDateTimeValue.value)
+              : null,
+        ),
+      );
+    }
+
+    // Don't wait for all APIs to complete - they'll update UI as they finish
+    Future.wait(futures).catchError((e) {
+      debugPrint('Error in flight model_controllers: $e');
+    });
+
+    // Navigate immediately to results page
+    Get.to(
+      () => FlightBookingPage(
+        scenario: tripType.value == TripType.roundTrip
+            ? FlightScenario.returnFlight
+            : (tripType.value == TripType.multiCity
+                ? FlightScenario.multiCity
+                : FlightScenario.oneWay),
+      ),
+    );
   }
   // Update the _callAirArabiaApi method in flight_booking_controller.dart
   Future<void> _callAirArabiaApi({

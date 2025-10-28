@@ -54,15 +54,17 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Get.back(),
         ),
-        title: Text(
-          _getAppBarTitle(),
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        title: const Text(
+          'Select a fare option',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
       body: Column(
         children: [
           _buildFlightInfo(),
-          Expanded(
+          SizedBox(height: 12,),
+          SizedBox(
+            height: 320, // Fixed height for the horizontal scrolling cards
             child: _buildPackagesList(),
           ),
         ],
@@ -186,36 +188,184 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 16, top: 8, bottom: 16),
-          child: Text(
-            'Available ',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: TColors.text,
-            ),
-          ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: fareOptions.length,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: _buildVerticalPackageCard(fareOptions[index], flight, index),
-              );
-            },
-          ),
-        ),
-      ],
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemCount: fareOptions.length,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: _buildHorizontalPackageCard(fareOptions[index], flight, index),
+        );
+      },
     );
   }
 
+
+  Widget _buildHorizontalPackageCard(AirBlueFareOption package, AirBlueFlight flight, int index) {
+    final isSoldOut = false;
+    final price = finalPrices['${package.cabinCode}-${package.fareName}']?.value ?? package.price;
+    
+    // Determine if this is the cheapest option
+    final List<AirBlueFareOption> allOptions = airBlueController.getFareOptionsForFlight(flight, segmentIndex: segmentIndex);
+    final sortedOptions = List<AirBlueFareOption>.from(allOptions);
+    sortedOptions.sort((a, b) => (finalPrices['${a.cabinCode}-${a.fareName}']?.value ?? a.price).compareTo(finalPrices['${b.cabinCode}-${b.fareName}']?.value ?? b.price));
+    final isCheapest = sortedOptions.isNotEmpty && package == sortedOptions.first;
+
+    return Container(
+      width: 280, // Decreased width so next card is partially visible
+      decoration: BoxDecoration(
+        color: TColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(
+                  package.fareName,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: TColors.text,
+                  ),
+                ),
+              ),
+              
+              // Package details
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    _buildCompactPackageDetail(
+                      Icons.work_outline_rounded,
+                      'Carry-on Baggage',
+                      '6kg 1 Piece',
+                    ),
+                    const SizedBox(height: 12),
+                    _buildCompactPackageDetail(
+                      Icons.luggage,
+                      'Check-in Baggage',
+                      package.baggageAllowance,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildCompactPackageDetail(
+                      Icons.airline_seat_recline_normal,
+                      'Seat Selection',
+                      'Additional Cost',
+                    ),
+                    const SizedBox(height: 12),
+                    _buildCompactPackageDetail(
+                      Icons.restaurant_rounded,
+                      'Meal',
+                      'Additional Cost',
+                    ),
+                    const SizedBox(height: 12),
+                    _buildCompactPackageDetail(
+                      Icons.flight_takeoff,
+                      'Cancellation',
+                      'From PKR${(price * 0.4).toStringAsFixed(0)}',
+                      isPrice: true,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildCompactPackageDetail(
+                      Icons.edit_rounded,
+                      'Change',
+                      'From PKR${(price * 0.34).toStringAsFixed(0)}',
+                      isPrice: true,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+              
+              // Price button
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Obx(() => SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: isSoldOut || isLoading.value
+                        ? null
+                        : () => onSelectPackage(index),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isSoldOut ? Colors.grey : TColors.primary,
+                      foregroundColor: TColors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: isLoading.value
+                        ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(TColors.white),
+                      ),
+                    )
+                        : Text(
+                      'PKR ${price.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                )),
+              ),
+            ],
+          ),
+          
+          // "Cheapest" text positioned on top border
+          if (isCheapest)
+            Positioned(
+              top: -8,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.grey.shade200,
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    'Cheapest',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.green.shade600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildVerticalPackageCard(AirBlueFareOption package, AirBlueFlight flight, int index) {
     final headerColor = TColors.primary;
@@ -400,6 +550,41 @@ class AirBluePackageSelectionDialog extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCompactPackageDetail(
+      IconData icon,
+      String title,
+      String value, {
+        bool isPrice = false,
+      }) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 16,
+          color: TColors.text.withOpacity(0.6),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 13,
+              color: TColors.text.withOpacity(0.7),
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: isPrice ? TColors.primary : TColors.text,
+          ),
+        ),
+      ],
     );
   }
 

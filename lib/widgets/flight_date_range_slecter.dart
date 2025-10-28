@@ -187,8 +187,10 @@ class CustomDateRangeSelector extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder:
-          (context) => _GridCalendarPicker(
+      enableDrag: true,
+      isDismissible: true,
+      useSafeArea: true,
+      builder: (context) => _AnimatedGridCalendarPicker(
         initialDate: selectedDate ?? DateTime.now(),
         onDateSelected: (date) {
           if (onDateChanged != null) {
@@ -807,6 +809,123 @@ class _ColumnCalendarPickerState extends State<_ColumnCalendarPicker> {
           ),
         ],
       ),
+    );
+  }
+}
+
+// Animated wrapper for the grid calendar picker
+class _AnimatedGridCalendarPicker extends StatefulWidget {
+  final DateTime initialDate;
+  final Function(DateTime) onDateSelected;
+  final DateSelectorMode mode;
+
+  const _AnimatedGridCalendarPicker({
+    required this.initialDate,
+    required this.onDateSelected,
+    required this.mode,
+  });
+
+  @override
+  State<_AnimatedGridCalendarPicker> createState() => _AnimatedGridCalendarPickerState();
+}
+
+class _AnimatedGridCalendarPickerState extends State<_AnimatedGridCalendarPicker>
+    with TickerProviderStateMixin {
+  late AnimationController _slideController;
+  late AnimationController _fadeController;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Slide animation controller
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+    
+    // Fade animation controller
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    
+    // Slide animation (bottom to up)
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _slideController,
+      curve: Curves.easeOutCubic,
+    ));
+    
+    // Fade animation for backdrop
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeOut,
+    ));
+    
+    // Start animations
+    _slideController.forward();
+    _fadeController.forward();
+  }
+
+  @override
+  void dispose() {
+    _slideController.dispose();
+    _fadeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _closeSheet() async {
+    await Future.wait([
+      _slideController.reverse(),
+      _fadeController.reverse(),
+    ]);
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([_slideAnimation, _fadeAnimation]),
+      builder: (context, child) {
+        return Stack(
+          children: [
+            // Backdrop with fade animation
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: _closeSheet,
+                child: Container(
+                  color: Colors.black.withOpacity(0.5 * _fadeAnimation.value),
+                ),
+              ),
+            ),
+            
+            // Calendar picker with slide animation
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: _GridCalendarPicker(
+                  initialDate: widget.initialDate,
+                  onDateSelected: widget.onDateSelected,
+                  mode: widget.mode,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

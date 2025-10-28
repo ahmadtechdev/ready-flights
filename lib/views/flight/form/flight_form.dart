@@ -1,5 +1,6 @@
 // flight_booking_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:ready_flights/widgets/flight_date_range_slecter.dart';
 import '../../../utility/colors.dart';
@@ -883,32 +884,128 @@ class FlightBookingScreen extends StatelessWidget {
     return Obx(
           () => Container(
         width: double.infinity,
-        height: AppConstants.buttonHeight,
-        child: ElevatedButton(
-          onPressed: () => controller.searchFlights(),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: TColors.primary,
-            shape: RoundedRectangleBorder(
+        height: AppConstants.buttonHeight + 8, // Add extra height for better tap area
+        padding: const EdgeInsets.symmetric(vertical: 4), // Add padding for larger tap area
+        child: GestureDetector(
+          onTap: _canSearch() && !controller.isSearching.value 
+              ? () => _handleSearchTap()
+              : null,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _canSearch() && !controller.isSearching.value 
+                  ? () => _handleSearchTap()
+                  : null,
               borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+              splashColor: _canSearch() && !controller.isSearching.value 
+                  ? Colors.white.withOpacity(0.2)
+                  : Colors.transparent,
+              highlightColor: _canSearch() && !controller.isSearching.value 
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.transparent,
+              child: Container(
+                height: AppConstants.buttonHeight,
+                decoration: BoxDecoration(
+                  color: _canSearch() && !controller.isSearching.value 
+                      ? TColors.primary 
+                      : Colors.grey.shade400,
+                  borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
+                  boxShadow: _canSearch() && !controller.isSearching.value 
+                      ? [
+                          BoxShadow(
+                            color: TColors.primary.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Center(
+                  child: controller.isSearching.value
+                      ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                      : Text(
+                    _getSearchButtonText(),
+                    style: AppConstants.buttonTextStyle.copyWith(
+                      color: _canSearch() && !controller.isSearching.value 
+                          ? Colors.white 
+                          : Colors.grey.shade600,
+                    ),
+                  ),
+                ),
+              ),
             ),
-            elevation: 0,
-          ),
-          child:
-          controller.isSearching.value
-              ? const SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(
-              strokeWidth: 3,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-          )
-              : const Text(
-            'SEARCH FLIGHTS',
-            style: AppConstants.buttonTextStyle,
           ),
         ),
       ),
     );
+  }
+
+  bool _canSearch() {
+    if (controller.tripType.value == TripType.multiCity) {
+      // For multi-city, check if all city pairs have valid data
+      if (controller.cityPairs.isEmpty) return false;
+      
+      for (var pair in controller.cityPairs) {
+        if (pair.fromCity.value.isEmpty || 
+            pair.toCity.value.isEmpty ||
+            pair.fromCity.value == pair.toCity.value) {
+          return false;
+        }
+      }
+      return true;
+    } else {
+      // For one-way and round-trip, check basic fields
+      return controller.fromCity.value.isNotEmpty && 
+             controller.toCity.value.isNotEmpty &&
+             controller.fromCity.value != controller.toCity.value;
+    }
+  }
+
+  String _getSearchButtonText() {
+    if (!_canSearch()) {
+      if (controller.tripType.value == TripType.multiCity) {
+        return 'SELECT CITIES & DATES';
+      } else {
+        return 'SELECT DEPARTURE & DESTINATION';
+      }
+    }
+    return 'SEARCH FLIGHTS';
+  }
+
+  void _handleSearchTap() async {
+    debugPrint('🔍 Search button tapped!');
+    
+    // Add haptic feedback for better UX
+    try {
+      HapticFeedback.lightImpact();
+      debugPrint('✅ Haptic feedback triggered');
+    } catch (e) {
+      debugPrint('❌ Haptic feedback failed: $e');
+    }
+    
+    // Prevent multiple rapid taps
+    if (controller.isSearching.value) {
+      debugPrint('⚠️ Search already in progress, ignoring tap');
+      return;
+    }
+    
+    // Add a small delay to prevent accidental double-taps
+    await Future.delayed(const Duration(milliseconds: 50));
+    
+    // Check again after delay to ensure no duplicate calls
+    if (controller.isSearching.value) {
+      debugPrint('⚠️ Search started during delay, ignoring tap');
+      return;
+    }
+    
+    debugPrint('🚀 Starting search from button tap');
+    await controller.searchFlights();
   }
 }

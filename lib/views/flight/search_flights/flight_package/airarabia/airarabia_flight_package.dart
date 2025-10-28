@@ -81,17 +81,17 @@ class _AirArabiaPackageSelectionDialogState extends State<AirArabiaPackageSelect
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Get.back(),
         ),
-        title: Text(
-          widget.isReturnFlight
-              ? 'Select Return Flight Package'
-              : 'Select Flight Package',
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        title: const Text(
+          'Select a fare option',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
       body: Column(
         children: [
           _buildFlightInfo(),
-          Expanded(
+          SizedBox(height: 12),
+          SizedBox(
+            height: 320, // Fixed height for the horizontal scrolling cards
             child: _buildPackagesList(),
           ),
         ],
@@ -479,42 +479,39 @@ class _AirArabiaPackageSelectionDialogState extends State<AirArabiaPackageSelect
       }
 
       final dynamicPackages = packageResponse.value?.packages ?? [];
-      final allPackages = [staticBasicPackage, ...dynamicPackages];
+      
+      // Create a set to track unique packages and avoid duplicates
+      final Set<String> seenPackages = {};
+      final List<AirArabiaPackage> uniquePackages = [];
+      
+      // Add static basic package first
+      uniquePackages.add(staticBasicPackage);
+      seenPackages.add('${staticBasicPackage.packageType}-${staticBasicPackage.packageName}');
+      
+      // Add dynamic packages, avoiding duplicates
+      for (var package in dynamicPackages) {
+        final packageKey = '${package.packageType}-${package.packageName}';
+        if (!seenPackages.contains(packageKey)) {
+          uniquePackages.add(package);
+          seenPackages.add(packageKey);
+        }
+      }
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 16, top: 8, bottom: 16),
-            child: Text(
-              'Available Packages',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: TColors.text,
-              ),
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: allPackages.length,
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _buildPackageCard(allPackages[index], index),
-                );
-              },
-            ),
-          ),
-        ],
+      return ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: uniquePackages.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: _buildHorizontalPackageCard(uniquePackages[index], index),
+          );
+        },
       );
     });
   }
 
-  Widget _buildPackageCard(AirArabiaPackage package, int index) {
-    final headerColor = _getPackageColor(package.packageType);
-    
+  Widget _buildHorizontalPackageCard(AirArabiaPackage package, int index) {
     // Calculate final price with margin
     final double price;
     if (package.packageType == 'Basic' && package.basePrice == 0.0) {
@@ -526,127 +523,203 @@ class _AirArabiaPackageSelectionDialogState extends State<AirArabiaPackageSelect
           (package.totalPrice + widget.flight.price);
     }
 
+    // Determine if this is the cheapest option
+    final dynamicPackages = packageResponse.value?.packages ?? [];
+    
+    // Create unique packages list (same logic as in _buildPackagesList)
+    final Set<String> seenPackages = {};
+    final List<AirArabiaPackage> uniquePackages = [];
+    
+    uniquePackages.add(staticBasicPackage);
+    seenPackages.add('${staticBasicPackage.packageType}-${staticBasicPackage.packageName}');
+    
+    for (var pkg in dynamicPackages) {
+      final packageKey = '${pkg.packageType}-${pkg.packageName}';
+      if (!seenPackages.contains(packageKey)) {
+        uniquePackages.add(pkg);
+        seenPackages.add(packageKey);
+      }
+    }
+    
+    final sortedPackages = List<AirArabiaPackage>.from(uniquePackages);
+    sortedPackages.sort((a, b) {
+      final priceA = a.packageType == 'Basic' && a.basePrice == 0.0
+          ? widget.flight.price
+          : finalPrices['${a.packageType}-${a.packageName}']?.value ?? (a.totalPrice + widget.flight.price);
+      final priceB = b.packageType == 'Basic' && b.basePrice == 0.0
+          ? widget.flight.price
+          : finalPrices['${b.packageType}-${b.packageName}']?.value ?? (b.totalPrice + widget.flight.price);
+      return priceA.compareTo(priceB);
+    });
+    
+    final isCheapest = sortedPackages.isNotEmpty && 
+        package.packageName == sortedPackages.first.packageName && 
+        package.packageType == sortedPackages.first.packageType;
+
     return Container(
+      width: 280, // Decreased width so next card is partially visible
       decoration: BoxDecoration(
         color: TColors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Column(
+      child: Stack(
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  headerColor,
-                  headerColor.withOpacity(0.85),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    package.packageName,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: TColors.white,
-                    ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(
+                  package.packageName,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: TColors.text,
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: TColors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: TColors.white.withOpacity(0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Text(
-                    'PKR ${price.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: TColors.white,
-                    ),
-                  ),
+              ),
+              
+              // Package details
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    _buildCompactPackageDetail(Icons.work_outline_rounded, 'Hand Baggage', '7 Kg'),
+                    const SizedBox(height: 12),
+                    _buildCompactPackageDetail(Icons.luggage, 'Checked Baggage', package.baggageAllowance),
+                    const SizedBox(height: 12),
+                    _buildCompactPackageDetail(Icons.restaurant_rounded, 'Meal', package.mealInfo),
+                    const SizedBox(height: 12),
+                    _buildCompactPackageDetail(Icons.airline_seat_recline_normal, 'Seat', package.seatInfo),
+                    const SizedBox(height: 12),
+                    _buildCompactPackageDetail(Icons.swap_horiz_rounded, 'Modification', package.modificationPolicy),
+                    const SizedBox(height: 12),
+                    _buildCompactPackageDetail(Icons.money_off_rounded, 'Cancellation', package.cancellationPolicy),
+                    const SizedBox(height: 16),
+                  ],
                 ),
-              ],
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              children: [
-                _buildPackageDetail(Icons.work_outline_rounded, 'Hand Baggage', '7 Kg'),
-                const SizedBox(height: 12),
-                _buildPackageDetail(Icons.luggage, 'Checked Baggage', package.baggageAllowance),
-                const SizedBox(height: 12),
-                _buildPackageDetail(Icons.restaurant_rounded, 'Meal', package.mealInfo),
-                const SizedBox(height: 12),
-                _buildPackageDetail(Icons.airline_seat_recline_normal, 'Seat', package.seatInfo),
-                const SizedBox(height: 12),
-                _buildPackageDetail(Icons.swap_horiz_rounded, 'Modification', package.modificationPolicy),
-                const SizedBox(height: 12),
-                _buildPackageDetail(Icons.money_off_rounded, 'Cancellation', package.cancellationPolicy),
-                const SizedBox(height: 16),
-
-                Obx(() => SizedBox(
+              ),
+              
+              // Price button
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Obx(() => SizedBox(
                   width: double.infinity,
-                  height: 44,
+                  height: 48,
                   child: ElevatedButton(
                     onPressed: isLoading.value ? null : () => onSelectPackage(index),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: TColors.primary,
                       foregroundColor: TColors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       elevation: 0,
                     ),
                     child: isLoading.value
                         ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(TColors.white),
-                            ),
-                          )
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                widget.isReturnFlight ? 'Select Return Flight ' : 'Select Flight ',
-                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(width: 6),
-                              const Icon(Icons.arrow_forward_rounded, size: 18),
-                            ],
-                          ),
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(TColors.white),
+                      ),
+                    )
+                        : Text(
+                      'PKR ${price.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 )),
-              ],
-            ),
+              ),
+            ],
           ),
+          
+          // "Cheapest" text positioned on top border
+          if (isCheapest)
+            Positioned(
+              top: -8,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.grey.shade200,
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    'Cheapest',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.green.shade600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCompactPackageDetail(IconData icon, String title, String value) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 16,
+          color: TColors.text.withOpacity(0.6),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 13,
+                color: TColors.text.withOpacity(0.7),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: TColors.text,
+              ),
+              textAlign: TextAlign.end,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -699,13 +772,27 @@ class _AirArabiaPackageSelectionDialogState extends State<AirArabiaPackageSelect
       isLoading.value = true;
 
       final dynamicPackages = packageResponse.value?.packages ?? [];
-      final allPackages = [staticBasicPackage, ...dynamicPackages];
       
-      if (selectedPackageIndex >= allPackages.length) {
+      // Create unique packages list (same logic as in _buildPackagesList)
+      final Set<String> seenPackages = {};
+      final List<AirArabiaPackage> uniquePackages = [];
+      
+      uniquePackages.add(staticBasicPackage);
+      seenPackages.add('${staticBasicPackage.packageType}-${staticBasicPackage.packageName}');
+      
+      for (var package in dynamicPackages) {
+        final packageKey = '${package.packageType}-${package.packageName}';
+        if (!seenPackages.contains(packageKey)) {
+          uniquePackages.add(package);
+          seenPackages.add(packageKey);
+        }
+      }
+      
+      if (selectedPackageIndex >= uniquePackages.length) {
         throw Exception('Invalid package selection');
       }
 
-      final selectedPackage = allPackages[selectedPackageIndex];
+      final selectedPackage = uniquePackages[selectedPackageIndex];
 
       airArabiaController.selectedPackage = selectedPackage;
       airArabiaController.selectedFlight = widget.flight;
