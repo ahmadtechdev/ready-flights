@@ -18,13 +18,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool _showBookingCard = true;
-
-  void _toggleBookingCard() {
-    setState(() {
-      _showBookingCard = !_showBookingCard;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,10 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: SingleChildScrollView(
             child: Column(
               children: [
-                HomeBanner(
-                  showBookingCard: _showBookingCard,
-                  onToggleBooking: _toggleBookingCard,
-                ),
+                const HomeBanner(),
                 const SizedBox(height: 60),
                 const CustomerServiceSection(),
                 const SizedBox(height: 30),
@@ -85,21 +75,15 @@ class CurrencySelector extends StatelessWidget {
 }
 
 class HomeBanner extends StatelessWidget {
-  final bool showBookingCard;
-  final VoidCallback onToggleBooking;
-
-  const HomeBanner({
-    super.key,
-    required this.showBookingCard,
-    required this.onToggleBooking,
-  });
+  const HomeBanner({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
         Container(
-          height: showBookingCard ? 500 : 200,
+          width: double.infinity,
+          height: 425,
           decoration: const BoxDecoration(
             color: TColors.primary,
             image: DecorationImage(
@@ -118,86 +102,24 @@ class HomeBanner extends StatelessWidget {
                   Colors.black.withOpacity(0.5),
                   TColors.primary.withOpacity(0.8),
                 ],
-                stops: const [0.0, 0.5, 1.0],
+                stops: const [1, 1, 1.0],
               ),
             ),
-            child: Center(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 40, left: 20, right: 30),
               child: Text(
                 'Travel Bookings Made Easy',
                 style: AppConstants.bannerTitleStyle,
-                textAlign: TextAlign.center,
+                textAlign: TextAlign.start,
               ),
             ),
           ),
         ),
-        // Content based on booking card visibility
-        if (showBookingCard) ...[
-          // Close button when booking card is shown
-          Positioned(
-            top: 25,
-            right: 20,
-            child: FloatingActionButton(
-              mini: true,
-              onPressed: onToggleBooking,
-              backgroundColor: Colors.white,
-              foregroundColor: TColors.primary,
-              child: const Icon(Icons.close, size: 20),
-            ),
-          ),
-          // Booking card
-          const Padding(
-            padding: EdgeInsets.only(top: 40),
-            child: BookingCard(),
-          ),
-        ] else ...[
-          // Welcome content and buttons container when hidden
-          Container(
-            margin: const EdgeInsets.only(top: 120, left: AppConstants.screenPadding, right: AppConstants.screenPadding),
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppConstants.cardPadding),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(AppConstants.cardBorderRadius),
-              boxShadow: AppConstants.cardShadow,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: onToggleBooking,
-                    icon: const Icon(Icons.flight_land_sharp, size: AppConstants.iconSize),
-                    label: const Text(
-                      'Create New Booking',
-                      style: AppConstants.buttonTextStyle,
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: TColors.primary,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
-                      ),
-                      elevation: 0,
-                      shadowColor: Colors.transparent,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                FloatingActionButton(
-                  mini: true,
-                  onPressed: onToggleBooking,
-                  backgroundColor: Colors.white,
-                  foregroundColor: TColors.primary,
-                  elevation: 0,
-                  child: const Icon(Icons.add, size: AppConstants.iconSize),
-                ),
-              ],
-            ),
-          ),
-        ],
+        // Always show booking card
+        const Padding(
+          padding: EdgeInsets.only(top: 40),
+          child: BookingCard(),
+        ),
       ],
     );
   }

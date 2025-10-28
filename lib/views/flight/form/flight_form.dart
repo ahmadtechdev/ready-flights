@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:ready_flights/widgets/flight_date_range_slecter.dart';
 import '../../../utility/colors.dart';
 import '../../../utility/app_constants.dart';
 import '../../../widgets/city_selection_bottom_sheet.dart';
@@ -16,9 +15,47 @@ class FlightBookingScreen extends StatelessWidget {
   final FlightBookingController controller = Get.put(FlightBookingController());
 
   String _getCityDisplayName(String cityValue) {
-    // If it's just a code, return it as is for now
-    // You can enhance this to show full city names based on your data structure
+    // Try to get airport data to show city name with code
+    final airportData = _getAirportByCode(cityValue);
+    if (airportData != null) {
+      return '${airportData.cityName} (${airportData.code})';
+    }
+    
+    // Fallback: if no airport data found, try to get from controller's stored names
+    if (controller.fromCity.value == cityValue && controller.fromCityName.value.isNotEmpty) {
+      return '${controller.fromCityName.value} ($cityValue)';
+    }
+    if (controller.toCity.value == cityValue && controller.toCityName.value.isNotEmpty) {
+      return '${controller.toCityName.value} ($cityValue)';
+    }
+    
+    // Check multi-city pairs
+    for (var pair in controller.cityPairs) {
+      if (pair.fromCity.value == cityValue && pair.fromCityName.value.isNotEmpty) {
+        return '${pair.fromCityName.value} ($cityValue)';
+      }
+      if (pair.toCity.value == cityValue && pair.toCityName.value.isNotEmpty) {
+        return '${pair.toCityName.value} ($cityValue)';
+      }
+    }
+    
+    // Final fallback: return just the code
     return cityValue;
+  }
+
+  AirportData? _getAirportByCode(String code) {
+    try {
+      final airportController = Get.find<AirportController>();
+      for (var airport in airportController.airports) {
+        if (airport.code == code) {
+          return airport;
+        }
+      }
+      return null;
+    } catch (e) {
+      // AirportController not found or error accessing airports
+      return null;
+    }
   }
 
   String _formatDate(DateTime date) {
@@ -35,10 +72,10 @@ class FlightBookingScreen extends StatelessWidget {
     final children = controller.childrenCount.value;
     final infants = controller.infantCount.value;
     final total = adults + children + infants;
-    
+
     String passengerText = '$total Passenger';
     if (total > 1) passengerText += 's';
-    
+
     return '$passengerText, ${controller.travelClass.value}';
   }
 
@@ -51,25 +88,25 @@ class FlightBookingScreen extends StatelessWidget {
           return SingleChildScrollView(
             child: Column(
               children: [
-                const SizedBox(height: 16),
+                const SizedBox(height: 2),
                 _buildTripTypeSelector(),
-                const SizedBox(height: 20),
+                const SizedBox(height: 8),
 
                 // Different content based on trip type
                 if (controller.tripType.value != TripType.multiCity)
                   Column(
                     children: [
                       _buildCitySelector(context),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       _buildDateSelectors(context),
                     ],
                   )
                 else
                   _buildMultiCitySelector(context),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 _buildTravellerAndClassSelectors(context),
-                const SizedBox(height: 24),
+                const SizedBox(height: 8),
                 _buildSearchButton(),
               ],
             ),
@@ -83,108 +120,102 @@ class FlightBookingScreen extends StatelessWidget {
     return Obx(
           () => Row(
         children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () => controller.setTripType(TripType.oneWay),
-              child: Container(
-                margin: const EdgeInsets.only(right: 2),
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                decoration: BoxDecoration(
+          GestureDetector(
+            onTap: () => controller.setTripType(TripType.oneWay),
+            child: Container(
+              margin: const EdgeInsets.only(right: 4),
+              padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
+              decoration: BoxDecoration(
+                color: controller.tripType.value == TripType.oneWay
+                    ? TColors.primary.withOpacity(0.1)
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: controller.tripType.value == TripType.oneWay
+                      ? TColors.primary.withOpacity(0.3)
+                      : AppConstants.fieldBorderColor,
+                  width: 1,
+                ),
+                boxShadow: controller.tripType.value == TripType.oneWay
+                    ? AppConstants.cardShadow
+                    : null,
+              ),
+              child: Text(
+                'One Way',
+                style: TextStyle(
                   color: controller.tripType.value == TripType.oneWay
                       ? TColors.primary
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: controller.tripType.value == TripType.oneWay
-                        ? TColors.primary
-                        : AppConstants.fieldBorderColor,
-                    width: 1,
-                  ),
-                  boxShadow: controller.tripType.value == TripType.oneWay
-                      ? AppConstants.cardShadow
-                      : null,
+                      :TColors.text,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
                 ),
-                child: Text(
-                  'One Way',
-                  style: TextStyle(
-                    color: controller.tripType.value == TripType.oneWay
-                        ? Colors.white
-                        : TColors.primary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
+                textAlign: TextAlign.center,
               ),
             ),
           ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () => controller.setTripType(TripType.roundTrip),
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 2),
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                decoration: BoxDecoration(
+          GestureDetector(
+            onTap: () => controller.setTripType(TripType.roundTrip),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
+              decoration: BoxDecoration(
+                color: controller.tripType.value == TripType.roundTrip
+                    ? TColors.primary.withOpacity(0.1)
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: controller.tripType.value == TripType.roundTrip
+                      ? TColors.primary.withOpacity(0.3)
+                      : AppConstants.fieldBorderColor,
+                  width: 1,
+                ),
+                boxShadow: controller.tripType.value == TripType.roundTrip
+                    ? AppConstants.cardShadow
+                    : null,
+              ),
+              child: Text(
+                'Return',
+                style: TextStyle(
                   color: controller.tripType.value == TripType.roundTrip
                       ? TColors.primary
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: controller.tripType.value == TripType.roundTrip
-                        ? TColors.primary
-                        : AppConstants.fieldBorderColor,
-                    width: 1,
-                  ),
-                  boxShadow: controller.tripType.value == TripType.roundTrip
-                      ? AppConstants.cardShadow
-                      : null,
+                      : TColors.text,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
                 ),
-                child: Text(
-                  'Return',
-                  style: TextStyle(
-                    color: controller.tripType.value == TripType.roundTrip
-                        ? Colors.white
-                        : TColors.primary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
+                textAlign: TextAlign.center,
               ),
             ),
           ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () => controller.setTripType(TripType.multiCity),
-              child: Container(
-                margin: const EdgeInsets.only(left: 2),
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                decoration: BoxDecoration(
+          GestureDetector(
+            onTap: () => controller.setTripType(TripType.multiCity),
+            child: Container(
+              margin: const EdgeInsets.only(left: 4),
+              padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
+              decoration: BoxDecoration(
+                color: controller.tripType.value == TripType.multiCity
+                    ? TColors.primary.withOpacity(0.1)
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: controller.tripType.value == TripType.multiCity
+                      ? TColors.primary.withOpacity(0.3)
+                      : AppConstants.fieldBorderColor,
+                  width: 1,
+                ),
+                boxShadow: controller.tripType.value == TripType.multiCity
+                    ? AppConstants.cardShadow
+                    : null,
+              ),
+              child: Text(
+                'Multi City',
+                style: TextStyle(
                   color: controller.tripType.value == TripType.multiCity
                       ? TColors.primary
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: controller.tripType.value == TripType.multiCity
-                        ? TColors.primary
-                        : AppConstants.fieldBorderColor,
-                    width: 1,
-                  ),
-                  boxShadow: controller.tripType.value == TripType.multiCity
-                      ? AppConstants.cardShadow
-                      : null,
+                      : TColors.text,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
                 ),
-                child: Text(
-                  'Multi City',
-                  style: TextStyle(
-                    color: controller.tripType.value == TripType.multiCity
-                        ? Colors.white
-                        : TColors.primary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
+                textAlign: TextAlign.center,
               ),
             ),
           ),
@@ -213,7 +244,7 @@ class FlightBookingScreen extends StatelessWidget {
                   boxShadow: AppConstants.cardShadow,
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -223,7 +254,7 @@ class FlightBookingScreen extends StatelessWidget {
                             ? Row(
                                 children: [
                                   Icon(
-                                    Icons.flight_takeoff,
+                                    Icons.location_on_rounded,
                                     color: AppConstants.tabInactiveColor,
                                     size: AppConstants.smallIconSize,
                                   ),
@@ -237,7 +268,7 @@ class FlightBookingScreen extends StatelessWidget {
                             : Row(
                                 children: [
                                   Icon(
-                                    Icons.flight_takeoff,
+                                    Icons.location_on_rounded,
                                     color: TColors.primary,
                                     size: AppConstants.smallIconSize,
                                   ),
@@ -258,7 +289,7 @@ class FlightBookingScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
 
             // TO field
             GestureDetector(
@@ -269,13 +300,13 @@ class FlightBookingScreen extends StatelessWidget {
               child: Container(
                 height: AppConstants.fieldHeight,
                 decoration: BoxDecoration(
-                  color: AppConstants.fieldBackgroundColor,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(AppConstants.borderRadius),
                   border: Border.all(color: AppConstants.fieldBorderColor),
                   boxShadow: AppConstants.cardShadow,
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -285,7 +316,7 @@ class FlightBookingScreen extends StatelessWidget {
                             ? Row(
                                 children: [
                                   Icon(
-                                    Icons.flight_land,
+                                    Icons.location_on_rounded,
                                     color: AppConstants.tabInactiveColor,
                                     size: AppConstants.smallIconSize,
                                   ),
@@ -299,7 +330,7 @@ class FlightBookingScreen extends StatelessWidget {
                             : Row(
                                 children: [
                                   Icon(
-                                    Icons.flight_land,
+                                    Icons.location_on_rounded,
                                     color: TColors.primary,
                                     size: AppConstants.smallIconSize,
                                   ),
@@ -321,7 +352,7 @@ class FlightBookingScreen extends StatelessWidget {
             ),
           ],
         ),
-        
+
         // Swap button positioned to overlap both fields
         Positioned(
           left: 150,
@@ -339,8 +370,8 @@ class FlightBookingScreen extends StatelessWidget {
               child: IconButton(
                 icon: const Icon(
                   Icons.swap_vert,
-                  color: Colors.white,
-                  size: 18,
+                  color: TColors.grey,
+                  size: 32,
                 ),
                 onPressed: () => controller.swapCities(),
                 padding: EdgeInsets.zero,
@@ -463,8 +494,8 @@ class FlightBookingScreen extends StatelessWidget {
                 child: IconButton(
                   icon: const Icon(
                     Icons.swap_vert,
-                    color: Colors.white,
-                    size: 18,
+                    color: TColors.grey,
+                    size: 32,
                   ),
                   onPressed: () => controller.swapCitiesForPair(index),
                   padding: EdgeInsets.zero,
@@ -547,7 +578,7 @@ class FlightBookingScreen extends StatelessWidget {
             color: Colors.grey.shade200,
           ),
 
-          // Date field - Beautiful custom date picker
+          // Date field - Simple date picker like one-way
           GestureDetector(
             onTap: () async {
               final result = await showCustomDatePicker(
@@ -585,11 +616,6 @@ class FlightBookingScreen extends StatelessWidget {
                         style: AppConstants.fieldValueStyle,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    Icon(
-                      Icons.keyboard_arrow_down,
-                      color: AppConstants.tabInactiveColor,
-                      size: 16,
                     ),
                   ],
                 ),
@@ -660,62 +686,107 @@ class FlightBookingScreen extends StatelessWidget {
     );
   }
 
-  // Updated Date Selectors - Simple field showing only selected value
+  // Updated Date Selectors - Separate fields for round trip, single field for one way
   Widget _buildDateSelectors(BuildContext context) {
     return Obx(() {
       if (controller.tripType.value == TripType.roundTrip) {
-        // Round Trip - Show selected dates
-        return GestureDetector(
-          onTap: () async {
-            final result = await showCustomDateRangePicker(
-              context: context,
-              selectedDateRange: DateTimeRange(
-                start: controller.departureDateTimeValue.value,
-                end: controller.returnDateTimeValue.value,
-              ),
-              initialDate: controller.departureDateTimeValue.value,
-              title: 'Select Date Range',
-              label: 'Depart & Return',
-            );
-            if (result != null) {
-              controller.updateDepartureDate(result.start);
-              controller.updateReturnDate(result.end);
-            }
-          },
-          child: Container(
-            height: AppConstants.fieldHeight,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-              border: Border.all(color: AppConstants.fieldBorderColor),
-              boxShadow: AppConstants.cardShadow,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today,
-                    color: TColors.primary,
-                    size: AppConstants.smallIconSize,
+        // Round Trip - Two separate date fields in one row
+        return Row(
+          children: [
+            // Outbound date field
+            Expanded(
+              child: GestureDetector(
+                onTap: () async {
+                  final result = await showCustomDatePicker(
+                    context: context,
+                    selectedDate: controller.departureDateTimeValue.value,
+                    initialDate: controller.departureDateTimeValue.value,
+                    title: 'Select Departure Date',
+                    label: 'Depart on',
+                  );
+                  if (result != null) {
+                    controller.updateDepartureDate(result);
+                  }
+                },
+                child: Container(
+                  height: AppConstants.fieldHeight,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+                    border: Border.all(color: AppConstants.fieldBorderColor),
+                    boxShadow: AppConstants.cardShadow,
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '${_formatDate(controller.departureDateTimeValue.value)} - ${_formatDate(controller.returnDateTimeValue.value)}',
-                      style: AppConstants.fieldValueStyle,
-                      overflow: TextOverflow.ellipsis,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today,
+                          color: TColors.primary,
+                          size: AppConstants.smallIconSize,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _formatDate(controller.departureDateTimeValue.value),
+                            style: AppConstants.fieldValueStyle,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  Icon(
-                    Icons.keyboard_arrow_down,
-                    color: AppConstants.tabInactiveColor,
-                    size: 16,
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
+            const SizedBox(width: 8),
+            // Return date field
+            Expanded(
+              child: GestureDetector(
+                onTap: () async {
+                  final result = await showCustomDatePicker(
+                    context: context,
+                    selectedDate: controller.returnDateTimeValue.value,
+                    initialDate: controller.returnDateTimeValue.value,
+                    title: 'Select Return Date',
+                    label: 'Returning',
+                  );
+                  if (result != null) {
+                    controller.updateReturnDate(result);
+                  }
+                },
+                child: Container(
+                  height: AppConstants.fieldHeight,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+                    border: Border.all(color: AppConstants.fieldBorderColor),
+                    boxShadow: AppConstants.cardShadow,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today,
+                          color: TColors.primary,
+                          size: AppConstants.smallIconSize,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _formatDate(controller.returnDateTimeValue.value),
+                            style: AppConstants.fieldValueStyle,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         );
       } else {
         // One Way - Show selected date
@@ -756,11 +827,6 @@ class FlightBookingScreen extends StatelessWidget {
                       style: AppConstants.fieldValueStyle,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  Icon(
-                    Icons.keyboard_arrow_down,
-                    color: AppConstants.tabInactiveColor,
-                    size: 16,
                   ),
                 ],
               ),
@@ -813,11 +879,11 @@ class FlightBookingScreen extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              Icon(
-                Icons.keyboard_arrow_down,
-                color: AppConstants.tabInactiveColor,
-                size: 16,
-              ),
+              // Icon(
+              //   Icons.keyboard_arrow_down,
+              //   color: AppConstants.tabInactiveColor,
+              //   size: 16,
+              // ),
             ],
           ),
         ),
@@ -825,60 +891,6 @@ class FlightBookingScreen extends StatelessWidget {
     ));
   }
 
-  Widget _buildClassSelectors(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: GestureDetector(
-        onTap: () => controller.showClassSelectionBottomSheet(context),
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          child: Row(
-            children: [
-              Icon(Icons.person, color: Colors.grey.shade600, size: 16),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Class',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Obx(
-                          () => Text(
-                        '${controller.travelClass.value}',
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildSearchButton() {
     return Obx(
@@ -887,30 +899,30 @@ class FlightBookingScreen extends StatelessWidget {
         height: AppConstants.buttonHeight + 8, // Add extra height for better tap area
         padding: const EdgeInsets.symmetric(vertical: 4), // Add padding for larger tap area
         child: GestureDetector(
-          onTap: _canSearch() && !controller.isSearching.value 
+          onTap: _canSearch() && !controller.isSearching.value
               ? () => _handleSearchTap()
               : null,
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: _canSearch() && !controller.isSearching.value 
+              onTap: _canSearch() && !controller.isSearching.value
                   ? () => _handleSearchTap()
                   : null,
               borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
-              splashColor: _canSearch() && !controller.isSearching.value 
+              splashColor: _canSearch() && !controller.isSearching.value
                   ? Colors.white.withOpacity(0.2)
                   : Colors.transparent,
-              highlightColor: _canSearch() && !controller.isSearching.value 
+              highlightColor: _canSearch() && !controller.isSearching.value
                   ? Colors.white.withOpacity(0.1)
                   : Colors.transparent,
               child: Container(
                 height: AppConstants.buttonHeight,
                 decoration: BoxDecoration(
-                  color: _canSearch() && !controller.isSearching.value 
-                      ? TColors.primary 
+                  color: _canSearch() && !controller.isSearching.value
+                      ? TColors.primary
                       : Colors.grey.shade400,
                   borderRadius: BorderRadius.circular(AppConstants.buttonBorderRadius),
-                  boxShadow: _canSearch() && !controller.isSearching.value 
+                  boxShadow: _canSearch() && !controller.isSearching.value
                       ? [
                           BoxShadow(
                             color: TColors.primary.withOpacity(0.3),
@@ -930,13 +942,26 @@ class FlightBookingScreen extends StatelessWidget {
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   )
-                      : Text(
-                    _getSearchButtonText(),
-                    style: AppConstants.buttonTextStyle.copyWith(
-                      color: _canSearch() && !controller.isSearching.value 
-                          ? Colors.white 
-                          : Colors.grey.shade600,
-                    ),
+                      : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.search,
+                        color: _canSearch() && !controller.isSearching.value
+                            ? Colors.white
+                            : Colors.grey.shade600,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _getSearchButtonText(),
+                        style: AppConstants.buttonTextStyle.copyWith(
+                          color: _canSearch() && !controller.isSearching.value
+                              ? Colors.white
+                              : Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -951,9 +976,9 @@ class FlightBookingScreen extends StatelessWidget {
     if (controller.tripType.value == TripType.multiCity) {
       // For multi-city, check if all city pairs have valid data
       if (controller.cityPairs.isEmpty) return false;
-      
+
       for (var pair in controller.cityPairs) {
-        if (pair.fromCity.value.isEmpty || 
+        if (pair.fromCity.value.isEmpty ||
             pair.toCity.value.isEmpty ||
             pair.fromCity.value == pair.toCity.value) {
           return false;
@@ -962,7 +987,7 @@ class FlightBookingScreen extends StatelessWidget {
       return true;
     } else {
       // For one-way and round-trip, check basic fields
-      return controller.fromCity.value.isNotEmpty && 
+      return controller.fromCity.value.isNotEmpty &&
              controller.toCity.value.isNotEmpty &&
              controller.fromCity.value != controller.toCity.value;
     }
@@ -981,7 +1006,7 @@ class FlightBookingScreen extends StatelessWidget {
 
   void _handleSearchTap() async {
     debugPrint('🔍 Search button tapped!');
-    
+
     // Add haptic feedback for better UX
     try {
       HapticFeedback.lightImpact();
@@ -989,22 +1014,22 @@ class FlightBookingScreen extends StatelessWidget {
     } catch (e) {
       debugPrint('❌ Haptic feedback failed: $e');
     }
-    
+
     // Prevent multiple rapid taps
     if (controller.isSearching.value) {
       debugPrint('⚠️ Search already in progress, ignoring tap');
       return;
     }
-    
+
     // Add a small delay to prevent accidental double-taps
     await Future.delayed(const Duration(milliseconds: 50));
-    
+
     // Check again after delay to ensure no duplicate calls
     if (controller.isSearching.value) {
       debugPrint('⚠️ Search started during delay, ignoring tap');
       return;
     }
-    
+
     debugPrint('🚀 Starting search from button tap');
     await controller.searchFlights();
   }

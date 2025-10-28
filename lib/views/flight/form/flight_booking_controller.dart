@@ -995,12 +995,20 @@ final EmiratesFlightController emiratesController = Get.put(EmiratesFlightContro
     }
   }
 
-// Helper method to get airport data by code (you'll need to implement this)
+// Helper method to get airport data by code
   AirportData? _getAirportByCode(String code) {
-    // You'll need access to the list of airports here
-    // If you're using the AirportController, you might do:
-    final airportController = Get.find<AirportController>();
-    return airportController.airports.firstWhereOrNull((airport) => airport.code == code);
+    try {
+      final airportController = Get.find<AirportController>();
+      for (var airport in airportController.airports) {
+        if (airport.code == code) {
+          return airport;
+        }
+      }
+      return null;
+    } catch (e) {
+      // AirportController not found or error accessing airports
+      return null;
+    }
   }
 
 }

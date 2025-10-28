@@ -17,6 +17,7 @@ import 'search_flight_utils/widgets/currency_dialog.dart';
 import 'filters/flight_bottom_sheet.dart';
 import 'search_flight_utils/widgets/pia_flight_card.dart';
 import 'search_flight_utils/widgets/sabre_flight_card.dart';
+import '../form/flight_booking_controller.dart';
 
 enum FlightScenario { oneWay, returnFlight, multiCity }
 
@@ -48,50 +49,101 @@ class FlightBookingPage extends StatelessWidget {
           },
         ),
         title: Obx(() {
-          // Get total flight count including FlyDubai
-          final totalFlights = controller.filteredFlights.length +
-              airBlueController.flights.length +
-              piaController.filteredFlights.length +
-              airArabiaController.flights.length +
-              flyDubaiController.filteredOutboundFlights.length;
-
-          final isLoading = controller.isLoading.value ||
-              airBlueController.isLoading.value ||
-              piaController.isLoading.value ||
-              airArabiaController.isLoading.value ||
-              flyDubaiController.isLoading.value;
+          final flightBookingController = Get.find<FlightBookingController>();
+          
+          // Get flight search details
+          String origin = '';
+          String destination = '';
+          String date = '';
+          String travelClass = flightBookingController.travelClass.value;
+          int travelers = flightBookingController.travellersCount.value;
+          
+          if (flightBookingController.tripType.value == TripType.multiCity) {
+            if (flightBookingController.cityPairs.isNotEmpty) {
+              origin = flightBookingController.cityPairs.first.fromCityName.value;
+              destination = flightBookingController.cityPairs.last.toCityName.value;
+              date = flightBookingController.cityPairs.first.departureDate.value;
+            }
+          } else {
+            origin = flightBookingController.fromCityName.value;
+            destination = flightBookingController.toCityName.value;
+            date = flightBookingController.departureDate.value;
+          }
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  if (isLoading)
-                    const Text(
-                      'Searching flights...',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: TColors.text,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    )
-                  else
-                    Text(
-                      '$totalFlights Flights Found',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: TColors.text,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  Text(
+                    origin,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: TColors.text,
+                      fontWeight: FontWeight.bold,
                     ),
+                  ),
                   const SizedBox(width: 8),
-                  // Show loading indicator in the title
-                  if (isLoading)
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                  const Icon(
+                    Icons.swap_horiz,
+                    size: 12,
+                    color: TColors.text,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    destination,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: TColors.text,
+                      fontWeight: FontWeight.bold,
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 4,
+                    height: 4,
+                    decoration: const BoxDecoration(
+                      color: TColors.grey,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    date,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: TColors.text,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Text(
+                    travelClass,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: TColors.grey,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    '|',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: TColors.grey,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '$travelers ${travelers == 1 ? 'Traveller' : 'Travellers'}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: TColors.grey,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -243,8 +295,11 @@ Widget _buildFlightList() {
       return SingleChildScrollView(
         child: Column(
           children: [
-            // Emirates flights section
-            _buildEmiratesSection(), // Add this
+            // Total flights count
+            _buildTotalFlightsCount(),
+
+            const SizedBox(height: 6),
+
 
             // AirBlue flights section
             _buildAirBlueSection(),
@@ -261,6 +316,10 @@ Widget _buildFlightList() {
             // Air Arabia flights section
             _buildAirArabiaSection(),
 
+            // Emirates flights section
+            _buildEmiratesSection(), // Add this
+
+
             const SizedBox(height: 36),
           ],
         ),
@@ -269,6 +328,41 @@ Widget _buildFlightList() {
   );
 }
 // Add this to the FlightBookingPage class
+
+Widget _buildTotalFlightsCount() {
+  return Obx(() {
+    // Get total flight count including all airlines
+    final totalFlights = controller.filteredFlights.length +
+        airBlueController.flights.length +
+        piaController.filteredFlights.length +
+        airArabiaController.flights.length +
+        flyDubaiController.filteredOutboundFlights.length +
+        emiratesController.filteredFlights.length;
+
+    final isLoading = controller.isLoading.value ||
+        airBlueController.isLoading.value ||
+        piaController.isLoading.value ||
+        airArabiaController.isLoading.value ||
+        flyDubaiController.isLoading.value ||
+        emiratesController.isLoading.value;
+
+    if (isLoading) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(
+        'We found $totalFlights ${totalFlights == 1 ? 'flight' : 'flights'} for you',
+        style: const TextStyle(
+          fontSize: 12,
+          color: TColors.text,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  });
+}
 
 Widget _buildEmiratesSection() {
   return Obx(() {
@@ -280,14 +374,10 @@ Widget _buildEmiratesSection() {
       return const SizedBox.shrink();
     }
 
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: emiratesController.filteredFlights.length,
-      itemBuilder: (context, index) {
-        final flight = emiratesController.filteredFlights[index];
+    return Column(
+      children: emiratesController.filteredFlights.map((flight) {
         return EmiratesFlightCard(flight: flight);
-      },
+      }).toList(),
     );
   });
 }
@@ -301,14 +391,10 @@ Widget _buildEmiratesSection() {
         return const SizedBox.shrink();
       }
 
-      return ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: airBlueController.filteredFlights.length,
-        itemBuilder: (context, index) {
-          final flight = airBlueController.filteredFlights[index];
+      return Column(
+        children: airBlueController.filteredFlights.map((flight) {
           return AirBlueFlightCard(flight: flight);
-        },
+        }).toList(),
       );
     });
   }
@@ -323,14 +409,10 @@ Widget _buildEmiratesSection() {
         return const SizedBox.shrink();
       }
 
-      return ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: flyDubaiController.filteredOutboundFlights.length,
-        itemBuilder: (context, index) {
-          final flight = flyDubaiController.filteredOutboundFlights[index];
+      return Column(
+        children: flyDubaiController.filteredOutboundFlights.map((flight) {
           return FlyDubaiFlightCard(flight: flight, showReturnFlight: false);
-        },
+        }).toList(),
       );
     });
   }
@@ -345,14 +427,10 @@ Widget _buildEmiratesSection() {
         return const SizedBox.shrink();
       }
 
-      return ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: controller.filteredFlights.length,
-        itemBuilder: (context, index) {
-          final flight = controller.filteredFlights[index];
+      return Column(
+        children: controller.filteredFlights.map((flight) {
           return FlightCard(flight: flight);
-        },
+        }).toList(),
       );
     });
   }
@@ -367,17 +445,13 @@ Widget _buildEmiratesSection() {
         return const SizedBox.shrink();
       }
 
-      return ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: piaController.filteredFlights.length,
-        itemBuilder: (context, index) {
-          final flight = piaController.filteredFlights[index];
+      return Column(
+        children: piaController.filteredFlights.map((flight) {
           return GestureDetector(
             onTap: () => piaController.handlePIAFlightSelection(flight),
             child: PIAFlightCard(flight: flight),
           );
-        },
+        }).toList(),
       );
     });
   }
@@ -392,17 +466,13 @@ Widget _buildEmiratesSection() {
         return const SizedBox.shrink();
       }
 
-      return ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: airArabiaController.filteredFlights.length,
-        itemBuilder: (context, index) {
-          final flight = airArabiaController.filteredFlights[index];
+      return Column(
+        children: airArabiaController.filteredFlights.map((flight) {
           return GestureDetector(
             onTap: () => airArabiaController.handleAirArabiaFlightSelection(flight),
             child: AirArabiaFlightCard(flight: flight),
           );
-        },
+        }).toList(),
       );
     });
   }

@@ -42,7 +42,7 @@ class _BookingCardState extends State<BookingCard> {
                 });
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             // Show the relevant form based on the selected type
             if (selectedType == 'Flights') FlightBookingScreen(),
             if (selectedType == 'Hotels') HotelForm(),
