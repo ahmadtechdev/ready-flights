@@ -844,7 +844,7 @@ class _AirArabiaFlightCardState extends State<AirArabiaFlightCard>
                         Text(
                           formatTime(legSchedule['departure']['dateTime']),
                           style: const TextStyle(
-                            fontSize: 18,
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
                           ),
@@ -909,7 +909,7 @@ class _AirArabiaFlightCardState extends State<AirArabiaFlightCard>
                         Text(
                           formatTime(legSchedule['arrival']['dateTime']),
                           style: const TextStyle(
-                            fontSize: 18,
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
                           ),
@@ -939,12 +939,26 @@ class _AirArabiaFlightCardState extends State<AirArabiaFlightCard>
               children: [
                 const SizedBox(),
                 if (widget.isShowBookButton)
-                  Text(
-                    'PKR ${widget.flight.price.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: 'PKR ',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.normal,
+                            color: Colors.black54,
+                          ),
+                        ),
+                        TextSpan(
+                          text: NumberFormat('#,###').format(widget.flight.price),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
               ],

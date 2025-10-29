@@ -436,7 +436,7 @@ class _FlightCardState extends State<FlightCard>
                       Text(
                         formatTime(legSchedule['departure']['time'].toString()),
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: Colors.black,
                         ),
@@ -501,7 +501,7 @@ class _FlightCardState extends State<FlightCard>
                       Text(
                         formatTime(legSchedule['arrival']['time'].toString()),
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: Colors.black,
                         ),
@@ -532,12 +532,26 @@ class _FlightCardState extends State<FlightCard>
               const SizedBox(),
               if (widget.isShowBookButton)
                 GetX<SabreFlightController>(
-                  builder: (controller) => Text(
-                    '${controller.selectedCurrency.value} ${finalPrice.value.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                  builder: (controller) => Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '${controller.selectedCurrency.value} ',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.normal,
+                            color: Colors.black54,
+                          ),
+                        ),
+                        TextSpan(
+                          text: NumberFormat('#,###').format(finalPrice.value),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
